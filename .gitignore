@@ -1,0 +1,26 @@
+# Private data, credentials and user state MUST NEVER be committed.
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite
+*.sqlite3
+*.db
+*-wal
+*-shm
+*.journal
+*.log
+logs/
+research_data/
+gpu_research/
+tax_exports/
+*.dpapi
+*.pem
+*.key
+*coinbase*secret*
+.env
+.env.*
+*.csv
+*.xlsx
+*.zip
+.pytest_cache/
+.coverage
