@@ -1,4 +1,4 @@
-# v70.3 decision-chain review
+# v70.4 decision-chain review
 
 All replay prices, quantities, funding and fees in automated tests and benchmarks
 are synthetic. No account keys, Coinbase calls or production ledger writes occur.
@@ -9,6 +9,44 @@ are synthetic. No account keys, Coinbase calls or production ledger writes occur
 | AI Lab / decision | Eligible, listed, fundable one-order products; fresh books, authenticated fee evidence and numeric rules. Rank all costed sizes before clipping. | Restricted/offline/missing-rule cases; later funding asset wins; cache parity and expiry. |
 | Auto Trader / movement | Explicitly armed RAM SHADOW. Recheck approvals, source FX units, inventory, per-order/exposure/turnover/attempt caps and idempotency. | Actual urgent producer-to-consumer replay; stale/excluded/exhausted decisions blocked; no-op not counted. |
 | P&L / diagnostics | Same-time whole-wallet value minus frozen-quantity HOLD. Fees embedded once. Missing FX never becomes zero. | Independent quantities/deltas, complete 18-section export, hourly counts and mark age. |
+
+## All holdings and reuse
+
+Every positive approved native balance stays eligible regardless of its USD
+value. Account research uses min(enrolled, verified available). An armed SHADOW
+session uses its own evolving inventory; its newly acquired coins are immediately
+eligible for the next decision. Separate wallets are never pooled into one plan.
+Quote collection rotates across all funding alternatives while staying within
+request limits, so no alphabetical prefix monopolizes the quote budget. Required
+freshness and exchange sizes remain per-route constraints. Missing prices are
+reported, not treated as zero.
+
+Experimental SHADOW requires a strictly positive after-cost experimental score;
+there is no absolute dollar-score minimum. It can therefore consider a small
+score below $0.10. This remains a speculative score, not proof of a future gain.
+Urgent quote collection prices at least one complete funded route before using
+remaining slots for unrelated holdings' valuation refreshes, oldest first. A
+missing unrelated FX mark cannot suppress all route research. Experimental
+movement still requires synchronized, fresh route/source/destination books and
+known fee-currency marks. A missing source or destination FX path blocks that
+route. When unrelated marks are unavailable, whole-wallet P&L remains explicitly
+NOT VERIFIED; missing holdings are never assigned zero. Full comparable P&L is
+restored only after all required marks are complete and synchronized. A 22-source
+regression verifies that transition and exact inventory preservation. Historical
+outcome slices keep their own synchronization checks and do not become wins from
+asynchronous or missed prices. Validated marking rules are retained.
+
+Validated SHADOW keeps its manual USD floor and independent held-out rules. Both
+keep explicit spend limits, available quantities and exchange minimums. A small
+wallet does not waive those limits or force a trade.
+
+A synthetic $1.25 wallet regression exercises the actual urgent producer and
+consumer: USD buys BTC, then received BTC funds ETH on the next decision one
+artificial second later. These are two successive one-order decisions, not one
+two-leg route. A changed wallet invalidates the unchanged-alert cooldown, while
+an idle wallet/alert remains deduplicated. Forty tiny native holdings remain in
+the funding set; bounded quote batches reach all 25 funding alternatives in a
+separate test. These tests do not establish real settlement or profitability.
 
 ## Receipt and P&L math
 
@@ -60,9 +98,9 @@ exits are not additional orders in the conversion. Its estimate can differ from
 gross wallet mark-to-market P&L. Neither is confirmed realized Coinbase P&L,
 verified tax basis or an executable profit guarantee.
 
-## Speed and frequency evidence
+## Earlier speed benchmark and current frequency evidence
 
-The profiled comparison uses 804 listed products, 23 funding assets, three
+The retained v70.2/v70.3 profiled comparison uses 804 listed products, 23 funding assets, three
 synthetic destinations and the same 207 exploratory size attempts. Both runs
 include the background SELL advisory; urgent mode defers that advisory.
 

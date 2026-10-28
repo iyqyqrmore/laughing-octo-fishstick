@@ -146,7 +146,7 @@ class SyntheticApprovalAndPlanner(unittest.TestCase):
             required_assets=['BLOCKED'],quotes={},now=NOW,
             valuation_catalog=['BLOCKED-USD','ETH-USD'])
         self.assertEqual(selected['targets'],[('ETH','ETH-USD')])
-        self.assertEqual(selected['books'],['BLOCKED-USD','ETH-USD'])
+        self.assertEqual(selected['books'],['ETH-USD','BLOCKED-USD'])
         self.assertEqual(selected['candidate_routes'],1)
 
     def test_gpu_training_examples_only_read_current_approved_scope(self):

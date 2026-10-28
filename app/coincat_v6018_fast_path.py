@@ -11,18 +11,21 @@ MAX_TARGETS=3
 
 
 def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
-                      required_assets=(), quotes=None, now=None,target_assets=None,valuation_catalog=None):
-    """Refresh HOLD/current/fee marks before adding complete target dependencies.
+                      required_assets=(), quotes=None, now=None,target_assets=None,valuation_catalog=None,
+                      route_cursor=0):
+    """Price a complete funded route, then refresh remaining wallet marks fairly.
 
     Cached <=12s marks need not consume a request. A small budget refreshes marks
     in stages; it never invents coverage or an unlisted bridge. No research gate.
     """
     import time
-    from coincat_v701_quotes import mark_paths, mark_coverage
+    from coincat_v701_quotes import mark_paths, mark_coverage, newest_books
     from coincat_portfolio_prices import DISPLAY_MAX_SPREAD
     now = time.time() if now is None else now
     budget = min(MAX_FAST_BOOKS, max(0, int(limit)))
     available = set(catalog or ())
+    cursor=max(0,int(route_cursor))
+    fresh_routes=set(newest_books(quotes or {},now=now,max_age=12,max_spread=Decimal('.0025')))
     funding = {str(a).upper() for a in funding_assets or () if a}
     required = funding | set(required_assets or ())
     chosen, missing_paths, targets = [], [], []
@@ -46,12 +49,9 @@ def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
                 if pair not in chosen and pair not in needed: needed.append(pair)
         return needed
 
-    baseline = dependencies(required,valuation=True)
-    chosen.extend(baseline[:budget])
-    deferred = len(baseline) > budget
     routes = []
     for pair in alerts or ():
-        if deferred or len(targets) >= MAX_TARGETS: break
+        if len(targets) >= MAX_TARGETS: break
         if pair not in available or '-' not in pair: continue
         asset = (target_assets or {}).get(pair,pair.split('-')[0])
         if asset not in pair.split('-'):continue
@@ -59,23 +59,40 @@ def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
         direct = [p for fund in sorted(funding) for p in
                   (f'{asset}-{fund}', f'{fund}-{asset}') if p in available]
         if not direct: continue
+        offset=cursor%len(direct)
+        direct=direct[offset:]+direct[:offset]
         # Prefer one complete conversion over seven routes with incomplete marks.
-        route = direct[0]
-        extra = list(dict.fromkeys([pair, route]+dependencies({asset})))
+        def source_for(route):
+            return next(a for a in route.split('-') if a!=asset)
+        # Known-price funding first; all alternatives still enter the rotation.
+        route = next((p for p in direct if source_for(p)=='USD'),
+                     next((p for p in direct if p in fresh_routes),direct[0]))
+        extra = list(dict.fromkeys([pair]+([] if route in fresh_routes else [route])+
+                                  dependencies({asset,source_for(route)})))
         extra = [p for p in extra if p not in chosen]
         if len(chosen)+len(extra) > budget: continue
         chosen.extend(extra)
         targets.append((asset, pair))
         routes.extend(p for p in direct if p not in routes)
+    # Missing/unrelated holdings must not consume every slot before a funded
+    # target. Refresh their marks next, oldest first, without fabricating prices.
+    baseline=dependencies(required,valuation=True)
+    cached=newest_books(quotes or {},now=now,max_age=180)
+    baseline.sort(key=lambda p:(cached.get(p,(None,None,float('-inf')))[2],p))
+    remaining=max(0,budget-len(chosen))
+    chosen.extend(baseline[:remaining])
+    deferred=len(baseline)>remaining
     # Remaining capacity can verify alternative funding routes, never displace
     # a required HOLD/current mark or a complete selected target.
     for route in routes:
         if len(chosen)>=budget: break
-        if route not in chosen: chosen.append(route)
+        if route not in chosen and route not in fresh_routes: chosen.append(route)
     return {'targets': targets, 'books': chosen, 'candidate_routes': len(routes),
             'funding_assets': len(funding), 'max_books': MAX_FAST_BOOKS,
             'required_assets': sorted(required | {a for a, _ in targets}),
-            'unlisted_mark_assets': missing_paths, 'mark_refresh_deferred': deferred}
+            'unlisted_mark_assets': missing_paths, 'mark_refresh_deferred': deferred,
+            'funding_routes_deferred':sum(p not in chosen and p not in fresh_routes for p in routes),
+            'next_route_cursor':cursor+max(1,sum(p in routes for p in chosen))}
 
 
 def fast_candidates(targets, quotes, stream_snapshot, *, now, max_age=25):

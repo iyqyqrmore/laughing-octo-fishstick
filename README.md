@@ -1,10 +1,16 @@
-# CoinCat v70.3 — fast one-order decision chain
+# CoinCat v70.4 — all available holdings, reusable swap proceeds
 
 The approved, available portfolio funds one canonical planner. Fresh Coinbase
 books feed one-leg proposals into the explicitly armed, isolated SHADOW wallet;
 its current quantities and same-time HOLD comparison return to P&L. Excluded
-assets and unsupported products cannot become trade candidates. Model counts
-and execution counts are separate. See [PATCH_NOTES.md](PATCH_NOTES.md).
+assets and unsupported products cannot become trade candidates. Every positive
+available holding stays eligible without a wallet-dollar cutoff;
+newly received coins fund the next decision. Experimental scores must be positive
+after costs, with no absolute dollar-score hurdle. Exchange minimums and saved
+spending limits apply. Unrelated missing prices do not block a fully priced
+experimental route; whole-wallet P&L stays unverified until all required marks
+are complete and synchronized. Model counts and execution counts are separate.
+See [PATCH_NOTES.md](PATCH_NOTES.md).
 
 Read [START_HERE.md](START_HERE.md). Use one permanent main folder named `CoinCat`.
 The app, databases, encrypted credential vault, tax files and verified private

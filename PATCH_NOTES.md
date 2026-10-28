@@ -1,61 +1,57 @@
-# CoinCat v70.3 — faster one-order decisions and consistent accounting
+# CoinCat v70.4 — every available holding and immediate reuse
 
-The portfolio, canonical planner, isolated SHADOW wallet and P&L now share
-explicit approval, currency-unit, budget and market-observation contracts.
-The self-contained private_data/private_backups layout from v70.2 is retained.
-**LIVE Coinbase order POST remains unconditionally blocked.**
+Every positive, approved, available native balance remains funding inventory,
+regardless of the position's dollar value or the total wallet size. A newly
+received coin becomes fuel for the next decision as soon as processing updates
+that wallet. **Real Coinbase order POST remains unconditionally blocked.**
 
-* Apply Coinbase eligibility/restrictions, numeric product rules, online status
-  and explicit asset exclusions before selecting trade books or computing routes.
-  Sources must be enrolled and available; destinations may be any approved spot
-  asset. Stablecoin and crypto quotes remain eligible when actually listed.
-  No fabricated reverse product, bridge or multi-order funding basket enters the
-  active one-order handoff. Excluded assets already held can still require
-  separate valuation books; those books never create trade candidates.
-* Validate books and compute each currency's USD path once per decision. Cache
-  evidence once per source/target, rather than every size variant. Empty threshold
-  evidence returns immediately. Journal a fast quote batch in one research DB
-  transaction. Urgent decisions defer the optional background SELL advisory;
-  required funding, fee, product and freshness checks remain. Existing checkpoints
-  let urgent work run during broader research.
-* Rank all costed proposals before clipping, using the same provisional score in
-  the planner and experimental consumer. Score actual net destination receipts,
-  retain rounding residuals, and invert falling-base relative changes correctly
-  when studying the quote asset. Momentum remains an unvalidated assumption.
-* Remove the experimental 15-minute family cooldown and pending-outcome lock.
-  Suppress repeated consumption of the same route/quote observation. Fresh
-  decisions proceed while earlier outcomes are measured. Completed outcome
-  storage no longer creates a lifetime 144-route stop; missed 5/15/60-minute
-  windows are not substituted with arbitrarily late observations.
-* Correct SELL budgets to price BASE units and BUY budgets to price QUOTE units.
-  Both sides count toward one-order conversion turnover. Attempts remain counts;
-  wallet dollars no longer cap them. Honor saved daily turnover separately from
-  available fuel, so capital can be recycled within explicit limits. Apply active
-  SHADOW budgets before sizing, then recheck before movement. No defaults or saved
-  operator limits are automatically increased.
-* Freeze urgent decision books through the RAM wallet handoff; recheck approvals,
-  inventory and budgets. A FIFO replay/no-op does not count as a new conversion.
-  Do not overwrite held-wallet valuation rates based on candidate selection.
-* Refresh experimental P&L after urgent decisions and refresh its age while idle.
-  Show rolling-hour modeled conversions separately from real orders. Report
-  exploratory routes accurately and distinguish urgent/broad-scan freshness.
-  The common Snowball panel keeps the newest decision's evidence. GPU example
-  collection is limited to the current approved product scope.
+* Use one source-inventory selector for fundable markets, urgent quote selection
+  and unchanged-alert deduplication. With SHADOW armed, use the evolving wallet's
+  actual cached quantities. Each SHADOW wallet still funds its own canonical
+  plan; quote discovery can use their union without adding their money together.
+  In account research, use min(enrolled, verified available) for every asset.
+* Address the v70.2 diagnostic mark-refresh bottleneck: price a funded route
+  before refreshing unrelated holdings. A fully priced Experimental SHADOW
+  receipt can proceed while unrelated marks are missing; whole-wallet P&L stays
+  explicitly NOT VERIFIED until complete synchronized prices arrive. The route
+  book and its source/destination USD paths must be synchronized within 12s.
+  Missing source/destination FX still blocks that route. Recheck FX once per
+  actual pair, not once per size variant. Broad and urgent decisions use the same
+  frozen-book RAM-wallet/P&L consumer. Validated marking requirements remain.
+* Fix the validated wallet's newly acquired asset being omitted from urgent
+  quote selection. No original-USD bridge, restart, reenrollment or history
+  warm-up is needed to discover a direct route funded by an acquired coin.
+* Rotate the bounded quote queue across all listed funding alternatives. Reuse
+  fresh books instead of repeatedly spending the request budget on the same
+  alphabetically first holdings. Deferred routes are counted in diagnostics.
+  All positive native positions remain candidates; refreshing every book in
+  the same instant is still subject to Coinbase request/freshness limits.
+* Include current inventory and target direction in the unchanged-alert key.
+  Processed wallet changes can trigger a fresh decision even if the last public
+  trade price is unchanged. An unchanged wallet/alert still gets deduplicated.
+* Remove the absolute dollar-score hurdle from Experimental SHADOW: accept only
+  strictly positive after-cost experimental scores at any size. A small positive
+  score below ten cents is no longer rejected solely for its dollar amount.
+  This score remains unvalidated and can lose money. Zero/negative scores fail.
+  The manual dollar floor is retained for Validated SHADOW and labeled accordingly.
+* Preserve exchange minima/increments, available balances, explicit exclusions,
+  current fee/quote checks and saved order/exposure/turnover/attempt limits. Fix
+  the bridge's explicit exclusions when an excluded asset also has a balance.
+  No private financial schemas, lots, credentials or actual data were changed.
 
-Validation: **346 offline tests passed**, including 16 new chain tests, a
-12-conversion synthetic hourly replay, 150 sequential synthetic conversions,
-exact receipt/FIFO comparisons and complete 18/18 GUI diagnostics. The same
-profiled synthetic workload of 804 products, 23 funding assets and 207 size
-checks fell from **7.710s to 0.263s** on this cloud CPython 3.11 host. That measures
-planner work, not Coinbase latency or actual execution speed.
+Validation: **358 offline tests passed**, including twelve new regressions; complete
+18/18 GUI diagnostics and Python 3.11 syntax passed. A synthetic $1.25 wallet
+bought BTC, then funded ETH directly from the received BTC on the next decision.
+Separate tests keep subminimum orders, exhausted turnover, nonpositive scores
+and excluded holdings blocked. Forty tiny positive holdings stayed eligible;
+all 25 funding alternatives were reached across bounded quote batches. A
+22-source fixture reproduces incomplete unrelated marks without suppressing a
+fully priced route or inventing whole-wallet P&L; subsequent full marks restore
+an exact same-time HOLD comparison. Unsynchronized trade/FX prices and future
+outcomes fail their independent checks.
 
-Ten actual trades/hour cannot be established by these tests. A saved limit of
-12 conversions/24h cannot permit 10/hour all day: that needs capacity for at least
-240/24h and sufficient turnover, as well as qualifying opportunities. No quota
-forces a trade. Default limits remain unchanged.
-
-See [DECISION_CHAIN_REVIEW.md](DECISION_CHAIN_REVIEW.md) for math and limitations,
-[VERIFICATION.txt](VERIFICATION.txt) for evidence, and [START_HERE.md](START_HERE.md)
-for installation. The user's actual databases, tax lots and credentials were not
-accessed or changed. Windows/DPAPI/CUDA and connected Coinbase timing still need
-local verification. Historical release notes are under docs/history.
+Use [START_HERE.md](START_HERE.md) for installation and private-data import,
+[DECISION_CHAIN_REVIEW.md](DECISION_CHAIN_REVIEW.md) for the math/communication
+contract, and [VERIFICATION.txt](VERIFICATION.txt) for evidence. Windows execution,
+Coinbase settlement and connected timing still require local verification.
+The self-contained folder layout and versionless launchers are retained.

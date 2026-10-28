@@ -156,6 +156,7 @@ def _health_summary(app, wall, mono):
             ' (successful pricing/planning; no order or execution proof)',
         'Latest urgent attempt age: '+_show_age(_age(wall,(getattr(app,'_fast_last_result',{}) or {}).get('captured_at',0))),
         'Urgent approved/fundable scope counts: '+str((getattr(app,'_fast_last_result',{}) or {}).get('scope',{})),
+        'Urgent listed funding routes / waiting for next quote batch: '+str((getattr(app,'_fast_last_result',{}) or {}).get('funding_routes',{})),
         'Common Snowball panel source: '+str((getattr(app,'_snowball_summary',{}) or {}).get('event_source','UNKNOWN'))+
             '; age='+_show_age(_age(wall,(getattr(app,'_snowball_summary',{}) or {}).get('observed_at',0))),
         'Fast research loop count: '+str(getattr(app,'_fast_runs',0))+

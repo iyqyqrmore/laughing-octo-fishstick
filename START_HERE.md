@@ -1,4 +1,4 @@
-# Set up CoinCat v70.3
+# Set up CoinCat v70.4
 
 **LIVE order POST remains BLOCKED.** Do not delete an old folder until the new
 installation, its copied data and its independent backup have been verified.
@@ -20,7 +20,7 @@ installation, its copied data and its independent backup have been verified.
    and a separate copy in `CoinCat\private_backups`. Only a fully verified copy
    becomes active. It never deletes, overwrites or merges the original dataset.
 6. Start using `01_START_COINCAT.bat` or the newly created `CoinCat - START`
-   shortcut. Confirm **v70.3**, the expected records and exclusions, and no
+   shortcut. Confirm **v70.4**, the expected records and exclusions, and no
    unexplained Coinbase reconciliation differences. Close older shortcuts. The
    new launchers do not point at the V60/V70 AppData folders.
 7. Run `05_CHECK_CLEANUP.bat` and select an **old** folder. It only inspects; it

@@ -47,16 +47,17 @@ class QuoteSelection(unittest.TestCase):
         self.assertIn('SOL-USD',plan['books'])
         self.assertLessEqual(len(plan['books']),16)
 
-    def test_exhausted_budget_refreshes_in_stages_without_fake_targets(self):
+    def test_large_wallet_refreshes_in_stages_without_suppressing_fundable_target(self):
         assets=[f'C{i:02}' for i in range(20)]
         catalog=[f'{a}-USD' for a in assets]+['SOL-USD']
         first=select_fast_books(['SOL-USD'],catalog,['USD'],required_assets=assets,now=1000)
         self.assertEqual(len(first['books']),16)
         self.assertTrue(first['mark_refresh_deferred'])
-        self.assertEqual(first['targets'],[])
+        self.assertEqual(first['targets'],[('SOL','SOL-USD')])
+        self.assertEqual(first['books'][0],'SOL-USD')
         cache={p:('1','1.001',1000) for p in first['books']}
         second=select_fast_books(['SOL-USD'],catalog,['USD'],required_assets=assets,quotes=cache,now=1005)
-        self.assertEqual(len(second['books']),5)
+        self.assertEqual(len(second['books']),6)
         self.assertEqual(second['targets'],[('SOL','SOL-USD')])
 
     def test_sold_hold_and_fee_asset_dependencies_survive_without_sqlite_worker_access(self):

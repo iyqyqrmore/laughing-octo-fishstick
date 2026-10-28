@@ -1,4 +1,4 @@
-CoinCat v70.3 — ONE SELF-CONTAINED FOLDER
+CoinCat v70.4 — ONE SELF-CONTAINED FOLDER
 
 Read START_HERE.md. Use a new permanent CoinCat folder; do not overwrite an old installation.
 1. Run 02_SETUP_COINCAT.bat (CUDA) or 02_SETUP_COINCAT_CPU.bat.

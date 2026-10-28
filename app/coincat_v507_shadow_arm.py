@@ -67,6 +67,7 @@ class ShadowArmedResearch:
         self.price_touch_bands={label:0 for label,_ in PRICE_BANDS_BPS}
         self.notes=[]
         self.last_usd_rates={}
+        self.portfolio_marks_complete=True
         self.mark_problems={}
         self.fifo_portfolios={}   # IN-MEMORY per-price-band wallets only
         self.fifo_posted=0
@@ -141,6 +142,7 @@ class ShadowArmedResearch:
                                     3600:{'matured':0,'positive':0,'negative':0}}
         self.last_observation=None
         self.last_usd_rates={}
+        self.portfolio_marks_complete=True
         self.mark_problems={}
         self.stale_books=self.missing_usd_marks=0
         self.screened_price_bands={label:0 for label,_ in PRICE_BANDS_BPS}
@@ -187,9 +189,12 @@ class ShadowArmedResearch:
 
     def observe(self, *, now, quotes, usd_rates, researched_reviews=(), route_ideas=(),
                 minimum_advantage='0.10', max_ideas=12,
-                strict_quotes=False, risk_budgets=None,approved_catalog=None):
+                strict_quotes=False, risk_budgets=None,approved_catalog=None,portfolio_marks_complete=None):
         """One fresh completed market scan; NO network requests and NO order creation.
 
+        `minimum_advantage` controls validated research only. Experimental ideas
+        require a strictly positive after-cost score without an absolute dollar
+        hurdle. Neither track bypasses market minima or explicit spend limits.
         `usd_rates` must be externally verified fresh mark inputs, not trade ticks.
         A price touch is *not* an exchange fill, even if seen later.
         """
@@ -199,6 +204,7 @@ class ShadowArmedResearch:
         if not math.isfinite(now):return False
         if self.last_observation is not None and now<=self.last_observation:
             return False
+        self.portfolio_marks_complete=True if portfolio_marks_complete is None else bool(portfolio_marks_complete)
         # Outcome storage must not become a lifetime trading quota. Retain an
         # hour of experimental observations, with missing windows explicit.
         retained=[]
@@ -217,6 +223,16 @@ class ShadowArmedResearch:
         self.last_usd_rates=dict(usd_rates or {})
         books={name:book for name,raw in (quotes or {}).items()
                if (book:=_book(raw,now)) is not None}
+        slice_mark_cache={}
+        def slice_marks_complete(entry):
+            if self.portfolio_marks_complete:return True
+            from coincat_v701_quotes import mark_coverage
+            from coincat_portfolio_prices import DISPLAY_MAX_SPREAD
+            assets=tuple(sorted(set(entry.get('funding_inputs') or {entry['source']:0})|{entry['target']}))
+            if assets not in slice_mark_cache:
+                slice_mark_cache[assets]=mark_coverage(assets,books,now=now,
+                    max_spread=DISPLAY_MAX_SPREAD,max_legs=3)['complete']
+            return slice_mark_cache[assets]
         allowed=None if approved_catalog is None else set(approved_catalog)
         # Portfolio marking can retain a wider conservative bid. Order budgets
         # always use independent narrow, current, approved source-currency FX.
@@ -248,6 +264,7 @@ class ShadowArmedResearch:
                 if now-observed_start >= self.mark_horizon_s:
                     if self.experimental and now-observed_start>self.mark_horizon_s+OUTCOME_TOLERANCE_S:
                         continue  # A late price cannot stand in for a missed 5m mark.
+                    if not slice_marks_complete(entry):continue
                     dst=_decimal((usd_rates or {}).get(entry['target']))
                     inputs=entry.get('funding_inputs') or {entry['source']:entry['source_units']}
                     sources=[(_decimal((usd_rates or {}).get(asset)), _decimal(qty))
@@ -277,6 +294,7 @@ class ShadowArmedResearch:
                     if horizon in marks or now-entry['created_at']<horizon:continue
                     if now-entry['created_at']>horizon+OUTCOME_TOLERANCE_S:
                         marks[horizon]='NOT_OBSERVED_IN_WINDOW';continue
+                    if not slice_marks_complete(entry):continue
                     destination=_decimal((usd_rates or {}).get(entry['target']))
                     inputs=entry.get('funding_inputs') or {}
                     src_marks=[(_decimal((usd_rates or {}).get(asset)),_decimal(qty))
@@ -313,13 +331,13 @@ class ShadowArmedResearch:
             score=self._experimental_score(idea,usd_rates) if self.experimental else None
             if self.experimental:
                 self.experimental_screened+=1
-                if score is None:self.experimental_heuristic_rejected+=1
+                if score is None or score<=0:self.experimental_heuristic_rejected+=1
                 else:self.experimental_candidates+=1
-            if not (score is not None if self.experimental else (ordinary or basket)):
+            if not (score is not None and score>0 if self.experimental else (ordinary or basket)):
                 self.rejected+=1
                 continue
             net=score if self.experimental else _decimal(idea.get('net_p10_usd'))
-            floor=_decimal(minimum_advantage)
+            floor=Decimal(0) if self.experimental else _decimal(minimum_advantage)
             src=str(idea.get('source','')).upper()
             dst=str(idea.get('target','')).upper()
             pair=str(idea.get('trigger_pair','')).upper()
@@ -329,7 +347,7 @@ class ShadowArmedResearch:
             inputs=(idea.get('funding_inputs') or
                     ({src:source_units} if source_units is not None else {}))
             inputs={str(k).upper():_decimal(v) for k,v in inputs.items()}
-            if (net is None or floor is None or net<floor or
+            if (net is None or floor is None or net<floor or (self.experimental and net<=0) or
                 target_units is None or target_units<=0 or not inputs or
                 any(v is None or v<=0 for v in inputs.values()) or
                 not book or not src or not dst or src==dst):
@@ -461,7 +479,7 @@ class ShadowArmedResearch:
         hour=[n for t,n in self.hourly_model_fills if 0<=now-t<3600]
         counts={key:sum(e['band']==key for e in self.entries) for key,_ in PRICE_BANDS_BPS}
         pending=sum(e['state']=='PRICE_WAIT' for e in self.entries)
-        fifo_bands={}
+        fifo_bands={};complete_bands=0
         for label,wallet in self.fifo_portfolios.items():
             try:
                 fifo_bands[label]={'scenarios':wallet.scenarios,
@@ -469,8 +487,11 @@ class ShadowArmedResearch:
                     'verified_quantity_parity':wallet.quantity_parity(),
                     'hold_relative_usd':'NOT VERIFIED WITHOUT FRESH USD MARKS'}
                 try:
+                    if not self.portfolio_marks_complete:
+                        raise ShadowFIFOBlocked('Whole-wallet USD marks incomplete or unsynchronized')
                     value=wallet.mark_vs_hold(self.last_usd_rates)
                     fifo_bands[label]['counterfactual_portfolio_vs_hold_usd']=str(value['delta_usd'])
+                    complete_bands+=1
                 except (KeyError,ValueError,ShadowFIFOBlocked):
                     problems=wallet.mark_problems(self.last_usd_rates)
                     problems.update(getattr(self,'mark_problems',{}))
@@ -485,6 +506,7 @@ class ShadowArmedResearch:
         return {'modeled_conversions_last_hour':len(hour),'modeled_legs_last_hour':sum(hour),
                 'frequency_goal_per_hour':10,'duplicate_market_decisions':self.duplicate_decisions,
                 'last_mark_observed_at':self.last_observation,'retained_outcome_entries':len(self.entries),
+                'whole_wallet_marks_complete':bool(fifo_bands) and complete_bands==len(fifo_bands),
                 'expired_outcome_entries':self.expired_outcome_entries,
                 'armed':self.armed,'started_at':self.started_at,'stop_at':self.stop_at,
                 'completed_fresh_scans':self.scans,'observed_book_snapshots':self.market_snapshots,
@@ -518,6 +540,7 @@ class ShadowArmedResearch:
                 'not_live_equivalent_without_depth_partial_fill_recovery':True,
                 'shadow_fifo_uses_production_db':False,
                 'experimental':self.experimental,
+                'experimental_score_policy':'STRICTLY_POSITIVE_AFTER_COST_ANY_SIZE',
                 'experimental_snowball_fifo_count':self.experimental_snowball_posted,
                 'experimental_screened':self.experimental_screened,
                 'experimental_heuristic_accepted':self.experimental_candidates,
@@ -595,6 +618,10 @@ def experimental_shadow_report(app):
         'No real Coinbase order POST and NO permissions to the validated SHADOW or LIVE path.',
         'Experimental mode: '+('ARMED' if s['armed'] else 'DISARMED'),
         'Completed market scan observations: '+str(s['completed_fresh_scans']),
+        'Experimental score policy: strictly positive after-cost score, any size; no absolute dollar floor.',
+        'All positive approved available native balances are considered; exchange minimums and explicit spend limits apply.',
+        'Fully priced experimental routes can proceed with unrelated marks missing; whole-wallet P&L remains NOT VERIFIED until complete synchronized marks.',
+        'Whole-wallet mark coverage complete: '+str(s['whole_wallet_marks_complete']),
         'Costed one-order ideas screened: '+str(s['experimental_screened']),
         'Hypothetical repeat-observed-momentum scores clearing provisional filter: '+str(s['experimental_heuristic_accepted']),
         'Rejected by provisional filter: '+str(s['experimental_heuristic_rejected']),

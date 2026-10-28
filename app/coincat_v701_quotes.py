@@ -66,7 +66,7 @@ def mark_paths(asset, catalog, *, max_legs=2):
 
 
 def mark_coverage(assets, books, *, now, max_age=30, max_skew=12,
-                  max_spread=Decimal('.0025'), max_legs=2):
+                  max_spread=Decimal('.0025'), max_legs=2,required_pairs=()):
     clean = newest_books(books, now=now, max_age=max_age,max_spread=max_spread)
     rates, problems, stamps = {'USD': '1'}, {}, []
     for asset in sorted(set(assets)-{'USD'}):
@@ -77,6 +77,11 @@ def mark_coverage(assets, books, *, now, max_age=30, max_skew=12,
             continue
         rates[asset] = str(fx['rate'])
         stamps.extend(clean[p][2] for p in fx['path'])
+    for pair in required_pairs:
+        book=valid_book((books or {}).get(pair),now,max_age,Decimal('.0025'))
+        if book is None:
+            problems[pair]='ROUTE_BOOK_MISSING_STALE_WIDE_OR_INVALID';continue
+        stamps.append(book[2])
     span = max(stamps)-min(stamps) if stamps else 0
     if span > max_skew:
         problems['_snapshot'] = 'UNSYNCHRONIZED_USD_PATHS'

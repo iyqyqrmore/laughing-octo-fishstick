@@ -44,7 +44,7 @@ class FastSnowballTests(unittest.TestCase):
     def test_same_planner_single_worker_no_submit(self):
         s=(APP/'coincat_app.py').read_text()
         self.assertIn("self._async(self._fast_cycle,operation='fast Snowball research')",s)
-        self.assertIn('experimental_shadow.observe',s)
+        self.assertIn('self._apply_fast_experimental(',s)
         self.assertIn('shadow_screen(',s)
         self.assertIn('auto_rotation_screen(',s)
         self.assertIn('not needs_fills',s)

@@ -16,7 +16,7 @@ def shadow_screen(*, balances, excluded, buy_signals, age_s, catalog, quotes,
              for asset,qty in sorted(balances.items()) if str(qty)!='0'
              and asset not in set(excluded)]
     wallets.extend({'asset':asset,'remaining_qty':'0','enabled':0}
-                   for asset in sorted(set(excluded)) if asset not in balances)
+                   for asset in sorted(set(excluded)))
     result=auto_rotation_screen(buy_signals=buy_signals,holdings=wallets,
         verified_balances={str(k):str(v) for k,v in balances.items()},
         balance_age_s=age_s,catalog=catalog,quotes=quotes,
