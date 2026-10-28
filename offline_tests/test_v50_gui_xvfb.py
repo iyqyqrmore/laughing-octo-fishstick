@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix='CoinCatV60_GUI_FAKE_') as d:
     top=tk.Tk()
     try:
         app=CoinCatApp(top)
-        assert 'v70.1' in top.title(), top.title()
+        assert 'v70.1.1' in top.title(), top.title()
         seen=[]
         def walk(w):
             try:

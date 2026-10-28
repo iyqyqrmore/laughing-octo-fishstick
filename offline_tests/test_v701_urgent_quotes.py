@@ -27,7 +27,7 @@ class QuoteSelection(unittest.TestCase):
 
     def test_invalid_newer_does_not_displace_valid_quote_and_expiry_is_enforced(self):
         good={'BTC-USD':('100','100.01',999)}
-        for raw in [('NaN','101',1000),('102','101',1000),('100','101',1000),
+        for raw in [('NaN','101',1000),('102','101',1000),
                     ('100','100.01',1001),('100','100.01',float('nan')),None]:
             self.assertEqual(newest_books(good,{'BTC-USD':raw},now=1000)['BTC-USD'][2],999)
         self.assertFalse(newest_books({'BTC-USD':('100','100.01',900)},now=1000,max_age=30))
@@ -261,7 +261,7 @@ class SyntheticFastIntegration(unittest.TestCase):
     def test_missing_mandatory_mark_does_not_cool_down_recovery(self):
         app=self.app()
         def broken(pair,**kw):
-            if pair in ('USDC-USD','SOL-USD'):raise QuoteDeferred('SYNTHETIC_TIMEOUT')
+            if pair in ('USDC-USD','SOL-USD','BTC-USD'):raise QuoteDeferred('SYNTHETIC_TIMEOUT')
             return self.snapshot(pair)
         with patch('coincat_app.fetch_snapshot',side_effect=broken):
             first=app._fast_cycle()

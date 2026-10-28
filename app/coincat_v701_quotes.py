@@ -5,25 +5,29 @@ import math
 from coincat_cross_quote import usd_conversion
 
 
-def valid_book(raw, now, max_age=30):
+def valid_book(raw, now, max_age=30, max_spread=None):
     try:
         bid, ask, stamp = raw
         bid, ask, stamp = Decimal(str(bid)), Decimal(str(ask)), float(stamp)
         if (not bid.is_finite() or not ask.is_finite() or not math.isfinite(stamp)
                 or not 0 < bid <= ask or not 0 <= now-stamp <= max_age
-                or (ask-bid)/ask > Decimal('.0025')):
+                or (max_spread is not None and (ask-bid)/ask > max_spread)):
             return None
         return bid, ask, stamp
     except (TypeError, ValueError, InvalidOperation, OverflowError):
         return None
 
 
-def newest_books(*sources, now, max_age=180):
-    """Never overwrite a newer valid book; ties prefer the first source."""
+def newest_books(*sources, now, max_age=180, max_spread=None):
+    """Merge structural quotes first; consumers choose their own spread limit.
+
+    A newer wide book must displace an old tight book. Discarding it here would
+    hide current market conditions and incorrectly remove portfolio valuations.
+    """
     result = {}
     for source in sources:
         for pair, raw in (source or {}).items():
-            book = valid_book(raw, now, max_age)
+            book = valid_book(raw, now, max_age, max_spread)
             if book and (pair not in result or book[2] > result[pair][2]):
                 result[pair] = book
     return result
@@ -41,8 +45,8 @@ def required_shadow_assets(*sessions, funding=()):
     return sorted(a for a in assets if a and a != 'USD')
 
 
-def mark_paths(asset, catalog):
-    """Shortest listed path to USD, at most two legs; never assume a peg."""
+def mark_paths(asset, catalog, *, max_legs=2):
+    """Shortest bounded listed path to USD; never assume a stablecoin peg."""
     graph = {}
     for pair in sorted(set(catalog)):
         parts = pair.split('-')
@@ -55,17 +59,19 @@ def mark_paths(asset, catalog):
     for node, path, seen in queue:
         if node == 'USD':
             return path
-        if len(path) < 2:
+        if len(path) < max_legs:
             queue.extend((nxt, path+(pair,), seen | {nxt})
                          for nxt, pair in graph.get(node, ()) if nxt not in seen)
     return None
 
 
-def mark_coverage(assets, books, *, now, max_age=30, max_skew=12):
-    clean = newest_books(books, now=now, max_age=max_age)
+def mark_coverage(assets, books, *, now, max_age=30, max_skew=12,
+                  max_spread=Decimal('.0025'), max_legs=2):
+    clean = newest_books(books, now=now, max_age=max_age,max_spread=max_spread)
     rates, problems, stamps = {'USD': '1'}, {}, []
     for asset in sorted(set(assets)-{'USD'}):
-        fx = usd_conversion(asset, clean, now=now, max_age=max_age)
+        fx = usd_conversion(asset, clean, now=now, max_age=max_age,
+                            max_spread=max_spread,max_legs=max_legs)
         if fx is None:
             problems[asset] = 'MISSING_STALE_WIDE_OR_INVALID_USD_PATH'
             continue

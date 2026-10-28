@@ -19,6 +19,7 @@ def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
     """
     import time
     from coincat_v701_quotes import mark_paths, mark_coverage
+    from coincat_portfolio_prices import DISPLAY_MAX_SPREAD
     now = time.time() if now is None else now
     budget = min(MAX_FAST_BOOKS, max(0, int(limit)))
     available = set(catalog or ())
@@ -26,12 +27,15 @@ def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
     required = funding | set(required_assets or ())
     chosen, missing_paths, targets = [], [], []
 
-    def dependencies(assets):
+    def dependencies(assets, *, valuation=False):
         needed = []
         for asset in sorted(set(assets)-{'USD'}):
-            if mark_coverage([asset], quotes or {}, now=now, max_age=12)['complete']:
+            spread=DISPLAY_MAX_SPREAD if valuation else Decimal('.0025')
+            legs=3 if valuation else 2
+            if mark_coverage([asset], quotes or {}, now=now, max_age=12,
+                             max_spread=spread,max_legs=legs)['complete']:
                 continue
-            path = mark_paths(asset, available)
+            path = mark_paths(asset, available,max_legs=legs)
             if path is None:
                 if asset not in missing_paths: missing_paths.append(asset)
                 continue
@@ -39,7 +43,7 @@ def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
                 if pair not in chosen and pair not in needed: needed.append(pair)
         return needed
 
-    baseline = dependencies(required)
+    baseline = dependencies(required,valuation=True)
     chosen.extend(baseline[:budget])
     deferred = len(baseline) > budget
     routes = []

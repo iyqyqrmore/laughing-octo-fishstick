@@ -7,7 +7,7 @@ def main():
     manifest=root/'SHA256_MANIFEST_V60.json'
     try:data=json.loads(manifest.read_text(encoding='utf-8'))
     except (ValueError,OSError):return 2
-    if data.get('build')!='70.1-urgent-shadow-quotes-post-blocked':return 3
+    if data.get('build')!='70.1.1-shadow-valuation-separation-post-blocked':return 3
     files=data.get('files')
     if not isinstance(files,dict) or not files:return 4
     fails=[]

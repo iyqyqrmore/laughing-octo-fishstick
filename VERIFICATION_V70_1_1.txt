@@ -1,0 +1,26 @@
+CoinCat v70.1.1 verification evidence
+
+PASS: 308 offline unittest tests, including 13 new synthetic hotfix regressions.
+PASS: GUI smoke with DISARMED v70.1.1 title and 18/18 diagnostic export.
+PASS: Linux CPython 3.11.17 from the existing hash-locked installation.
+PASS: HTTP Session access was forbidden during suite discovery and execution.
+PASS: Python 3.11 AST compatibility for app/tests/verification sources.
+PASS: live broker, conversion planner, Snowball, production FIFO, private-state
+      and portfolio-reconciliation source unchanged from v70.1.
+PASS: regenerated release manifest and archive hash consistency.
+
+NOT VERIFIED: Windows, DPAPI, CUDA, connected Coinbase account behavior, actual
+market liquidity/latency, execution readiness or profitability. The screenshot's
+account-specific state could not be inspected. No private data or keys were used.
+LIVE ORDER POST REMAINS UNCONDITIONALLY BLOCKED.
+
+Synthetic before-fix run: 7 failures, 1 error across 8 initial regressions.
+The added tests then passed with the corrected purpose-specific valuation policy.
+
+Final suite output:
+----------------------------------------------------------------------
+Ran 308 tests in 1.609s
+
+OK
+PASS V70 GUI 1-button report 55115 bytes CoinCat v70.1.1 • CoinCat Auto Trader • DISARMED by default
+PASS: v50.3 held-out, read-only AI budget immediately beneath Auto Trader budget; ARM unchanged

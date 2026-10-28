@@ -78,7 +78,7 @@ class FullFuelShadow(unittest.TestCase):
         self.assertIn('mode=self.shadow_budget_mode.get()',s)
         self.assertEqual(s.count('auto_rotation_screen('),1)
         self.assertIn('SELL-first spot exits studied=',s)
-        self.assertEqual(DISPLAY,'CoinCat v70.1')
+        self.assertEqual(DISPLAY,'CoinCat v70.1.1')
         broker=(root/'app/coincat_live.py').read_text()
         self.assertIn('def submit(',broker)
         import ast

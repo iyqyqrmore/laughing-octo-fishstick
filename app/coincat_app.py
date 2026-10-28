@@ -36,7 +36,7 @@ from coincat_order_verify import verify_latest_filled_order
 from coincat_state_v50 import data_root, state_status, StateError
 from coincat_version import DISPLAY
 from coincat_portfolio_sync import reconcile_authorized
-from coincat_portfolio_prices import fetch_portfolio_books, portfolio_usd_rates, portfolio_coverage
+from coincat_portfolio_prices import fetch_portfolio_books, portfolio_usd_rates, portfolio_coverage, DISPLAY_MAX_SPREAD
 from coincat_storage import financial_storage_gate, storage_health, verified_ledger_backup, RESEARCH_LIMIT_MIB
 from coincat_reporting import utc_window, confirmed_rows, export_csv, handoff_text
 from coincat_scan_cadence import AdaptiveCadence
@@ -1389,7 +1389,8 @@ class CoinCatApp:
     def _shadow_mark_rates(self, session, books, now, ideas=()):
         assets=set(session.model_balances())
         for wallet in session.fifo_portfolios.values(): assets.update(wallet.start)
-        coverage=mark_coverage(assets,books,now=now)
+        coverage=mark_coverage(assets,books,now=now,
+            max_spread=DISPLAY_MAX_SPREAD,max_legs=3)
         session.mark_problems=coverage['problems']
         if not coverage['complete']: return {},False
         rates=coverage['rates']
@@ -2073,6 +2074,43 @@ class CoinCatApp:
             self.ledger.log('USER_ARMED_LIVE','Current Windows process only')
             self.target_preview_status.set(f'LIVE ARMED • active ordinary SELL target ${target:.2f}; edits will NOT change live orders until separately rearmed')
         except Exception as ex:messagebox.showerror('Live blocked',str(ex))
+    def _shadow_start_inputs(self):
+        """Read-only start gate shared by both RAM wallets; never authorizes LIVE."""
+        if str(self.ledger.setting('halted','0'))=='1':
+            raise ValueError('EMERGENCY_STOP_ACTIVE — release STOP only after reviewing Coinbase')
+        age=time.monotonic()-self._last_portfolio_sync_monotonic
+        if not 0<=age<=300:
+            raise ValueError('BALANCES_STALE — refresh verified Coinbase balances before starting SHADOW')
+        mismatches=getattr(self,'external_mismatches',[])
+        if mismatches:
+            symbols=', '.join(str(row.get('asset','?')) for row in mismatches[:12])
+            raise ValueError('BALANCE_MISMATCH — '+symbols+
+                '. Reconcile approved and available holdings; no lots were changed.')
+        holdings={};excluded=[]
+        for row in self.ledger.assets():
+            name=str(row.get('asset','')).upper()
+            if not name:continue
+            if not row.get('enabled',1):
+                excluded.append(name);continue
+            approved=Decimal(str(row.get('remaining_qty','0')))
+            available=Decimal(str(self.current_balances.get(name,'0')))
+            if not approved.is_finite() or not available.is_finite() or min(approved,available)<0:
+                raise ValueError('INVALID_BALANCE — refresh verified Coinbase balances')
+            qty=min(approved,available)
+            if qty>0:holdings[name]=str(qty)
+        if not holdings:raise ValueError('NO_ENROLLED_AVAILABLE_HOLDINGS')
+        # Full authorized holdings can be valued at conservative bid/inverse ask
+        # without granting a wide-spread holding permission to fund any trade.
+        coverage=portfolio_coverage(holdings,self.catalog,self._shadow_valuation_books(),now=time.time())
+        if not coverage['complete']:
+            missing=coverage['missing']
+            details='; '.join(asset+': '+reason for asset,reason in list(missing.items())[:12])
+            raise ValueError(f'USD_VALUATION_INCOMPLETE — {len(missing)}/{len(holdings)} enrolled holdings. '+
+                details+'. Refresh portfolio prices and retry. No amounts or lots were changed.')
+        rates={name:str(info['rate']) for name,info in coverage['rates'].items()
+               if isinstance(info,dict) and info.get('rate') is not None}
+        return holdings,tuple(excluded),rates
+
     def _toggle_shadow_arm(self):
         """NO LIVE AUTHORIZATION: create/stop segregated in-memory FIFO scenarios."""
         shadow=self.shadow_pilot
@@ -2086,31 +2124,12 @@ class CoinCatApp:
             messagebox.showwarning('Shadow unavailable','Connect Coinbase read-only and leave ARM LIVE DISARMED.')
             return
         try:
-            if str(self.ledger.setting('halted','0'))=='1':
-                raise ValueError('Emergency STOP is active')
-            if time.monotonic()-self._last_portfolio_sync_monotonic>300:
-                raise ValueError('Coinbase verified balances are older than 5 minutes')
-            books=self._shadow_valuation_books()
-            coverage=portfolio_coverage(self.current_balances,self.catalog,books,now=time.time())
-            if not coverage['complete'] or getattr(self,'external_mismatches',[]):
-                raise ValueError('Portfolio USD marks or approved balances are incomplete')
-            holdings={}
-            for row in self.ledger.assets():
-                name=str(row.get('asset','')).upper()
-                if not name or not row.get('enabled',1):continue
-                approved=Decimal(str(row.get('remaining_qty','0')))
-                available=Decimal(str(self.current_balances.get(name,'0')))
-                qty=min(approved,available)
-                if qty>0:holdings[name]=str(qty)
-            if not holdings:raise ValueError('No enrolled verified available shadow holdings')
-            rates={name:str(info['rate']) for name,info in coverage['rates'].items()
-                   if isinstance(info,dict) and info.get('rate') is not None}
+            holdings,excluded,rates=self._shadow_start_inputs()
             shadow.arm(connected=True,real_arm=False,stopped=False,
                  verified_balances=True,usd_coverage=True,
                  enrolled_quantities=holdings,fresh_usd_rates=rates)
             self._shadow_model_balances={k:str(v) for k,v in shadow.model_balances().items()}
-            self._shadow_excluded_assets=tuple(str(r['asset']).upper() for r in self.ledger.assets()
-                    if not r.get('enabled',1))
+            self._shadow_excluded_assets=excluded
             self._shadow_stop_reason='RUNNING'
             self.shadow_mode_button.configure(text='STOP SHADOW (NO REAL ORDERS)')
             self.shadow_mode_status.set('ARMED SHADOW • real Coinbase data + isolated model FIFO; no order POST')
@@ -2130,32 +2149,12 @@ class CoinCatApp:
                 'Connect Coinbase read-only; real LIVE must remain DISARMED.')
             return
         try:
-            if str(self.ledger.setting('halted','0'))=='1':
-                raise ValueError('Emergency STOP is active')
-            if time.monotonic()-self._last_portfolio_sync_monotonic>300:
-                raise ValueError('Verified Coinbase balances are more than 5 minutes old')
-            books=self._shadow_valuation_books()
-            coverage=portfolio_coverage(self.current_balances,self.catalog,books,now=time.time())
-            if not coverage['complete'] or getattr(self,'external_mismatches',[]):
-                raise ValueError('Missing portfolio valuations or unresolved balance mismatch')
-            holdings={}
-            excluded=[]
-            for row in self.ledger.assets():
-                name=str(row.get('asset','')).upper()
-                if not name:continue
-                if not row.get('enabled',1):
-                    excluded.append(name);continue
-                qty=min(Decimal(str(row.get('remaining_qty','0'))),
-                        Decimal(str(self.current_balances.get(name,'0'))))
-                if qty>0:holdings[name]=str(qty)
-            if not holdings:raise ValueError('No verified enrolled spot holdings')
-            rates={name:str(info['rate']) for name,info in coverage['rates'].items()
-                   if isinstance(info,dict) and info.get('rate') is not None}
+            holdings,excluded,rates=self._shadow_start_inputs()
             shadow.arm(connected=True,real_arm=False,stopped=False,
                 verified_balances=True,usd_coverage=True,
                 enrolled_quantities=holdings,fresh_usd_rates=rates)
             self._experimental_model_balances={k:str(v) for k,v in shadow.model_balances().items()}
-            self._experimental_excluded_assets=tuple(excluded)
+            self._experimental_excluded_assets=excluded
             self.experimental_shadow_button.configure(text='STOP EXPERIMENT (NO REAL ORDERS)')
             self.experimental_shadow_status.set('EXPERIMENT ARMED • unvalidated what-if FIFO; LIVE blocked')
         except (ValueError,TypeError,InvalidOperation,KeyError) as exc:
@@ -2703,13 +2702,15 @@ class CoinCatApp:
             self.forward.record_quote(pair,book.observed_at,book.bid,book.ask,source=book.source)
             result['quote_pairs'].append(pair)
         result['fetched']=len(snapshots)
-        quotes=newest_books(self._shadow_valuation_books(),now=time.time(),max_age=25)
-        coverage=mark_coverage(required,quotes,now=time.time(),max_age=25)
+        valuation_quotes=newest_books(self._shadow_valuation_books(),now=time.time(),max_age=25)
+        quotes=newest_books(valuation_quotes,now=time.time(),max_age=25,max_spread=Decimal('.0025'))
+        coverage=mark_coverage(required,valuation_quotes,now=time.time(),max_age=25,
+                               max_spread=DISPLAY_MAX_SPREAD,max_legs=3)
         result['mark_coverage']={k:v for k,v in coverage.items() if k not in ('rates','problems')}
         result['mark_coverage']['problem_counts']={reason:list(coverage['problems'].values()).count(reason)
             for reason in sorted(set(coverage['problems'].values()))}
         result['fresh_books']=len(newest_books(
-            {p:q.book() for p,q in snapshots.items()},now=time.time(),max_age=25))
+            {p:q.book() for p,q in snapshots.items()},now=time.time(),max_age=25,max_spread=Decimal('.0025')))
         # A failed mark fetch cannot trigger the unchanged-alert cooldown.
         if not coverage['complete'] or plan['mark_refresh_deferred']:
             result['reason']='MARK_REFRESH_DEFERRED' if plan['mark_refresh_deferred'] else 'INCOMPLETE_FRESH_QUOTES'
@@ -4091,11 +4092,8 @@ class CoinCatApp:
         # Research/portfolio price sources must NOT feed the execution broker.
         # Include existing verified REST quotes, then overlay fresh dedicated
         # Coinbase portfolio book snapshots. No old enrollment snapshot fallback.
-        quotes=self.forward.recent_bid_ask(now=now,max_age=300)
-        for pair,book in self._portfolio_quotes.items():
-            try:
-                if 0 <= now-float(book[2]) <= 300:quotes[pair]=book
-            except (TypeError,ValueError,IndexError):pass
+        quotes=newest_books(self.forward.recent_bid_ask(now=now,max_age=300),
+                            self._portfolio_quotes,now=now,max_age=300)
         coverage=portfolio_coverage(self.current_balances,self.catalog,quotes,now=now)
         self._portfolio_coverage={k:v for k,v in coverage.items() if k!='rates'}
         usd_rates=coverage['rates']
