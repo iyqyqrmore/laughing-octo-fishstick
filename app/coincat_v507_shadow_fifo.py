@@ -73,6 +73,27 @@ class ShadowFIFOPortfolio:
         current=sum((qty*rates[asset] for asset,qty in self.balances().items()),Decimal(0))
         return {'shadow_usd':current,'hold_usd':baseline,'delta_usd':current-baseline}
 
+    def quantity_parity(self):
+        """Verify actual RAM wallet/lot quantities, not a scenario counter."""
+        try:
+            _memory(self.db)
+            with localcontext() as ctx:
+                ctx.prec=120
+                verify(self.db)
+            return True
+        except (sqlite3.Error, UnifiedSettlementError, ShadowFIFOBlocked):
+            return False
+
+    def mark_problems(self, usd_rates):
+        problems={}
+        for asset in sorted(set(self.start)|set(self.balances())):
+            if asset not in usd_rates:
+                problems[asset]='MISSING_USD_MARK'
+            else:
+                try:exact(usd_rates[asset],positive=True)
+                except ShadowFIFOBlocked:problems[asset]='INVALID_USD_MARK'
+        return problems
+
     def post_hypothetical_route(self, *, session_id, steps, usd_rates, at_utc):
         """Model exact FIFO for *all* SELL/BUY legs of one planned route, atomically.
 

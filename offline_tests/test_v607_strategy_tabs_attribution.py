@@ -68,7 +68,7 @@ class StrategyRelease(unittest.TestCase):
         self.assertIn("v608_status_text(payload.get('strategy_research')",src)
         report_src=(ROOT/'app/coincat_complete_diagnostics.py').read_text()
         self.assertIn('strategy_research_report(',report_src)
-        self.assertEqual(DISPLAY,'CoinCat v70.0')
+        self.assertEqual(DISPLAY,'CoinCat v70.1')
         tree=ast.parse((ROOT/'app/coincat_live.py').read_text())
         live=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='LiveBroker')
         submit=next(n for n in live.body if isinstance(n,ast.FunctionDef) and n.name=='submit')

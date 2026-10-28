@@ -150,11 +150,17 @@ def _health_summary(app, wall, mono):
         lines.append('  DISCONNECTED IS NOT A SCHEDULER FAILURE: fresh authenticated observations may not yet be available.')
     lines.append('Production ledger reconciliation: ' + _ledger_status(app.ledger.path))
     lines.extend([
-        'FAST SNOWBALL v70.0 (v60.18 behavior carried forward): bounded public ticker → fresh REST books → ONE existing planner; READ ONLY.',
+        'FAST SNOWBALL v70.1: urgent checks before background research, same serial worker/planner; READ ONLY.',
         'Fast research loop count: '+str(getattr(app,'_fast_runs',0))+
           '; aggregate='+str(getattr(app,'_fast_totals',{})),
         'Fast latest decision funnel (research counts, not orders): '+str(
           (getattr(app,'_fast_last_result',{}) or {}).get('funnel',{})),
+        'Fast request and planner timing (ms): '+str({k:(getattr(app,'_fast_last_result',{}) or {}).get(k)
+            for k in ('alert_age_ms','queue_delay_ms','fetch_ms','request_latency_ms','planner_ms')}),
+        'Fast event latency percentiles (ms, completed events only): '+str(getattr(app,'_fast_latency_summary',{})),
+        'Fast mark coverage: '+str((getattr(app,'_fast_last_result',{}) or {}).get('mark_coverage',{})),
+        'Fast GET failures: '+str((getattr(app,'_fast_last_result',{}) or {}).get('get_errors',{})),
+        'Fast quote provenance: public REST best bid/ask; LOCAL REQUEST START age; exchange time/depth NOT VERIFIED.',
         'Fast most recent state: '+str((getattr(app,'_fast_last_result',{}) or {}).get('reason','WAIT'))[:60],
         'Fast path cannot clear production approval gates; FIFO/recovery/loss floor/actual order previews remain NOT CERTIFIED.',
     ])

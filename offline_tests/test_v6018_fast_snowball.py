@@ -82,10 +82,13 @@ class FastPathEndToEnd(unittest.TestCase):
         app.relative_lab=SimpleNamespace(paired_outcomes=lambda *a,**kw:{'status':'NOT_VERIFIED'})
         app.switch_minimum_usd=Decimal('.10')
         books={}
-        app.forward=SimpleNamespace(record_quote=lambda p,ts,b,a:books.update({p:(Decimal(str(b)),Decimal(str(a)),float(ts))}))
+        app.forward=SimpleNamespace(record_quote=lambda p,ts,b,a,**kw:books.update({p:(Decimal(str(b)),Decimal(str(a)),float(ts))}))
         app._shadow_valuation_books=lambda:books.copy()
         prices={'SOL-USDC':('9.98','10.00'),'SOL-USD':('9.98','10.00'),'USDC-USD':('0.999','1.001')}
-        with patch('coincat_app.fetch_public_ticker',side_effect=lambda pair:prices[pair]):
+        from coincat_v701_transport import QuoteSnapshot
+        def synthetic_snapshot(pair,**kw):
+            return QuoteSnapshot(pair,*map(Decimal,prices[pair]),time.time(),time.time(),1)
+        with patch('coincat_app.fetch_snapshot',side_effect=synthetic_snapshot):
             result=app._fast_cycle()
             duplicate=app._fast_cycle()
         self.assertEqual('RESEARCHED',result['state'])

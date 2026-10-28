@@ -10,40 +10,64 @@ MAX_FAST_BOOKS=16
 MAX_TARGETS=3
 
 
-def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS):
-    """Pick active market alerts, directly fundable one-order paths and USD marks.
+def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
+                      required_assets=(), quotes=None, now=None):
+    """Refresh HOLD/current/fee marks before adding complete target dependencies.
 
-    Do not manufacture any pairs; select only Coinbase catalog products. Max 16
-    REST GETs per attempt; a no-route alert cannot consume unlimited capacity.
+    Cached <=12s marks need not consume a request. A small budget refreshes marks
+    in stages; it never invents coverage or an unlisted bridge. No research gate.
     """
-    available=set(catalog or ())
-    funding={str(a).upper() for a in (funding_assets or ()) if str(a)}
-    targets=[]; seen=set()
+    import time
+    from coincat_v701_quotes import mark_paths, mark_coverage
+    now = time.time() if now is None else now
+    budget = min(MAX_FAST_BOOKS, max(0, int(limit)))
+    available = set(catalog or ())
+    funding = {str(a).upper() for a in funding_assets or () if a}
+    required = funding | set(required_assets or ())
+    chosen, missing_paths, targets = [], [], []
+
+    def dependencies(assets):
+        needed = []
+        for asset in sorted(set(assets)-{'USD'}):
+            if mark_coverage([asset], quotes or {}, now=now, max_age=12)['complete']:
+                continue
+            path = mark_paths(asset, available)
+            if path is None:
+                if asset not in missing_paths: missing_paths.append(asset)
+                continue
+            for pair in path:
+                if pair not in chosen and pair not in needed: needed.append(pair)
+        return needed
+
+    baseline = dependencies(required)
+    chosen.extend(baseline[:budget])
+    deferred = len(baseline) > budget
+    routes = []
     for pair in alerts or ():
-        if pair not in available or '-' not in pair:continue
-        asset=pair.split('-')[0]
-        if not asset or asset in seen:continue
-        if not any(f'{asset}-{source}' in available or f'{source}-{asset}' in available
-                   for source in funding):continue
-        targets.append((asset,pair));seen.add(asset)
-        if len(targets)>=MAX_TARGETS:break
-    routes=[]
-    for asset,_ in targets:
-        for fund in sorted(funding):
-            for p in (f'{asset}-{fund}',f'{fund}-{asset}'):
-                if p in available and p not in routes:routes.append(p)
-    # Crucial: direct source/destination USD marks, then stablecoin anchors.
-    marks=[]
-    for coin in [a for a,_ in targets]+['USDC','USDT']+list(sorted(funding))+['BTC','ETH']:
-        if coin=='USD':continue
-        for p in (f'{coin}-USD',f'{coin}-USDC',f'{coin}-USDT'):
-            if p in available and p not in marks:marks.append(p)
-    chosen=[]
-    for pair in [p for _,p in targets]+routes[:7]+marks:
-        if pair not in chosen:chosen.append(pair)
-        if len(chosen)>=min(MAX_FAST_BOOKS,max(0,int(limit))):break
-    return {'targets':targets,'books':chosen,'candidate_routes':len(routes),
-            'funding_assets':len(funding),'max_books':MAX_FAST_BOOKS}
+        if deferred or len(targets) >= MAX_TARGETS: break
+        if pair not in available or '-' not in pair: continue
+        asset = pair.split('-')[0]
+        if asset in [a for a, _ in targets]: continue
+        direct = [p for fund in sorted(funding) for p in
+                  (f'{asset}-{fund}', f'{fund}-{asset}') if p in available]
+        if not direct: continue
+        # Prefer one complete conversion over seven routes with incomplete marks.
+        route = direct[0]
+        extra = list(dict.fromkeys([pair, route]+dependencies({asset})))
+        extra = [p for p in extra if p not in chosen]
+        if len(chosen)+len(extra) > budget: continue
+        chosen.extend(extra)
+        targets.append((asset, pair))
+        routes.extend(p for p in direct if p not in routes)
+    # Remaining capacity can verify alternative funding routes, never displace
+    # a required HOLD/current mark or a complete selected target.
+    for route in routes:
+        if len(chosen)>=budget: break
+        if route not in chosen: chosen.append(route)
+    return {'targets': targets, 'books': chosen, 'candidate_routes': len(routes),
+            'funding_assets': len(funding), 'max_books': MAX_FAST_BOOKS,
+            'required_assets': sorted(required | {a for a, _ in targets}),
+            'unlisted_mark_assets': missing_paths, 'mark_refresh_deferred': deferred}
 
 
 def fast_candidates(targets, quotes, stream_snapshot, *, now, max_age=25):
@@ -69,10 +93,10 @@ def fast_candidates(targets, quotes, stream_snapshot, *, now, max_age=25):
 
 
 def fast_funnel(*,detected=0,selected=0,fetched=0,errors=0,targets=0,
-                 planner=None,snowball=None,simulated_delta=0):
+                 planner=None,snowball=None,simulated_delta=0,fresh=None):
     p=planner or {};s=snowball or {}
     return {'stream_alerts':int(detected),'fundable_alerts':int(selected),
-            'book_requests':int(fetched)+int(errors),'fresh_books':int(fetched),
+            'book_requests':int(fetched)+int(errors),'fresh_books':int(fresh) if fresh is not None else 0,
             'quote_errors':int(errors),'fresh_targets':int(targets),
             'one_order_routes':int(p.get('viable_routes') or 0),
             'route_blockers':dict(p.get('route_blockers') or {}),

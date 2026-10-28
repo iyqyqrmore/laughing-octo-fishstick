@@ -63,6 +63,7 @@ class ShadowArmedResearch:
         self.price_touch_bands={label:0 for label,_ in PRICE_BANDS_BPS}
         self.notes=[]
         self.last_usd_rates={}
+        self.mark_problems={}
         self.fifo_portfolios={}   # IN-MEMORY per-price-band wallets only
         self.fifo_posted=0
         self.fifo_rejected=0
@@ -124,6 +125,7 @@ class ShadowArmedResearch:
                                     3600:{'matured':0,'positive':0,'negative':0}}
         self.last_observation=None
         self.last_usd_rates={}
+        self.mark_problems={}
         self.stale_books=self.missing_usd_marks=0
         self.screened_price_bands={label:0 for label,_ in PRICE_BANDS_BPS}
         self.price_touch_bands={label:0 for label,_ in PRICE_BANDS_BPS}
@@ -426,13 +428,20 @@ class ShadowArmedResearch:
             try:
                 fifo_bands[label]={'scenarios':wallet.scenarios,
                     'legs':wallet.legs, 'estimated_fees_usd':str(wallet.fees_estimated_usd),
-                    'verified_quantity_parity':wallet.scenarios>=0 and wallet.db is not None,
+                    'verified_quantity_parity':wallet.quantity_parity(),
                     'hold_relative_usd':'NOT VERIFIED WITHOUT FRESH USD MARKS'}
                 try:
                     value=wallet.mark_vs_hold(self.last_usd_rates)
                     fifo_bands[label]['counterfactual_portfolio_vs_hold_usd']=str(value['delta_usd'])
                 except (KeyError,ValueError,ShadowFIFOBlocked):
-                    fifo_bands[label]['counterfactual_portfolio_vs_hold_usd']='NOT VERIFIED - FX MARK MISSING'
+                    problems=wallet.mark_problems(self.last_usd_rates)
+                    problems.update(getattr(self,'mark_problems',{}))
+                    fifo_bands[label]['mark_problem_counts']={reason:list(problems.values()).count(reason)
+                        for reason in sorted(set(problems.values()))}
+                    reason=('FX SNAPSHOT UNSYNCHRONIZED' if 'UNSYNCHRONIZED_USD_PATHS' in problems.values()
+                            else 'FX MARK INVALID' if 'INVALID_USD_MARK' in problems.values()
+                            else 'FX MARK MISSING')
+                    fifo_bands[label]['counterfactual_portfolio_vs_hold_usd']='NOT VERIFIED - '+reason
             except Exception:
                 fifo_bands[label]={'status':'NOT VERIFIED'}
         return {'armed':self.armed,'started_at':self.started_at,'stop_at':self.stop_at,
