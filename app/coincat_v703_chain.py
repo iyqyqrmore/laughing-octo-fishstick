@@ -37,8 +37,8 @@ def target_momentum(idea):
     except (TypeError,ValueError,InvalidOperation,ZeroDivisionError):return None
 
 
-def experimental_score(idea):
-    """Same provisional one-order score for planner ranking and RAM execution."""
+def legacy_repeat_score(idea):
+    """Archived repeat-momentum baseline for offline comparisons ONLY."""
     if idea.get('sends_live_orders') is not False:return None
     steps=idea.get('shadow_fifo_steps') or ()
     if len(steps)!=1 or idea.get('source')=='MULTI':return None
@@ -61,18 +61,26 @@ def experimental_score(idea):
     return max((v for v in (instant,trend) if v is not None),default=None)
 
 
-def ranked_one_order_ideas(ideas,limit=12):
+def experimental_score(idea,*,now=None):
+    from coincat_v706_selection import assess
+    import time
+    now=idea.get('selection_asof',time.time()) if now is None else now
+    return assess(idea,now=now)['score_usd']
+
+
+def ranked_one_order_ideas(ideas,limit=12,*,now=None):
     """Best eligible provisional score across ALL costed proposals, then clip."""
     singles=[i for i in ideas if i.get('source')!='MULTI' and len(i.get('shadow_fifo_steps') or ())==1]
-    scored=[(experimental_score(i),i) for i in singles]
+    scored=[(experimental_score(i,now=now),i) for i in singles]
     return [i for score,i in sorted(scored,key=lambda item:(
         -(item[0] if item[0] is not None else Decimal('-1e99')),
         -Decimal(str(item[1].get('immediate_change_usd',0))),
         str(item[1].get('source')),str(item[1].get('target'))))[:limit]]
 
 
-def rank_experimental(ideas,quotes,now,limit=12):
+def rank_experimental(ideas,quotes,now,limit=12,forward_evidence=None):
     from coincat_snowball import assess_idea
+    from coincat_v706_selection import assess
     annotated=[];fx_cache={}
     for old in ideas:
         steps=old.get('shadow_fifo_steps') or ()
@@ -82,8 +90,13 @@ def rank_experimental(ideas,quotes,now,limit=12):
         idea['snowball_immediate_usd']=str(assessment['delta_usd']) if assessment['delta_usd'] is not None else None
         idea['snowball_state']=assessment['state']
         idea['snowball_executable_verified']=False
+        idea['selection_asof']=now
+        idea['forward_edge_evidence']=(forward_evidence or {}).get((steps[0]['pair'],steps[0]['side']),{})
+        policy=assess(idea,now=now)
+        idea.update(selection_state=policy['state'],selection_reason=policy['reason'],
+                    selection_basis=policy['basis'],selection_score_usd=policy['score_usd'])
         annotated.append(idea)
-    return ranked_one_order_ideas(annotated,limit)
+    return ranked_one_order_ideas(annotated,limit,now=now)
 
 
 def step_input_usd(step,usd_rates):

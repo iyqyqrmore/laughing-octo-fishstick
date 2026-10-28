@@ -1,54 +1,55 @@
-# CoinCat v70.5 — responsive stream checks and bounded broad scanning
+# CoinCat v70.6 — fast scanning with forward-cost selection
 
-Approved markets remain continuously visible through the existing public stream.
-Urgent research verifies actual funded bid/ask routes through the same canonical
-planner and RAM SHADOW consumer. This cumulative patch retains v70.4's complete
-inventory, small-wallet, immediate-reuse and self-contained-folder behavior.
+This patch addresses modeled fee churn after v70.5. It retains the same fast
+stream checks, approved catalog, all available native funding, direct one-order
+planner, acquired-coin reuse, self-contained folder and RAM FIFO accounting.
 **LIVE order POST remains unconditionally blocked.**
 
-* Fix the false 90-second warning: it used the previous broad scan's start time
-  whenever any job was busy. Track the actual job/its start, require an active
-  broad scan, and show current phase/phase age plus last urgent-decision age.
-  A genuine slow scan remains visible without guessing that connectivity is
-  responsible. Completed/failed jobs do not leave the warning on later work.
-* Replace unbounded public-quote executor joins with bounded batches. Deep quote
-  work has a 12s pass budget; catalog quote work has 6s. Each batch contains at
-  most 16 pairs and waits at most 4s. Urgent checkpoint time counts against the
-  pass budget. An atomic checkpoint may finish after the remaining budget;
-  these budgets are not a hard deadline for the entire broad job.
-* Deferred deep pairs rotate into following passes. The catalog cursor advances
-  only for attempted rotation work. Late quotes never reach the journal, and
-  unfinished background GETs cannot create an accumulating worker pool. Broad
-  and urgent collectors have separate outstanding-request guards and retain the
-  same process-wide HTTP rate budget. No concurrent canonical planners are added.
-* Run urgent checkpoints between broad research phases, including signals,
-  maintenance, strategy/horizon work and route planning. A completed checkpoint
-  leaves five seconds before another checkpoint, allowing background progress.
-  A due broad scan receives its turn after 30s of scheduler deferral; it still
-  services urgent checkpoints. Required account verification comes first.
-* Consider all currently ranked approved, fundable stream alerts before choosing
-  the three urgent targets. Prefer candidates over recently known-wide products,
-  retaining a rotating slot for the remainder. No coin is permanently blacklisted
-  for its last quote. REST request/target budgets remain bounded.
-* Discovery can use another quote product: an ALT-USD event can lead to a direct
-  ALT-BTC order when BTC funds the swap. Verify the actual conversion book, fees
-  and synchronized source/destination USD paths. A wide discovery book alone no
-  longer blocks a different liquid funded route. No bridge product is invented.
-  Experimental FIFO price-band identity now follows the actual one-order pair.
-* Distinguish available fresh cached books from newly fetched fresh books. Record
-  worker-owned duration, per-phase timings and bounded-fetch/deferred counts in
-  the existing diagnostics. UI queue delay no longer inflates completed scan time.
+* Stop treating an observed price rise as a forecast that it will repeat.
+  Momentum still discovers candidates. A price rise by itself cannot spend
+  the experimental wallet. The old score remains an offline replay baseline.
+* Keep immediate eligibility when BOTH the actual after-cost wallet receipt and
+  the synchronized Snowball liquidation comparison are positive. A merely
+  cheaper hypothetical exit cannot justify an immediately losing wallet mark.
+  This path needs no training history and has no absolute USD-score floor.
+* Learn passively from later public books using the SAME canonical research
+  SQLite file. No wallet quantities, keys, financial-ledger access, additional
+  requests or second planner are introduced. Learning continues while the
+  experiment is OFF and persists across restarts/imports of the research DB.
+* Compare the actual destination coin against its source coin. USD momentum
+  alone can be misleading when a crypto holding funds the swap. BUY and SELL
+  use inverse relative growth on the actual listed conversion pair; a different
+  discovery product cannot supply that pair's feature history.
+* For the forward-cost path, require at least eight nonoverlapping five-minute
+  observations matching the current 30-second feature bucket, in the last six
+  hours, with at least 80% observed coverage. Both empirical mean and lower
+  quartile must cover the CURRENT receipt's fee, spread, assumed slippage and
+  rounding. This is an experimental scenario screen, not a confidence bound,
+  validated forecast, recommendation to trade or guarantee of a gain.
+* Only already completed outcomes enter a decision. Stale, wide, missing or
+  skewed endpoint books cannot label a result. Windows missed by more than 120s
+  stay missed. Expired pending windows count against observation coverage.
+* Once a scenario posts, a new quote or size cannot reuse the same
+  pair/side/context/last-label/fee evidence to charge another modeled fee. Failed
+  budgets or no-op receipts do not consume it. A new label, qualifying context,
+  fee change or positive immediate receipt can be reconsidered. Newly acquired
+  coins remain available for other qualified direct conversions immediately.
+* Diagnostics show passive observation counts, eligibility/rejection reasons,
+  immediate versus forward-cost conversions, modeled fees, turnover and wallet
+  value versus same-time HOLD within the existing 18-section report.
 
-Validation: 372 offline tests, including 14 new worker/scanning regressions, the
-actual broad-cycle path with mocked public quotes, real background-thread timing,
-an unfinished-GET isolation test and actual urgent-to-FIFO alternate-pair replay.
-The full 18-section GUI diagnostics and Python 3.11 source syntax also pass.
-Tests use synthetic data and forbid external HTTP. See VERIFICATION.txt.
+A fresh installation will usually observe rather than convert until sufficient
+matching evidence exists: at least 40 minutes for eight uninterrupted windows,
+often longer. `OBSERVING_NO_COST_EDGE` is a normal result. This does not stop
+scanning or block a qualifying positive immediate receipt. Ten conversions per
+hour is capacity only; low funds do not create an edge or waive exchange minima.
 
-A public stream/REST budget cannot guarantee catching every opportunity before
-prices change. This patch reduces avoidable waiting and candidate starvation;
-it does not establish actual execution, price depth or profit. A slow individual
-SQL/CPU/authenticated-account phase is reported, not forcibly killed or mistaken
-for a completed scan. Connected Windows timing still needs local verification.
-No private financial records, keys, schemas, spending limits or real-order
-permissions were changed. See START_HERE.md for current-data import instructions.
+Validation uses synthetic prices and account data with HTTP blocked. The causal
+two-hour replay shows reduced fees in a reversing-rebound scenario, and also a
+losing trend-to-reversal scenario under the new rule. It does not establish
+profitability on Coinbase. See DECISION_CHAIN_REVIEW.md and VERIFICATION.txt.
+
+Install using START_HERE.md and import the complete private_data from your
+currently active installation. No private records, tax schemas, lot IDs, keys,
+saved spending limits or real-order permissions were changed by this patch.
+Keep old folders until the existing verified copy/backup/cleanup checks pass.

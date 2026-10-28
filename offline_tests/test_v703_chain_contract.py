@@ -23,7 +23,8 @@ from coincat_v605_shadow_bridge import shadow_screen
 from coincat_v606_budgets import DEFAULT, effective
 from coincat_v701_transport import QuoteSnapshot
 from coincat_v703_chain import (approved_pairs, decision_key, experimental_score,
-                                ranked_one_order_ideas, step_input_usd, target_momentum)
+                                ranked_one_order_ideas, step_input_usd, target_momentum,legacy_repeat_score)
+from offline_tests.selection_fixtures import calibrated,SyntheticCalibratedProvider
 
 
 NOW=1800000000
@@ -41,12 +42,13 @@ def make_plan(source='USD',target='BTC',cap='10',now=NOW,books=None,quantity='10
         verified_available_qty=quantity,balance_age_s=0,catalog=list(books),quotes=books,
         now=now,usd_per_order_cap=cap,product_rules=rules(books),fee_rate='.009',max_legs=1)
     route=result['routes'][0]
-    return dict(source=source,target=target,trigger_pair=route['route'][0][0],
+    # Synthetic favorable calibration isolates existing math/capacity contracts.
+    return calibrated(dict(source=source,target=target,trigger_pair=route['route'][0][0],
         route=route['route'],shadow_fifo_steps=route['steps'],
         input_units_planned=route['input_units_planned'],
         destination_units_estimate=route['destination_units_estimate'],
         immediate_change_usd=route['immediate_change_usd'],research_size_cap_usd=D(cap),
-        observed_momentum_pct=D('2.4'),sends_live_orders=False,oos_validated=False)
+        observed_momentum_pct=D('2.4'),sends_live_orders=False,oos_validated=False),now)
 
 
 class SyntheticUnitsAndReceipts(unittest.TestCase):
@@ -119,15 +121,17 @@ class SyntheticUnitsAndReceipts(unittest.TestCase):
 
     def test_actual_receipts_rank_and_falling_base_direction(self):
         idea=make_plan()
-        self.assertEqual(experimental_score(idea),
+        self.assertEqual(legacy_repeat_score(idea),
             idea['shadow_fifo_steps'][0]['output_usd_mark']*D('.024')+idea['immediate_change_usd'])
+        step=idea['shadow_fifo_steps'][0]
+        self.assertEqual(experimental_score(idea),step['output_usd_mark']*D('1.024')-step['approx_usd_notional'])
         nominal=dict(idea,research_size_cap_usd=D('1000000'))
         self.assertEqual(experimental_score(nominal),experimental_score(idea))
         falling=dict(idea,target='USD',observed_momentum_pct=D('-20'))
         self.assertEqual(target_momentum(falling),D('25'))
         self.assertIsNone(target_momentum(dict(falling,observed_momentum_pct=D('-100'))))
-        poor=[dict(idea,source=f'A{i}',immediate_change_usd=D('-100')) for i in range(20)]
-        best=dict(idea,source='ZZZ')
+        poor=[dict(idea,forward_edge_evidence={}) for i in range(20)]
+        best=dict(idea)
         self.assertIs(ranked_one_order_ideas(poor+[best],limit=6)[0],best)
 
     def test_attempt_counts_and_recycled_turnover_are_not_wallet_dollars(self):
@@ -206,7 +210,9 @@ class SyntheticApprovalAndPlanner(unittest.TestCase):
             catalog=list(books),quotes=books,product_rules=rules(books),portfolio_usd_cap='1e9',
             now=NOW,fee_rates_by_pair={p:D('.009') for p in books},relative_evidence=evidence,
             exploratory_candidates=[{'pair':'BTC-USD','momentum_pct':D('2.4'),'action':'EXPLORE_ONLY'}],
-            direct_only=True,experimental=True,urgent=True)
+            direct_only=True,experimental=True,urgent=True,
+            forward_evidence=SyntheticCalibratedProvider().forecasts(pairs=books,now=NOW,
+                snapshot={'rows':[{'pair':p,'age_ms':0,'change_30s_pct':2.4} for p in books]}))
         all_fuel=shadow_screen(**args)
         self.assertEqual(all_fuel['ideas'][0]['source'],'F08')
         self.assertGreater(all_fuel['exploratory_viable_routes'],12)
@@ -269,6 +275,8 @@ class SyntheticWholeChain(unittest.TestCase):
                                       added_exposure_usd='10',attempts_24h='1000')
         app.switch_minimum_usd=D('.10')
         app.forward=ForwardStore(Path(folder)/'synthetic-market.sqlite')
+        # Intentional favorable stub: this fixture measures plumbing, not alpha.
+        app.forward.selection=SyntheticCalibratedProvider()
         app._shadow_valuation_books=lambda:app.forward.recent_bid_ask(now=clock[0],max_age=180)
         text=[];app.experimental_pnl_status=NS(set=text.append)
         fetch=Mock(side_effect=lambda pair,**kw:QuoteSnapshot(pair,D('100'),D('100.01'),clock[0],clock[0],1))

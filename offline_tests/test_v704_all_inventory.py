@@ -162,10 +162,9 @@ class SmallWalletAndReuse(unittest.TestCase):
             for offset in (0,1):
                 stamp=NOW+offset;books={'BTC-USD':(D('100'),D('100.01'),stamp)}
                 idea=fixtures.make_plan(quantity='2',cap='1',now=stamp,books=books)
-                # Construct an exactly zero or strictly negative provisional score.
-                idea['immediate_change_usd']=-idea['shadow_fifo_steps'][0]['output_usd_mark']*D('.024')
-                if offset:idea['immediate_change_usd']-=1
-                self.assertLessEqual(experimental_score(idea),0)
+                # No after-cost edge in zero/negative observed forward growth.
+                idea['forward_edge_evidence'].update(mean_relative_growth=str(-offset),p25_relative_growth=str(-offset))
+                self.assertIsNone(experimental_score(idea))
                 session.observe(now=stamp,quotes=books,usd_rates={'USD':'1','BTC':'100'},
                     route_ideas=[idea],minimum_advantage='0',strict_quotes=True)
             self.assertEqual(session.fifo_posted,0)

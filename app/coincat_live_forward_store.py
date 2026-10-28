@@ -50,6 +50,8 @@ class ForwardStore:
             CREATE INDEX IF NOT EXISTS idx_catalog_discovery_age ON catalog_discovery_latest(at_utc);
             CREATE TABLE IF NOT EXISTS live_store_state(key TEXT PRIMARY KEY,value TEXT NOT NULL);
             ''')
+        from coincat_v706_selection import ForwardCostLearner
+        self.selection=ForwardCostLearner(self.path)
     @contextmanager
     def _db(self):
         c=sqlite3.connect(str(self.path),timeout=30)

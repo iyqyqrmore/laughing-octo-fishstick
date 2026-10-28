@@ -226,7 +226,8 @@ class FairSchedulingAndCandidates(unittest.TestCase):
             app.shutdown=False;app._connection_requested=app._connection_in_progress=False
             app._fill_sync_faulted=False;app._fast_next_at=0
             app.stream_research=NS(rank_for_rest_scout=lambda catalog,**kw:['ALT-USD'] if 'ALT-USD' in catalog else [],
-                snapshot=lambda **kw:{'rows':[{'pair':'ALT-USD','last_trade':5,'age_ms':0,'change_30s_pct':2.4}]})
+                snapshot=lambda **kw:{'rows':[{'pair':p,'last_trade':5,'age_ms':0,'change_30s_pct':2.4}
+                    for p in ('ALT-USD','ALT-BTC')]})
             prices={'ALT-USD':(D(5),D(6)),'ALT-BTC':(D('.01'),D('.010001')),'BTC-USD':(D(500),D('500.01'))}
             fetch=Mock(side_effect=lambda pair,**kw:QuoteSnapshot(pair,*prices[pair],clock[0],clock[0],1))
             with patch('coincat_app.time.time',side_effect=lambda:clock[0]),patch('coincat_app.fetch_snapshot',fetch):

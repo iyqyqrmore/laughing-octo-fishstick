@@ -1,173 +1,152 @@
-# v70.5 decision-chain review
+# v70.6 decision-chain review
 
-All replay prices, quantities, funding and fees in automated tests and benchmarks
-are synthetic. No account keys, Coinbase calls or production ledger writes occur.
+The change replaces momentum-only experimental acceptance with a causal,
+current-cost scenario screen. The fast discovery/quote workers, canonical
+planner, financial arithmetic and segregated RAM FIFO remain the same.
 
 | Stage | Contract | Verification |
 | --- | --- | --- |
-| Portfolio / fuel | Sources use the smaller of enrolled and available native quantities. Exclusions remain binding. Evolved SHADOW inventory funds its own follow-on decisions. | Independent receipts; queued-wallet and late-exclusion regressions. |
-| AI Lab / decision | Eligible, listed, fundable one-order products; fresh books, authenticated fee evidence and numeric rules. Rank all costed sizes before clipping. | Restricted/offline/missing-rule cases; later funding asset wins; cache parity and expiry. |
-| Auto Trader / movement | Explicitly armed RAM SHADOW. Recheck approvals, source FX units, inventory, per-order/exposure/turnover/attempt caps and idempotency. | Actual urgent producer-to-consumer replay; stale/excluded/exhausted decisions blocked; no-op not counted. |
-| P&L / diagnostics | Same-time whole-wallet value minus frozen-quantity HOLD. Fees embedded once. Missing FX never becomes zero. | Independent quantities/deltas, complete 18-section export, hourly counts and mark age. |
+| Portfolio / fuel | min(enrolled, available) in native units; exclusions and restrictions bind. All positive positions considered, no wallet-dollar cutoff. Acquired SHADOW coins fund its next decision. | Existing tiny-wallet, 40-source, alternate-quote, reuse and late-exclusion tests. |
+| AI Lab / decision | Approved listed one-order products, authenticated fees, fresh actual route and FX books. Rank all costed sizes using the same selection rule consumed by movement. | All-funding ranking, pair/direction/context, current-cost and causal SQL tests. |
+| Auto Trader / movement | Explicit ARM; RAM wallet only; recheck approvals, current inventory, FX, budgets and evidence idempotency. | Actual fast producer → canonical planner → consumer → FIFO replay, including real learner cold/ready transitions. |
+| P&L / diagnostics | Current wallet minus starting HOLD quantities at the same synchronized marks. Fees already change quantities. Missing FX never becomes zero. | Independent receipt/accounting assertions and complete 18-section GUI export. |
 
-## All holdings and reuse
+## Current-cost selection math
 
-Every positive approved native balance stays eligible regardless of its USD
-value. Account research uses min(enrolled, verified available). An armed SHADOW
-session uses its own evolving inventory; its newly acquired coins are immediately
-eligible for the next decision. Separate wallets are never pooled into one plan.
-Quote collection rotates across all funding alternatives while staying within
-request limits, so no alphabetical prefix monopolizes the quote budget. Required
-freshness and exchange sizes remain per-route constraints. Missing prices are
-reported, not treated as zero.
-
-Experimental SHADOW requires a strictly positive after-cost experimental score;
-there is no absolute dollar-score minimum. It can therefore consider a small
-score below $0.10. This remains a speculative score, not proof of a future gain.
-Urgent quote collection prices at least one complete funded route before using
-remaining slots for unrelated holdings' valuation refreshes, oldest first. A
-missing unrelated FX mark cannot suppress all route research. Experimental
-movement still requires synchronized, fresh route/source/destination books and
-known fee-currency marks. A missing source or destination FX path blocks that
-route. When unrelated marks are unavailable, whole-wallet P&L remains explicitly
-NOT VERIFIED; missing holdings are never assigned zero. Full comparable P&L is
-restored only after all required marks are complete and synchronized. A 22-source
-regression verifies that transition and exact inventory preservation. Historical
-outcome slices keep their own synchronization checks and do not become wins from
-asynchronous or missed prices. Validated marking rules are retained.
-
-Validated SHADOW keeps its manual USD floor and independent held-out rules. Both
-keep explicit spend limits, available quantities and exchange minimums. A small
-wallet does not waive those limits or force a trade.
-
-A synthetic $1.25 wallet regression exercises the actual urgent producer and
-consumer: USD buys BTC, then received BTC funds ETH on the next decision one
-artificial second later. These are two successive one-order decisions, not one
-two-leg route. A changed wallet invalidates the unchanged-alert cooldown, while
-an idle wallet/alert remains deduplicated. Forty tiny native holdings remain in
-the funding set; bounded quote batches reach all 25 funding alternatives in a
-separate test. These tests do not establish real settlement or profitability.
-
-## Stream and scan scheduling
-
-The stream observes the full approved product catalog. Metadata checks consider
-all ranked alerts with a real direct route from current funding before selecting
-up to three urgent targets and at most 16 request books. A rotating target slot
-prevents a fixed prefix from monopolizing verification. Recently wide products
-are deprioritized but remain eligible for later repricing. A discovery event's
-quote product need not be the actual conversion product; actual funded books and
-synchronized USD FX remain mandatory, with no fabricated bridge or reverse ID.
-
-Broad public quote work is collected in bounded batches rather than waiting for
-an executor to finish every queued GET. Deep/catalog passes have 12s/6s budgets,
-with at most 16 pairs and a 4s wait per batch; checkpoint time counts against the
-pass. Outstanding background work is guarded separately from urgent requests,
-using the same HTTP rate limit. Deferred source cohorts rotate across passes.
-Urgent checkpoints also run between CPU/DB research phases. A due broad job gets
-a scheduler turn after 30s of deferral, and continues to service checkpoints.
-A completed checkpoint leaves five seconds for background progress. Account
-verification and unresolved-order checks continue to precede market research.
-These are cooperative budgets, not forcible cancellation of SQL, CPU or account
-SDK calls. Diagnostics report the actual worker/phase/phase duration. Real slow
-work remains visible. A previous full-scan start can no longer age a later urgent
-job or produce the old misleading connectivity warning. Neither this scheduling
-nor the public feed can guarantee catching every transient opportunity.
-
-## Receipt and P&L math
-
-Let f be the authenticated taker fee estimate, s = 0.0015 the slippage stress,
-i the base increment, and r[A] the conservative USD mark per unit of asset A.
-These estimates do not establish executable depth, exact fee rounding, maker
-fills, actual fee currency or actual slippage. Amount math uses Decimal.
-
-For a listed BASE-QUOTE BUY, the source is QUOTE:
+For the actual listed BASE-QUOTE conversion, let r[A,t] be its conservative
+same-time USD mark for asset A. Passive public learning records:
 
 ```text
-quote_budget = min(available_quote, order_USD_cap / r[QUOTE])
-base_received = floor_to_increment(quote_budget / (ask * (1+s) * (1+f)), i)
-quote_spent = base_received * ask * (1+s) * (1+f)
-source_residual = available_quote - quote_spent
-turnover_USD = quote_spent * r[QUOTE]
+R(t) = r[BASE,t] / r[QUOTE,t]
+BUY relative_growth  = R(later) / R(entry) - 1
+SELL relative_growth = R(entry) / R(later) - 1
 ```
 
-For a SELL, the source is BASE:
+The actual conversion book and every USD-path book must be fresh (<=30s), narrow
+(<=0.25%) and within 12s of each other. WebSocket trades supply the entry feature
+bucket only, never an execution price. Use the actual pair's fresh 30-second
+feature; an ALT-USD alert does not stand in for ALT-BTC training. Context buckets
+are observed percentage changes: below -2, -2 to -0.5, -0.5 to 0.5, 0.5 to 2,
+and >=2. SELL uses the exact inverse percentage change before bucketing.
+
+The learner opens one pending window per pair from fetched approved books,
+including unselected candidates, independently of ARM or wallet quantities.
+Close after 300s only with an actually observed fresh comparable endpoint,
+allowing at most 120s delay. Do not overlap the next window with the last close.
+A late gap is MISSED, never a later gain. Keep three days of public observations;
+query the last six hours and at most 96 rows per pair/side/context lookup. Eight
+matching completed nonoverlapping windows and >=80% observed coverage are needed.
+Overdue pending windows count as missing even before maintenance processes them.
+The latest matched label must be <=720s old; current feature/evidence must be
+<=30s old when consumed. Clock rewinds cannot read later labels or open a
+window over a future close.
+
+Let I and O be the actual input/output conservative USD values in the canonical
+one-order receipt. The receipt already contains current fees, spread, assumed
+slippage, native precision and source residuals. For historical gross relative
+growth g, the current-source-USD scenario score is:
 
 ```text
-base_spent = floor_to_increment(min(available_base, order_USD_cap / r[BASE]), i)
-quote_received = base_spent * bid * (1-s) * (1-f)
-source_residual = available_base - base_spent
-turnover_USD = base_spent * r[BASE]
+net_scenario(g) = O * (1 + g) - I
+score = min(net_scenario(empirical_mean), net_scenario(empirical_p25))
 ```
 
-Check exchange minima/maxima on the resulting native quantities. One conversion
-has one fee in its receipts. A SELL must not treat base quantity as quote units.
-USDC uses observed USD books, never an assumed peg. Canonical receipts are applied
-through the production settlement arithmetic inside a separate :memory: FIFO DB.
+Require BOTH scenarios positive, with no absolute USD-score floor. The lower
+quartile is an empirical order statistic, not a confidence bound. It is not the
+validated SHADOW held-out P10. Future dollar magnitude also depends on the future
+source/USD price: this is a relative-growth scenario in current source-dollar
+units, not an absolute future USD prediction. The sign of switch versus source
+HOLD follows relative growth; actual wallet P&L still uses actual later marks.
+A test where both coins fall against USD checks this distinction: a destination
+falling less than the funding coin can improve the relative comparison.
+
+The immediate path needs no training history. Require BOTH the synchronized
+Snowball hypothetical liquidation delta and the actual current receipt O-I to
+be positive. Score the smaller. A cheaper hypothetical exit cannot turn an
+immediately losing wallet receipt into immediate eligibility. Snowball remains
+an estimate without depth/partial-fill verification, never a guaranteed arbitrage.
+
+A successful forward-cost fill consumes its pair/side/context/last-label/fee
+scenario version. New quotes, UI refreshes and size changes cannot charge another
+fee against that same evidence. Failed budgets, blocked quotes and no-op FIFO
+receipts do not consume it. New completed labels, qualifying contexts or fee
+changes permit reconsideration; positive immediate routes remain separately
+eligible. There is no global cooldown preventing a newly acquired asset from
+funding another qualified family immediately.
+
+## Receipt and P&L math retained
+
+Let f be the authenticated taker fee estimate, s=0.0015 the slippage stress,
+i the base increment, and r[A] the current conservative USD mark per unit.
 
 ```text
+BUY (source QUOTE):
+  budget = min(available_quote, cap_USD / r[QUOTE])
+  base_received = floor_to_increment(budget / (ask*(1+s)*(1+f)), i)
+  quote_spent = base_received * ask*(1+s)*(1+f)
+SELL (source BASE):
+  base_spent = floor_to_increment(min(available_base, cap_USD/r[BASE]), i)
+  quote_received = base_spent * bid*(1-s)*(1-f)
 HOLD_USD(t) = sum(starting_quantity[A] * mark[A,t])
 MODEL_USD(t) = sum(current_model_quantity[A] * mark[A,t])
 model_vs_HOLD(t) = MODEL_USD(t) - HOLD_USD(t)
 ```
 
-Residuals remain in MODEL; original quantities remain frozen in HOLD. Both use
-the same current marks and timing policy. Fees and slippage already change the
-modeled quantities; subtracting estimated fees again would double-count them.
-The provisional experimental score applies repeated observed momentum to actual
-net destination receipts, then adds the immediate marked change. This is a
-ranking assumption, not a learned return distribution or prediction.
+Residuals stay in the wallet. USDC uses observed USD books, never a presumed peg.
+One conversion charges one modeled fee; subtracting the displayed fees again
+would double-count them. Exchange minima/maxima and explicit per-order, exposure,
+rolling turnover and attempt limits apply before movement. Dollar budgets are
+not conversion counts. Small wallets do not waive actual exchange minimums.
+Fully priced experimental routes may proceed while unrelated marks are missing;
+whole-wallet P&L stays NOT VERIFIED until all marks are complete and synchronized.
+Validated SHADOW keeps its manual USD floor and chronological held-out gates.
+LIVE submit still raises LiveBlocked as its unconditional first statement.
 
-Snowball separately compares hypothetical liquidation proceeds of the changed
-slice, applying comparable exit friction to each USD mark path. Those valuation
-exits are not additional orders in the conversion. Its estimate can differ from
-gross wallet mark-to-market P&L. Neither is confirmed realized Coinbase P&L,
-verified tax basis or an executable profit guarantee.
+## Causal synthetic comparison and limits
 
-## Earlier speed benchmark and current frequency evidence
+Run `python -B tools/replay_cost_selection.py`. Each policy starts with synthetic
+USD 1,000, uses a USD 10 cap, 0.9% fee, 15 bps slippage and 1 bp spread. Both use
+the canonical Decimal planner and in-memory FIFO; features derive from prior
+30-second artificial prices. The real passive learner sees outcomes only as the
+artificial clock advances. No injected favorable evidence is used in this replay.
+Rounded two-hour results on the cloud host:
 
-The retained v70.2/v70.3 profiled comparison uses 804 listed products, 23 funding assets, three
-synthetic destinations and the same 207 exploratory size attempts. Both runs
-include the background SELL advisory; urgent mode defers that advisory.
+| Artificial scenario | Old conversions | New conversions | Old vs HOLD USD | New vs HOLD USD |
+| --- | ---: | ---: | ---: | ---: |
+| Flat | 0 | 0 | 0.00 | 0.00 |
+| One jump, then flat | 1 | 0 | -0.11 | 0.00 |
+| Repeated reversing rebounds | 101 | 0 | -34.64 | 0.00 |
+| Artificial continuous rise | 0 | 16 | 0.00 | +97.50 |
+| Rise followed by reversal | 0 | 2 | 0.00 | -11.22 |
 
-| Measurement | v70.2 | v70.3 |
-| --- | ---: | ---: |
-| Profiled planner wall time on this cloud host | 7.710s | 0.263s |
-| USD-conversion helper invocations | 1,466 | 51 |
-| Returned shortlist | First 6 | Best 12 after ranking all costed proposals |
+The reversing case paid USD 8.92 in old modeled fees versus zero new fees. The
+new rule can still LOSE after learning a trend; it does not hedge or reverse
+already bought inventory automatically. These chosen artificial paths test
+causality, fee churn and limits, not predictive accuracy on markets. They are not
+a representative sample or a profit benchmark. The continued-rise result cannot
+be extrapolated. Neither policy promises to capture a real opportunity.
 
-Run `python -B tools/benchmark_decision_chain.py --profile` to repeat the current
-synthetic workload. Timing varies with host load and profiling overhead. This
-excludes HTTP, authentication, GUI scheduling and fills. It does not imply the
-same speedup on Windows or a live exchange.
+Separate capacity/accounting fixtures explicitly inject favorable SYNTHETIC
+calibration to isolate small wallets, fast acquired-coin reuse, 12 decisions in
+an artificial hour and retention beyond 144 lifetime routes. A constant-price
+wallet loses costs in those fixtures, correctly. That calibration is never
+shipped as market observations or used by the strategy replay. An independent
+actual fast-chain test uses the real SQLite learner, starts cold with zero
+conversions, then trains only on later artificial endpoints and posts one
+qualified receipt. A refresh without a new outcome posts nothing further.
 
-The actual urgent producer-to-consumer test advances an artificial clock through
-12 opportunities, five minutes apart. All 12 qualified one-leg model receipts
-reach the wallet and P&L within that simulated hour. At constant prices, the
-result is negative after costs, correctly. A separate 150-conversion replay
-proves that retained outcomes no longer stop the session after 144 lifetime
-records. These are capacity/accounting checks, not measured real-time fills.
+Single-pair passive learning/lookup was below 1ms median in these replays. A
+separate cold-model workload with 804 products and 128 pair lookups measured
+about 16ms median / 69ms maximum on this host. These CPU-only observations add
+zero exchange requests and exclude Windows/HTTP latency. SQL busy work defers;
+the progress handler is cooperative, not forcible cancellation of arbitrary
+Python/SQLite/OS work. The existing five-second urgent target, bounded REST
+batches, rotating scope and broad-worker checkpoints are retained. No claim
+of professional HFT, guaranteed 10/hour, profit or complete opportunity capture.
 
-The existing urgent loop targets five-second checks, with at most 16 REST books,
-rate budgeting and a six-second collector deadline. Required portfolio refresh
-and reconciliation come first. Slow/retried requests and Windows load can still
-increase latency. Diagnostics report completed-event latency percentiles,
-request/planner time, approved scope and separate urgent/broad ages. Background
-candles and GPU training are not prerequisites for experimental decisions.
-Validated SHADOW retains its independent chronological held-out requirements.
-
-Saved attempts and daily conversion turnover remain independent of wallet size.
-Per-order/exposure limits still cannot exceed verified fuel. Ten conversions/hour
-throughout a day needs an attempt cap of at least 240/24h and enough turnover for
-the total input USD mark. Defaults of 12 attempts/day and $30/day turnover were
-not raised automatically. No frequency target overrides current eligibility,
-costs, budgets or required fresh information.
-
-## Local verification still needed
-
-The cloud cannot establish current Coinbase opportunities or this PC's execution
-latency. Run 03_VERIFY_COINCAT.bat in the clean new folder, import the verified
-private dataset using the existing local workflow, connect read-only, and review
-new diagnostics while SHADOW runs. Keep modeled and actual results separate.
-Real submission remains blocked pending existing execution, recovery, loss-floor,
-fee/depth and independently observed-edge requirements. No private financial
-schemas, tax lots or user state were rewritten by this patch.
+A fresh installed model needs at least 40 minutes of matching valid windows,
+often longer; positive immediate receipts need no such history. Histories in
+older formats are not reclassified as these conditioned forward observations.
+Use the current START_HERE.md import process, then run Windows verification and
+connected read-only diagnostics to assess real observation coverage and timing.
+No user financial data, credentials or raw uploaded diagnostics are in this release.

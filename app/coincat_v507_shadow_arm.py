@@ -10,6 +10,7 @@ from coincat_v507_shadow_fifo import ShadowFIFOPortfolio, ShadowFIFOBlocked
 import time, math
 from coincat_v703_chain import experimental_score, step_input_usd, decision_key
 from coincat_multicurrency import RotationContext
+from coincat_v706_selection import assess as assess_selection,LOOKBACK_S
 
 PRICE_BANDS_BPS = (("TAKER_ASK", Decimal('0')), ("LIMIT_ASK_MINUS_5BPS", Decimal('5')),
                    ("LIMIT_ASK_MINUS_20BPS", Decimal('20')), ("LIMIT_ASK_MINUS_50BPS", Decimal('50')))
@@ -80,6 +81,9 @@ class ShadowArmedResearch:
         self.duplicate_decisions=0
         self.expired_outcome_entries=0
         self.experimental_snowball_posted=0
+        self.experimental_forward_posted=0
+        self.used_forward_evidence={}
+        self.selection_rejections={}
         self.rejected_budget=0
         self.rejected_quote=0
         self.shadow_model_source='TAKER_ASK'
@@ -129,6 +133,9 @@ class ShadowArmedResearch:
         self.duplicate_decisions=0
         self.expired_outcome_entries=0
         self.experimental_snowball_posted=0
+        self.experimental_forward_posted=0
+        self.used_forward_evidence={}
+        self.selection_rejections={}
         self.rejected_budget=0
         self.rejected_quote=0
         self.rolling_model_attempts=[]
@@ -184,8 +191,8 @@ class ShadowArmedResearch:
         self.fifo_posted_legs+=data['steps']
         return True
 
-    def _experimental_score(self, idea, usd_rates):
-        return experimental_score(idea) if self.experimental else None
+    def _experimental_score(self, idea, usd_rates,*,now=None):
+        return experimental_score(idea,now=now) if self.experimental else None
 
     def observe(self, *, now, quotes, usd_rates, researched_reviews=(), route_ideas=(),
                 minimum_advantage='0.10', max_ideas=12,
@@ -220,6 +227,7 @@ class ShadowArmedResearch:
         self.entries=retained
         if self.experimental:
             self.seen_market_decisions={k:t for k,t in self.seen_market_decisions.items() if 0<=now-t<=180}
+            self.used_forward_evidence={k:t for k,t in self.used_forward_evidence.items() if 0<=now-t<=LOOKBACK_S}
         self.last_usd_rates=dict(usd_rates or {})
         books={name:book for name,raw in (quotes or {}).items()
                if (book:=_book(raw,now)) is not None}
@@ -312,7 +320,7 @@ class ShadowArmedResearch:
         # All below-threshold candidates are still counted as reviews.
         if self.experimental:
             from coincat_v703_chain import ranked_one_order_ideas
-            candidates=ranked_one_order_ideas(route_ideas or (),max_ideas)
+            candidates=ranked_one_order_ideas(route_ideas or (),max_ideas,now=now)
         else:
             candidates=sorted(list(route_ideas or ())[:max_ideas],
                 key=lambda x:(_decimal(x.get('net_p10_usd')) or Decimal('-1e99')),
@@ -328,10 +336,13 @@ class ShadowArmedResearch:
             basket=(idea.get('source')=='MULTI'
                     and idea.get('shadow_simulation_eligible') is True
                     and idea.get('joint_heldout_portfolio_validated') is False)
-            score=self._experimental_score(idea,usd_rates) if self.experimental else None
+            policy=assess_selection(idea,now=now) if self.experimental else {}
+            score=policy.get('score_usd') if self.experimental else None
             if self.experimental:
                 self.experimental_screened+=1
-                if score is None or score<=0:self.experimental_heuristic_rejected+=1
+                if score is None or score<=0:
+                    self.experimental_heuristic_rejected+=1
+                    reason=policy['reason'];self.selection_rejections[reason]=self.selection_rejections.get(reason,0)+1
                 else:self.experimental_candidates+=1
             if not (score is not None and score>0 if self.experimental else (ordinary or basket)):
                 self.rejected+=1
@@ -425,6 +436,11 @@ class ShadowArmedResearch:
                 market_key=decision_key(idea,books)
                 if market_key in self.seen_market_decisions:
                     self.duplicate_decisions+=1;continue
+                evidence_key=policy.get('evidence_key')
+                if evidence_key is not None and evidence_key in self.used_forward_evidence:
+                    key='FORECAST_EVIDENCE_ALREADY_USED'
+                    self.selection_rejections[key]=self.selection_rejections.get(key,0)+1
+                    self.rejected+=1;continue
             else:
                 # Validated research keeps its independent evidence horizon.
                 if any(e['source']==src and e['target']==dst and not e['matured'] for e in self.entries):continue
@@ -447,13 +463,9 @@ class ShadowArmedResearch:
                     'state':'MODEL_TAKER_FILL' if bps==0 else 'PRICE_WAIT',
                     'touched_at':None,'mark_delta_usd':None,'matured':False,
                     'projected_net_p10_usd':None if self.experimental else net,
-                    'experimental_repeat_trend_score_usd':str(net) if self.experimental else None,
+                    'experimental_selection_score_usd':str(net) if self.experimental else None,
                     'experimental_unvalidated':bool(self.experimental),
-                    'experimental_decision_basis':('SNOWBALL_IMMEDIATE_ESTIMATE' if
-                        self.experimental and idea.get('snowball_state')=='IMMEDIATE_ESTIMATE'
-                        and _decimal(idea.get('snowball_immediate_usd')) is not None
-                        and net==_decimal(idea.get('snowball_immediate_usd'))
-                        else 'UNVALIDATED_MOMENTUM' if self.experimental else 'HELD_OUT_REVIEW'),
+                    'experimental_decision_basis':policy['basis'] if self.experimental else 'HELD_OUT_REVIEW',
                     'joint_heldout_portfolio_validated':False,
                     'fifo_steps':idea.get('shadow_fifo_steps') or (),
                     'shadow_id':f'SHADOW-{int(now)}-{self.entry_sequence:08d}-{band}',
@@ -466,8 +478,11 @@ class ShadowArmedResearch:
                     if self.experimental:
                         if posted:
                             selected=True;self.seen_market_decisions[market_key]=now
-                            if new['experimental_decision_basis']=='SNOWBALL_IMMEDIATE_ESTIMATE':
+                            if new['experimental_decision_basis']=='IMMEDIATE_AFTER_COST':
                                 self.experimental_snowball_posted+=1
+                            else:
+                                self.experimental_forward_posted+=1
+                                self.used_forward_evidence[evidence_key]=now
                         else:
                             new['state']='MODEL_REJECTED'
                             self.entries.remove(new)
@@ -542,7 +557,9 @@ class ShadowArmedResearch:
                 'not_live_equivalent_without_depth_partial_fill_recovery':True,
                 'shadow_fifo_uses_production_db':False,
                 'experimental':self.experimental,
-                'experimental_score_policy':'STRICTLY_POSITIVE_AFTER_COST_ANY_SIZE',
+                'experimental_score_policy':'IMMEDIATE_OR_CAUSAL_FORWARD_COST_EDGE',
+                'selection_rejections':dict(self.selection_rejections),
+                'experimental_forward_fifo_count':self.experimental_forward_posted,
                 'experimental_snowball_fifo_count':self.experimental_snowball_posted,
                 'experimental_screened':self.experimental_screened,
                 'experimental_heuristic_accepted':self.experimental_candidates,
@@ -614,19 +631,26 @@ def experimental_shadow_report(app):
     from coincat_v606_budgets import DEFAULT
     settings=getattr(app,'_manual_budget_saved',DEFAULT)
     attempts=int(settings.get('attempts_24h',DEFAULT['attempts_24h']))
+    learner=getattr(getattr(app,'forward',None),'selection',None)
+    learning=learner.summary() if learner is not None else {'state':'NO_FORWARD_OBSERVATIONS'}
     return '\n'.join([
-        'CoinCat v60.17 • EXPERIMENTAL SHADOW (UNVALIDATED WHAT-IF)',
+        'CoinCat v70.6 • EXPERIMENTAL SHADOW (UNVALIDATED WHAT-IF)',
         'SEPARATE IN-MEMORY FIFO • independently ARMED • NO financial/tax ledger writes',
         'No real Coinbase order POST and NO permissions to the validated SHADOW or LIVE path.',
         'Experimental mode: '+('ARMED' if s['armed'] else 'DISARMED'),
         'Completed market scan observations: '+str(s['completed_fresh_scans']),
-        'Experimental score policy: strictly positive after-cost score, any size; no absolute dollar floor.',
+        'Experimental score policy: positive immediate receipt OR matched causal forward-cost scenario; any size, no absolute dollar floor.',
+        'Momentum discovers candidates; a recent rise alone never justifies paying a conversion fee.',
+        'Passive public learning (no wallet spending, independent of ARM): '+str(learning),
+        'Forward scenario: at least 8 nonoverlapping 5-minute pair-relative observations in the current feature bucket; >=80% observed coverage in the last 6h.',
+        'Both empirical mean and lower quartile must cover CURRENT receipt costs. These are scenarios, not confidence bounds or validated predictions.',
         'All positive approved available native balances are considered; exchange minimums and explicit spend limits apply.',
         'Fully priced experimental routes can proceed with unrelated marks missing; whole-wallet P&L remains NOT VERIFIED until complete synchronized marks.',
         'Whole-wallet mark coverage complete: '+str(s['whole_wallet_marks_complete']),
         'Costed one-order ideas screened: '+str(s['experimental_screened']),
-        'Hypothetical repeat-observed-momentum scores clearing provisional filter: '+str(s['experimental_heuristic_accepted']),
-        'Rejected by provisional filter: '+str(s['experimental_heuristic_rejected']),
+        'Cost scenarios clearing experimental filter: '+str(s['experimental_heuristic_accepted']),
+        'Rejected by experimental filter: '+str(s['experimental_heuristic_rejected']),
+        'Selection rejection reasons: '+str(s['selection_rejections']),
         'Simulated taker FIFO routes: '+str(s['shadow_fifo_posted_routes']),
         'Simulated taker FIFO legs: '+str(s['shadow_fifo_posted_legs']),
         'Modeled conversions / legs in the last rolling hour: '+str(s['modeled_conversions_last_hour'])+'/'+str(s['modeled_legs_last_hour']),
@@ -640,6 +664,8 @@ def experimental_shadow_report(app):
         'Duplicate same-market-observation decisions suppressed: '+str(s['duplicate_market_decisions']),
         'Retained outcome entries / expired without complete marks: '+str(s['retained_outcome_entries'])+'/'+str(s['expired_outcome_entries']),
         'Of these, Snowball immediate-estimate experimental FIFO: '+str(s['experimental_snowball_fifo_count']),
+        'Of these, matched forward-cost experimental FIFO: '+str(s['experimental_forward_fifo_count']),
+        'A used pair/side/context/label/fee scenario cannot charge another conversion on quote refresh alone.',
         'Estimated modeled exchange fees USD: '+str(value.get('estimated_fees_usd','NOT VERIFIED')),
         'Evolving experimental wallet vs same-time frozen HOLD USD: '+str(value.get('counterfactual_portfolio_vs_hold_usd','NOT VERIFIED')),
         '5-minute matured entry-slice counterfactuals: '+str(s['marked_counterfactuals']),
@@ -649,7 +675,7 @@ def experimental_shadow_report(app):
         'Matured outcomes positive/nonpositive: '+str(s['marked_positive'])+'/'+str(s['marked_nonpositive']),
         'Budget and market-quote rejects: '+str(s['rejected_shadow_budget'])+'/'+str(s['rejected_quote_freshness_or_drift']),
         'Existing validated SHADOW FIFO: STRICT HELD-OUT RULES UNCHANGED',
-        'Experimental routing uses provisional momentum OR strict synchronized immediate-USD estimates; neither is certified execution or a forecast.',
+        'Experimental routing uses causal pair-relative cost scenarios OR strict synchronized positive immediate receipts; neither certifies execution.',
         'No guarantee of real execution, fees, liquidity, partial fills or profitable forward outcomes.',
         'Experiment is not trained execution evidence and cannot authorize real Coinbase orders.',
         'END EXPERIMENTAL SHADOW',

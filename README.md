@@ -1,12 +1,14 @@
-# CoinCat v70.5 — responsive stream checks and bounded scanning
+# CoinCat v70.6 — fast scanning with forward-cost selection
 
 The approved, available portfolio funds one canonical planner. Fresh Coinbase
 books feed one-leg proposals into the explicitly armed, isolated SHADOW wallet;
 its current quantities and same-time HOLD comparison return to P&L. Excluded
 assets and unsupported products cannot become trade candidates. Every positive
 available holding stays eligible without a wallet-dollar cutoff;
-newly received coins fund the next decision. Experimental scores must be positive
-after costs, with no absolute dollar-score hurdle. Exchange minimums and saved
+newly received coins fund the next decision. Experimental selection now requires
+a positive current after-cost receipt or a matched, observed forward-cost scenario.
+A recent rise alone cannot trigger a modeled conversion. There is no absolute
+dollar-score hurdle. Exchange minimums and saved
 spending limits apply. Unrelated missing prices do not block a fully priced
 experimental route; whole-wallet P&L stays unverified until all required marks
 are complete and synchronized. Model counts and execution counts are separate.
@@ -16,6 +18,16 @@ The stream watches approved markets continuously. Urgent checks rotate through
 fundable alerts and verify actual conversion books; broad quote collection runs
 in bounded, resumable batches. A previous scan's clock no longer labels a fresh
 urgent job as a 90-second scan. Diagnostics identify a genuinely slow phase.
+
+Public learning uses those same fetched books, even with the experiment OFF,
+without spending the modeled wallet or making extra requests. The forward-cost
+path needs at least eight nonoverlapping five-minute observations in the current
+actual pair's feature bucket. A cold installation can therefore show
+`OBSERVING_NO_COST_EDGE` for at least 40 minutes, often longer. Positive immediate
+routes can still qualify without that history. A quote refresh alone cannot reuse
+the same learned scenario to charge another conversion fee. Empirical scenarios
+remain experimental; reversals can still lose against HOLD. Ten conversions per
+hour is a capacity goal, never a trade quota or a profitability claim.
 
 Read [START_HERE.md](START_HERE.md). Use one permanent main folder named `CoinCat`.
 The app, databases, encrypted credential vault, tax files and verified private

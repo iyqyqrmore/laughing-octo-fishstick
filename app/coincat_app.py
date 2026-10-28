@@ -2165,7 +2165,7 @@ class CoinCatApp:
             self._experimental_model_balances={k:str(v) for k,v in shadow.model_balances().items()}
             self._experimental_excluded_assets=excluded
             self.experimental_shadow_button.configure(text='STOP EXPERIMENT (NO REAL ORDERS)')
-            self.experimental_shadow_status.set('EXPERIMENT ARMED • unvalidated what-if FIFO; LIVE blocked')
+            self.experimental_shadow_status.set('EXPERIMENT ARMED • observing cost edges; unvalidated FIFO • LIVE blocked')
         except (ValueError,TypeError,InvalidOperation,KeyError) as exc:
             messagebox.showwarning('Experimental SHADOW blocked',str(exc))
 
@@ -2804,6 +2804,22 @@ class CoinCatApp:
             self._launch_gpu_research(automatic=True)
         self._scheduled['tick']=self.root.after(1000,self._tick)
 
+    def _observe_selection(self,catalog,pairs,quotes=None):
+        """Passive public observations; independent of either ARM or wallet."""
+        learner=getattr(self.forward,'selection',None)
+        if learner is None:return {'state':'NO_FORWARD_OBSERVATIONS'}
+        now=time.time()
+        return learner.observe(catalog=catalog,
+            quotes=self._shadow_valuation_books() if quotes is None else quotes,
+            snapshot=self.stream_research.snapshot(now=now),now=now,observed_pairs=pairs)
+
+    def _selection_forecasts(self,catalog,quotes,snapshot=None):
+        learner=getattr(self.forward,'selection',None)
+        if learner is None:return {}
+        now=time.time()
+        return learner.forecasts(pairs=set(catalog)&set(quotes),now=now,
+            snapshot=self.stream_research.snapshot(now=now) if snapshot is None else snapshot)
+
     def _finish_fast(self,result,started):
         now=time.monotonic()
         result['research_duration_s']=round(now-started,3)
@@ -2897,6 +2913,8 @@ class CoinCatApp:
         # Whole-wallet marking is reported independently. The canonical planner
         # still requires fresh source, destination and actual route FX.
         stream=self.stream_research.snapshot(now=time.time())
+        result['passive_selection']=self._observe_selection(catalog,list(snapshots),quotes)
+        forward_evidence=self._selection_forecasts(catalog,quotes,stream)
         candidates,rejected=fast_candidates(plan['targets'],quotes,stream,now=time.time(),
                                             target_routes=plan['target_routes'])
         result['targets']=len(candidates);result['candidate_quote_rejects']=rejected
@@ -2919,7 +2937,7 @@ class CoinCatApp:
                 fee_rates_by_pair=fee_rates,relative_evidence=self.relative_lab.paired_outcomes,
                 exploratory_candidates=candidates, direct_only=True,max_targets=3,urgent=True,experimental=True,
                 budget_settings=getattr(self,'_manual_budget_saved',None),
-                budget_usage=self._shadow_budget_used(self.experimental_shadow))
+                budget_usage=self._shadow_budget_used(self.experimental_shadow),forward_evidence=forward_evidence)
         else:
             from coincat_v605_shadow_bridge import shadow_screen
             balances={}
@@ -2938,7 +2956,7 @@ class CoinCatApp:
                 fee_rates_by_pair=fee_rates,relative_evidence=self.relative_lab.paired_outcomes,
                 exploratory_candidates=candidates,direct_only=True,max_targets=3,urgent=True,experimental=True,
                 budget_settings=getattr(self,'_manual_budget_saved',None),
-                budget_usage=self._shadow_budget_used(self.experimental_shadow))
+                budget_usage=self._shadow_budget_used(self.experimental_shadow),forward_evidence=forward_evidence)
         # Validated SHADOW may observe urgent research using its own modeled
         # wallet, but its held-out OOS qualification remains unchanged.
         if self.shadow_pilot.armed and self._shadow_model_balances:
@@ -2963,7 +2981,11 @@ class CoinCatApp:
         result['snowball']=stats
         result['planner_ms']=round((time.monotonic()-planner_started)*1000,2)
         result['state']='RESEARCHED'
-        result['reason']='EXPERIMENT_READY' if self.experimental_shadow.armed else 'READ_ONLY_RESEARCH'
+        from collections import Counter
+        result['selection']={'eligible':sum(i.get('selection_state')=='ELIGIBLE' for i in ideas),
+            'reasons':dict(Counter(i.get('selection_reason','UNASSESSED') for i in ideas))}
+        result['reason']=('COST_EDGE_CANDIDATES' if result['selection']['eligible'] else
+            'OBSERVING_NO_COST_EDGE') if self.experimental_shadow.armed else 'READ_ONLY_RESEARCH'
         if not ideas and not researched.get('funding_assets',0):
             result['state']='WAIT';result['reason']='NO_FRESH_SOURCE_DESTINATION_FX'
         result['captured_at']=time.time()
@@ -3030,12 +3052,14 @@ class CoinCatApp:
             checkpoint=self._service_fast_checkpoint,fetch=fetch_snapshot,clock=time.monotonic)
         self._deep_quote_cursor=network['next_cursor']
         self.forward.record_quotes([(p,q.observed_at,q.bid,q.ask,q.source) for p,q in books.items()])
+        result['passive_selection']=self._observe_selection(decision_catalog,list(books))
         result['quotes']=len(books);result['failures']=sum(network['errors'].values())
         result['scan_network']={'deep':network}
         self.jobs.put(('scan_progress',f'Broad quotes {len(books)}/{len(watch)} • {network["unrequested"]} deferred to later passes'))
         # Explore the wider catalog with one-off public ticker snapshots. These
         # are stored in a SEPARATE latest-only table so they cannot mature a
-        # BUY signal or become a forward trade label. Live order policy unchanged.
+        # validated BUY signal. Fresh synchronized books may supply passive
+        # experimental pair-relative labels, without simulating any trade.
         if decision_catalog:
             cursor=self.forward.get_state_int('universe_discovery_cursor',0)
             rotation,next_cursor=choose_discovery(decision_catalog,watch,cursor,self.discovery_per_cycle)
@@ -3053,6 +3077,7 @@ class CoinCatApp:
                 checkpoint=self._service_fast_checkpoint,fetch=fetch_snapshot,clock=time.monotonic)
             for pair,quote in books.items():
                 self.forward.record_discovery(pair,quote.observed_at,quote.bid,quote.ask)
+            result['passive_selection']=self._observe_selection(decision_catalog,list(books))
             sampled=len(books);failed=sum(network['errors'].values())
             result['scan_network']['catalog']=network
             if network['requested']:
@@ -3212,6 +3237,7 @@ class CoinCatApp:
             from coincat_v60_research_sizing import funding_inventory_snapshot
             from coincat_relative_strength_research import rank_observed_markets
             research_books=self._shadow_valuation_books()
+            forward_evidence=self._selection_forecasts(decision_catalog,research_books)
             result['decision_quotes']=dict(research_books)
             funding=funding_inventory_snapshot(self.ledger.assets(),
                 self.current_balances,research_books,decision_catalog,now=time.time())
@@ -3291,7 +3317,8 @@ class CoinCatApp:
                 minimum_net_advantage_usd=Decimal('.10'),
                 exploratory_candidates=exploratory['candidates'],
                 strategy_candidates=strategy_candidates,
-                gpu_advisories=result['gpu_advisory'],direct_only=True)  # NEVER GPU-only BUY signals
+                gpu_advisories=result['gpu_advisory'],direct_only=True,
+                forward_evidence=forward_evidence)  # NEVER GPU-only BUY signals
             # After ARM SHADOW, ONLY the modeled wallet funds follow-on routes.
             # The same core planner is reused; no parallel strategy/trader engine.
             if (self.shadow_pilot.armed and self._shadow_model_balances):
@@ -3328,7 +3355,8 @@ class CoinCatApp:
                         strategy_candidates=strategy_candidates,
                         gpu_advisories=result['gpu_advisory'],direct_only=True,
                         max_targets=8,experimental=True,budget_settings=self._manual_budget_saved,
-                        budget_usage=self._shadow_budget_used(self.experimental_shadow))  # bounded experimental rescreen; no network or new scanner
+                        budget_usage=self._shadow_budget_used(self.experimental_shadow),
+                        forward_evidence=forward_evidence)  # bounded experimental rescreen; no network or new scanner
                 else:
                     result['experimental_rotation']=result['auto_rotation']
                     result['experimental_rotation']=dict(result['experimental_rotation'],
@@ -3907,7 +3935,7 @@ class CoinCatApp:
                         self.experimental_shadow_status.set('EXPERIMENT ARMED • scans '+
                             str(sx['completed_fresh_scans'])+' • what-if FIFO legs '+
                             str(sx['shadow_fifo_posted_legs'])+
-                            ' • historical validation BYPASSED FOR TEST ONLY • LIVE ZERO')
+                            ' • immediate / forward-cost scenarios only • UNVALIDATED • LIVE ZERO')
                         self._refresh_experimental_pnl()
                     except Exception as exc:
                         self.experimental_shadow.disarm()

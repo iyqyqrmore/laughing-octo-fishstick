@@ -23,7 +23,8 @@ class SnowballResearch(unittest.TestCase):
                    'sends_live_orders':False,
                    'shadow_fifo_steps':[{'pair':'SOL-ETH','side':'SELL',
                        'gross_base_quantity':'10','input_quantity':'10',
-                       'output_quantity':'1.0901','fee_rate_used':'.009'}]}
+                       'output_quantity':'1.0901','fee_rate_used':'.009',
+                       'approx_usd_notional':'100','output_usd_mark':'109.01'}]}
     def test_immediate_opportunity_can_be_positive_without_momentum(self):
         r=assess_idea(self.idea,self.quotes,now=self.now,taker_fee=Decimal('.009'))
         self.assertEqual('IMMEDIATE_ESTIMATE',r['state'])
@@ -54,11 +55,14 @@ class SnowballResearch(unittest.TestCase):
             self.assertEqual('NOT_VERIFIED',assess_idea(self.idea,quotes,now=self.now,taker_fee=Decimal('.009'))['state'])
         self.assertEqual('FEE_UNVERIFIED',assess_idea(self.idea,self.quotes,now=self.now,taker_fee=None)['reason'])
         self.assertEqual('RECEIPT_OR_FEE_MISMATCH',assess_idea(self.idea,self.quotes,now=self.now,taker_fee=Decimal('.005'))['reason'])
-    def test_momentum_scenario_not_hidden_by_small_immediate_estimate(self):
+    def test_momentum_does_not_inflate_small_immediate_estimate(self):
         idea=dict(self.idea, observed_momentum_pct=Decimal('2'),
                   snowball_state='IMMEDIATE_ESTIMATE',snowball_immediate_usd='.01')
         score=ShadowArmedResearch(experimental=True)._experimental_score(idea,{})
-        self.assertEqual(Decimal('1.0'),score)
+        self.assertEqual(Decimal('.01'),score)
+        # A cheaper hypothetical exit must not overrule an actual wallet loss.
+        idea['shadow_fifo_steps']=[dict(idea['shadow_fifo_steps'][0],output_usd_mark='99')]
+        self.assertIsNone(ShadowArmedResearch(experimental=True)._experimental_score(idea,{}))
 
     def test_direct_usd_route_suffers_cost_drag_not_missing_fx(self):
         idea={'source':'USD','target':'SOL','trigger_pair':'SOL-USD',

@@ -125,7 +125,7 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                          usd_per_order_cap, now, stats_for_pair=None, fee_rates_by_pair=None,
                          max_targets=MAX_TARGETS, relative_evidence=None, minimum_net_advantage_usd='0.10',
                          exploratory_candidates=(), strategy_candidates=(), gpu_advisories=None,
-                         direct_only=False,urgent=False,budget_settings=None,budget_usage=None):
+                         direct_only=False,urgent=False,budget_settings=None,budget_usage=None,forward_evidence=None):
     """Build bounded, continuously refreshed two-way coin rotation *research*.
 
     Holdings fund proposals but do not bias the underlying market scan. An
@@ -374,7 +374,7 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                     outcome['exploratory_shortlist']+=1
         if direct_only:
             from coincat_v703_chain import rank_experimental
-            outcome['ideas']=rank_experimental(outcome['ideas'],quotes,now)
+            outcome['ideas']=rank_experimental(outcome['ideas'],quotes,now,forward_evidence=forward_evidence)
             outcome['experimental_ideas']=outcome['ideas']
         else:outcome['ideas']=outcome['ideas'][:6]
         outcome['exploratory_shortlist']=len(outcome['ideas'])
@@ -538,7 +538,7 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
         outcome['multi_source_research']+=1
     if direct_only:
         from coincat_v703_chain import rank_experimental
-        outcome['experimental_ideas']=rank_experimental(outcome['ideas'],quotes,now)
+        outcome['experimental_ideas']=rank_experimental(outcome['ideas'],quotes,now,forward_evidence=forward_evidence)
     outcome['threshold_research']=threshold_sweep(outcome['ideas'])
     # The account-tier cost screen and assumed slippage often produce negative immediate
     # conversion P&L. Do not mislabel a less-negative mark as actual profit.
