@@ -11,7 +11,7 @@ from coincat_rotation_autopilot import auto_rotation_screen
 ROOT=Path(__file__).resolve().parents[1]
 class V60Release(unittest.TestCase):
     def test_version_launchers_and_removal(self):
-        self.assertEqual(DISPLAY,'CoinCat v70.2')
+        self.assertEqual(DISPLAY,'CoinCat v70.3')
         self.assertFalse((ROOT/'build_windows').exists())
         self.assertTrue((ROOT/'01_START_COINCAT.bat').is_file())
         self.assertIn('CoinCat50.ico', (ROOT/'tools/CREATE_SHORTCUTS.ps1').read_text())

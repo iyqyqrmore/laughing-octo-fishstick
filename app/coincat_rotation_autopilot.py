@@ -6,7 +6,7 @@ module has NO authenticated client, no submit interface and no ledger writes.
 """
 from __future__ import annotations
 from decimal import Decimal, InvalidOperation, ROUND_FLOOR
-from coincat_multicurrency import evaluate_rotation
+from coincat_multicurrency import evaluate_rotation, RotationContext
 from coincat_cross_quote import split_spot, usd_conversion
 from coincat_v502_relative_learning import evaluate_hold_switch
 from coincat_v60_research_sizing import funding_inventory_snapshot
@@ -36,6 +36,9 @@ def threshold_sweep(ideas):
         'counts_at_floors':{}}
     # A cumulative histogram gives every cent's count in O(9991 + routes)
     # without re-running Coinbase evaluation 9991 times.
+    if not ceilings:
+        output['counts_at_floors']={format(Decimal(x)/100,'.2f'):0 for x in (10,14,35,55,100,10000)}
+        return output
     hist=[0]*10002
     for value in ceilings.values():
         cents=max(0,min(10000,int(value*100)))
@@ -78,7 +81,7 @@ def _failure_category(plan):
 
 
 def sell_first_exit_screen(*, inventory, catalog, quotes, now, balance_age_s,
-                           product_rules, fee_rates_by_pair, excluded_assets, direct_only=False):
+                           product_rules, fee_rates_by_pair, excluded_assets, direct_only=False,_context=None):
     """Evaluate existing holdings for SELL-first exit feasibility independently of BUY.
 
     Uses the ONE verified currency-aware planner, never a new trader. An exit
@@ -104,7 +107,7 @@ def sell_first_exit_screen(*, inventory, catalog, quotes, now, balance_age_s,
                 now=now,usd_per_order_cap=usd_value,
                 product_rules=product_rules,excluded_assets=excluded_assets,
                 fee_rates_by_pair=fee_rates_by_pair,
-                max_legs=1 if direct_only else 2,crypto_only=False)
+                max_legs=1 if direct_only else 2,crypto_only=False,_context=_context)
             if plan.get('state')=='RESEARCH ONLY' and plan.get('routes'):
                 found=True
                 state['feasible_exit_routes']+=1
@@ -122,7 +125,7 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                          usd_per_order_cap, now, stats_for_pair=None, fee_rates_by_pair=None,
                          max_targets=MAX_TARGETS, relative_evidence=None, minimum_net_advantage_usd='0.10',
                          exploratory_candidates=(), strategy_candidates=(), gpu_advisories=None,
-                         direct_only=False):
+                         direct_only=False,urgent=False,budget_settings=None,budget_usage=None):
     """Build bounded, continuously refreshed two-way coin rotation *research*.
 
     Holdings fund proposals but do not bias the underlying market scan. An
@@ -143,7 +146,7 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                'strategy_targets':0,'strategy_route_reviews':0,'strategy_routes_feasible':0,
                'strategy_forward_portfolio_validated':0,
                'exploratory_targets':0,'exploratory_route_attempts':0,'exploratory_viable_routes':0,
-               'exploratory_shortlist':0,
+               'exploratory_shortlist':0,'unfundable_source_targets_skipped':0,
                'hold_preferred':0,'switch_worth_research':0,'forward_unverified':0,
                'reason': 'No safely valued opportunity yet'}
     try:
@@ -157,6 +160,26 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
     except (ValueError, TypeError, OverflowError):
         outcome['reason'] = 'Balance age unavailable'; return outcome
     from coincat_v6010_registry import one_order_catalog
+    # One approval boundary BEFORE prices, routing, ranking or advisory work.
+    excluded={str(row.get('asset','')).upper() for row in holdings or () if not row.get('enabled',1)}
+    if direct_only:
+        from coincat_v703_chain import approved_pairs
+        catalog=approved_pairs(catalog,product_rules,excluded)
+    context=RotationContext(catalog,quotes,now)
+    route_catalog=set(catalog)
+    evidence_cache={};stats_cache={}
+    def relative(source,target):
+        key=(source,target)
+        if key not in evidence_cache:
+            try:evidence_cache[key]=(relative_evidence(source,target,now=now) if relative_evidence is not None else
+                                    {'state':'INSUFFICIENT_FORWARD_USD_EVIDENCE','n':0})
+            except Exception:evidence_cache[key]={'state':'RELATIVE_EVIDENCE_ERROR','n':0}
+        return evidence_cache[key]
+    def reachable(source,target):
+        if not direct_only:return True
+        if f'{source}-{target}' in route_catalog or f'{target}-{source}' in route_catalog:return True
+        outcome['unfundable_source_targets_skipped']+=1
+        return False
     direct_products=one_order_catalog(catalog,product_rules) if direct_only else []
     outcome['direct_crypto_pairs_authenticated']=len(direct_products)  # legacy schema alias
     outcome['one_order_eligible_spot_products']=len(direct_products)
@@ -179,25 +202,41 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
     outcome['scanned_sources'] = len(enabled)
     # Strict trading-price eligibility is PER HOLDING. An unpriceable dust
     # balance no longer erases the usable USD or BTC funding capacity.
-    snapshot=funding_inventory_snapshot(holdings,verified_balances,quotes,catalog,now=now)
+    snapshot=funding_inventory_snapshot(holdings,verified_balances,quotes,catalog,now=now,_context=context)
     outcome['funding_partial']=snapshot['partial']
     outcome['funding_unpriceable']=snapshot['ineligible_count']
     outcome['funding_rejection_counts']=snapshot['ineligible_reasons']
     enabled=[(x['asset'],x['quantity']) for x in snapshot['eligible']]
     outcome['funding_assets']=len(enabled)
     outcome['funding_inventory_usd']=sum((x['usd_value'] for x in snapshot['eligible']),Decimal(0))
+    if budget_settings is not None:
+        from coincat_v606_budgets import effective
+        caps=effective(budget_settings,outcome['funding_inventory_usd'])
+        outcome['execution_budget']=caps
+        if caps is None:
+            outcome['reason']='No verified fuel for active shadow budget';return outcome
+        usage=budget_usage or {}
+        remaining=Decimal(caps['daily_buy_usd'])-Decimal(str(usage.get('turnover_usd',0)))
+        if remaining<=0:
+            outcome['reason']='SHADOW_BUDGET_TURNOVER_EXHAUSTED';return outcome
+        if int(usage.get('attempts',0))>=int(caps['max_attempts']):
+            outcome['reason']='SHADOW_ATTEMPT_LIMIT_REACHED';return outcome
+        usd_per_order_cap=min(_positive(usd_per_order_cap),Decimal(caps['per_order_usd']),
+                              Decimal(caps['incremental_exposure_usd']),remaining)
+
     if not enabled:
         outcome['reason']='No enrolled funding with fresh, strict Coinbase USD conversion; other assets remain unaltered';return outcome
     inventory=[(x['asset'],x['quantity'],x['usd_value']) for x in snapshot['eligible']]
     from coincat_multicurrency import _snapshots
-    books=_snapshots(catalog,quotes,now,max_age=120)
+    books=context.books
     # Source-first SELL feasibility is evaluated regardless of whether any
     # destination has a qualified BUY signal. NEVER convert SELL feasibility
     # into a broker order or a fabricated positive future USD forecast.
-    outcome['sell_first']=sell_first_exit_screen(inventory=inventory,
+    outcome['sell_first']=({'state':'DEFERRED_BACKGROUND_ADVISORY','screened':0,'feasible_exit_routes':0,
+        'wait_routes':0,'order_authorized':False} if urgent else sell_first_exit_screen(inventory=inventory,
         catalog=catalog,quotes=quotes,now=now,balance_age_s=age,
         product_rules=product_rules,fee_rates_by_pair=fee_rates_by_pair,
-        excluded_assets=excluded,direct_only=direct_only)
+        excluded_assets=excluded,direct_only=direct_only,_context=context))
     outcome['funding_size_observations']={
         'state':'OBSERVATIONS ONLY','source_assets':len(inventory),
         'size_scenarios':len(inventory)*9,'partial':snapshot['partial'],
@@ -299,8 +338,8 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
         blockers={}
         for target,momentum,trigger_pair in exploratory:
             for source,qty in enabled:
-                if source==target:continue
-                fx=usd_conversion(source,books,now=now,max_age=120,max_legs=2)
+                if source==target or not reachable(source,target):continue
+                fx=context.usd(source)
                 if fx is None:continue
                 cap=min(qty*fx['rate'],_positive(usd_per_order_cap))
                 for part in (Decimal(1),Decimal('.5'),Decimal('.1')):
@@ -313,27 +352,32 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                         balance_age_s=age,catalog=(direct_products if direct_only else catalog),quotes=quotes,
                         now=now,usd_per_order_cap=size,product_rules=product_rules,
                         excluded_assets=excluded,fee_rates_by_pair=fee_rates_by_pair,
-                        max_legs=1 if direct_only else 2,crypto_only=False)
+                        max_legs=1 if direct_only else 2,crypto_only=False,_context=context)
                     if plan['state']!='RESEARCH ONLY' or not plan['routes']:
                         key=_failure_category(plan)
                         blockers[key]=blockers.get(key,0)+1
                         continue
                     outcome['exploratory_viable_routes']+=1
                     if direct_only:outcome['one_order_routes_evaluated']+=1
-                    if outcome['exploratory_shortlist']<6:
-                        best=plan['routes'][0]
-                        outcome['ideas'].append(dict(source=source,target=target,trigger_pair=trigger_pair,
-                            route=best['route'],shadow_fifo_steps=best['steps'],source_units=qty,
-                            input_units_planned=best['input_units_planned'],
-                            destination_units_estimate=best['destination_units_estimate'],
-                            initial_wallet_usd_mark=best['initial_wallet_usd_mark'],
-                            post_route_wallet_usd_mark=best['post_route_wallet_usd_mark'],
-                            immediate_change_usd=best['immediate_change_usd'],
-                            research_size_cap_usd=size,observed_momentum_pct=momentum,
-                            state='EXPLORATORY ONLY',research_decision='NOT_BUY_QUALIFIED',
-                            net_p10_usd=None,oos_validated=False,sends_live_orders=False,
-                            reason='Observed relative-strength ranking, not BUY or forward USD evidence'))
-                        outcome['exploratory_shortlist']+=1
+                    best=plan['routes'][0]
+                    outcome['ideas'].append(dict(source=source,target=target,trigger_pair=trigger_pair,
+                        route=best['route'],shadow_fifo_steps=best['steps'],source_units=qty,
+                        input_units_planned=best['input_units_planned'],
+                        destination_units_estimate=best['destination_units_estimate'],
+                        initial_wallet_usd_mark=best['initial_wallet_usd_mark'],
+                        post_route_wallet_usd_mark=best['post_route_wallet_usd_mark'],
+                        immediate_change_usd=best['immediate_change_usd'],
+                        research_size_cap_usd=size,observed_momentum_pct=momentum,
+                        state='EXPLORATORY ONLY',research_decision='NOT_BUY_QUALIFIED',
+                        net_p10_usd=None,oos_validated=False,sends_live_orders=False,
+                        reason='Observed relative-strength ranking, not BUY or forward USD evidence'))
+                    outcome['exploratory_shortlist']+=1
+        if direct_only:
+            from coincat_v703_chain import rank_experimental
+            outcome['ideas']=rank_experimental(outcome['ideas'],quotes,now)
+            outcome['experimental_ideas']=outcome['ideas']
+        else:outcome['ideas']=outcome['ideas'][:6]
+        outcome['exploratory_shortlist']=len(outcome['ideas'])
         outcome['route_blockers']=blockers
         outcome['threshold_research']=threshold_sweep(outcome['ideas'])
         outcome['state']='WAIT'
@@ -351,8 +395,8 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
         from_strategy=target in strategy_bases
         from_observed_rank=target in ranked_observation_bases
         for source, qty in enabled:
-            if source == target: continue
-            fx=usd_conversion(source,books,now=now,max_age=120,max_legs=2)
+            if source == target or not reachable(source,target): continue
+            fx=context.usd(source)
             if fx is None:
                 route_blockers['MISSING_USD_CONVERSION']=route_blockers.get('MISSING_USD_CONVERSION',0)+1
                 continue
@@ -379,7 +423,7 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                     usd_per_order_cap=candidate_cap,
                     product_rules=product_rules, excluded_assets=excluded,
                     fee_rates_by_pair=fee_rates_by_pair,
-                    max_legs=1 if direct_only else 2,crypto_only=False)
+                    max_legs=1 if direct_only else 2,crypto_only=False,_context=context)
                 if plan['state'] != 'RESEARCH ONLY' or not plan['routes']:
                     category=_failure_category(plan)
                     route_blockers[category] = route_blockers.get(category, 0) + 1
@@ -391,13 +435,14 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                 best = plan['routes'][0]
                 # Pool only one fully-sized feasible plan per distinct funding
                 # coin; never sum multiple sizes of the SAME coins as fresh money.
-                if candidate_cap == full_cap and not from_strategy:
+                if not direct_only and candidate_cap == full_cap and not from_strategy:
                     funding_components.setdefault(target,{})[source]=(best,qty,candidate_cap,trigger_pair)
                 summary = 'Observed momentum; independent forward USD advantage vs HOLD NOT established'
                 history_gap = None
                 if stats_for_pair is not None:
                     try:
-                        target_stats = stats_for_pair(trigger_pair)
+                        if trigger_pair not in stats_cache:stats_cache[trigger_pair]=stats_for_pair(trigger_pair)
+                        target_stats = stats_cache[trigger_pair]
                         if target_stats['n'] < 24:
                             history_gap = f'only {target_stats["n"]} target forward labels'
                         else:
@@ -419,11 +464,7 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                     source_signal=('STRATEGY_RESEARCH_ONLY' if from_strategy else
                                    'RANKED_OBSERVATION_ONLY' if from_observed_rank else 'LEGACY_BUY_RESEARCH'),
                     sends_live_orders=False)
-                try:
-                    evidence=(relative_evidence(source,target,now=now) if relative_evidence is not None else
-                              {'state':'INSUFFICIENT_FORWARD_USD_EVIDENCE','n':0})
-                except Exception:
-                    evidence={'state':'RELATIVE_EVIDENCE_ERROR','n':0}
+                evidence=relative(source,target)
                 result.update(evaluate_hold_switch(result,evidence,minimum_net_advantage_usd=minimum_net_advantage_usd))
                 if from_observed_rank:
                     # Rankings merely describe past movement: even an unrelated
@@ -495,6 +536,9 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
             sends_live_orders=False)
         outcome['ideas'].append(basket)
         outcome['multi_source_research']+=1
+    if direct_only:
+        from coincat_v703_chain import rank_experimental
+        outcome['experimental_ideas']=rank_experimental(outcome['ideas'],quotes,now)
     outcome['threshold_research']=threshold_sweep(outcome['ideas'])
     # The account-tier cost screen and assumed slippage often produce negative immediate
     # conversion P&L. Do not mislabel a less-negative mark as actual profit.

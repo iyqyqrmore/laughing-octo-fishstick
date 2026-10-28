@@ -109,12 +109,13 @@ def _health_summary(app, wall, mono):
     )
     lines = [
         'RUNTIME HEALTH / IMPORTANT BLOCKERS (independently computed)',
-        'Authenticated-data freshness: ' + ('PASS (observation only)' if health['ready'] else 'BLOCKED / INCOMPLETE'),
+        'Broad authenticated-data health: ' + ('PASS (observation only)' if health['ready'] else 'BLOCKED / INCOMPLETE')+
+            ' — independent of urgent public-REST research below',
         'Broker connection: ' + ('CONNECTED object present' if broker else 'NOT CONNECTED'),
         'Real-order ARM: ' + ('ARMED — review risk immediately' if broker and getattr(broker,'armed',False) else 'DISARMED'),
         'Catalog age / max 7200s: ' + _show_age(catalog_age),
         'Balances age / max 300s: ' + _show_age(portfolio_age),
-        'REST completed scan age / max 180s: ' + _show_age(scan_age),
+        'Broad REST completed scan age / max 180s: ' + _show_age(scan_age),
         'Authenticated USD pricebooks age / max 300s: ' + _show_age(valuation_age),
         'UI poll callback age / max 15s: ' + _show_age(poll_age),
         'UI research timer age / max 15s: ' + _show_age(tick_age),
@@ -143,14 +144,20 @@ def _health_summary(app, wall, mono):
         # Each item comes from the fixed enum list in live_data_health.
         lines.append('  FRESHNESS BLOCKER: ' + issue)
     if scan_age is not None and scan_age > 180 and poll_age is not None and poll_age <= 15:
-        lines.append('  DIAGNOSTIC CLUE: GUI poll is running but authenticated REST scan is stale; check worker/scheduler contention.')
+        lines.append('  DIAGNOSTIC CLUE: GUI poll is running but broad REST scan is stale; urgent research has a separate timestamp below.')
     if scan_age is not None and scan_age > 180 and tick_age is not None and tick_age > 15:
         lines.append('  DIAGNOSTIC CLUE: research callback and REST scan both stale; check UI timer failures.')
     if not broker:
         lines.append('  DISCONNECTED IS NOT A SCHEDULER FAILURE: fresh authenticated observations may not yet be available.')
     lines.append('Production ledger reconciliation: ' + _ledger_status(app.ledger.path))
     lines.extend([
-        'FAST SNOWBALL v70.1: urgent checks before background research, same serial worker/planner; READ ONLY.',
+        'FAST SNOWBALL: urgent checks before background research, same serial worker/planner; READ ONLY.',
+        'Last completed urgent decision age: '+_show_age(_age(wall,getattr(app,'_fast_observed_at',0)))+
+            ' (successful pricing/planning; no order or execution proof)',
+        'Latest urgent attempt age: '+_show_age(_age(wall,(getattr(app,'_fast_last_result',{}) or {}).get('captured_at',0))),
+        'Urgent approved/fundable scope counts: '+str((getattr(app,'_fast_last_result',{}) or {}).get('scope',{})),
+        'Common Snowball panel source: '+str((getattr(app,'_snowball_summary',{}) or {}).get('event_source','UNKNOWN'))+
+            '; age='+_show_age(_age(wall,(getattr(app,'_snowball_summary',{}) or {}).get('observed_at',0))),
         'Fast research loop count: '+str(getattr(app,'_fast_runs',0))+
           '; aggregate='+str(getattr(app,'_fast_totals',{})),
         'Fast latest decision funnel (research counts, not orders): '+str(

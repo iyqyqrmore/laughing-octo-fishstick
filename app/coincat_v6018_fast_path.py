@@ -11,7 +11,7 @@ MAX_TARGETS=3
 
 
 def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
-                      required_assets=(), quotes=None, now=None):
+                      required_assets=(), quotes=None, now=None,target_assets=None,valuation_catalog=None):
     """Refresh HOLD/current/fee marks before adding complete target dependencies.
 
     Cached <=12s marks need not consume a request. A small budget refreshes marks
@@ -35,7 +35,10 @@ def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
             if mark_coverage([asset], quotes or {}, now=now, max_age=12,
                              max_spread=spread,max_legs=legs)['complete']:
                 continue
-            path = mark_paths(asset, available,max_legs=legs)
+            # Disabled trading assets already held still need honest wallet
+            # marks. Their valuation books never enter candidate routing.
+            path = mark_paths(asset,set(valuation_catalog) if valuation and valuation_catalog is not None
+                              else available,max_legs=legs)
             if path is None:
                 if asset not in missing_paths: missing_paths.append(asset)
                 continue
@@ -50,7 +53,8 @@ def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
     for pair in alerts or ():
         if deferred or len(targets) >= MAX_TARGETS: break
         if pair not in available or '-' not in pair: continue
-        asset = pair.split('-')[0]
+        asset = (target_assets or {}).get(pair,pair.split('-')[0])
+        if asset not in pair.split('-'):continue
         if asset in [a for a, _ in targets]: continue
         direct = [p for fund in sorted(funding) for p in
                   (f'{asset}-{fund}', f'{fund}-{asset}') if p in available]
@@ -102,7 +106,8 @@ def fast_funnel(*,detected=0,selected=0,fetched=0,errors=0,targets=0,
     return {'stream_alerts':int(detected),'fundable_alerts':int(selected),
             'book_requests':int(fetched)+int(errors),'fresh_books':int(fresh) if fresh is not None else 0,
             'quote_errors':int(errors),'fresh_targets':int(targets),
-            'one_order_routes':int(p.get('viable_routes') or 0),
+            'one_order_routes':int(p.get('one_order_routes_evaluated',p.get('viable_routes',0)) or 0),
+            'distinct_candidate_routes':len({tuple(i.get('route') or ()) for i in p.get('ideas',())}),
             'route_blockers':dict(p.get('route_blockers') or {}),
             'immediate_priced':int(s.get('priced') or 0),
             'positive_estimates':int(s.get('positive') or 0),

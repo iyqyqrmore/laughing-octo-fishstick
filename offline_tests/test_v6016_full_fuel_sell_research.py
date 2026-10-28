@@ -107,7 +107,7 @@ class FullHoldingResearch(unittest.TestCase):
         from coincat_rotation_autopilot import auto_rotation_screen
         budget=effective(dict(DEFAULT,mode='FULL_AVAILABLE'),'175')
         self.assertEqual(budget['per_order_usd'],'175')
-        self.assertEqual(budget['daily_buy_usd'],'175')
+        self.assertEqual(budget['daily_buy_usd'],DEFAULT['daily_buy_usd'])
         src=(Path(__file__).resolve().parents[1]/'app'/'coincat_rotation_autopilot.py').read_text()
         self.assertIn("(full_cap, full_cap*Decimal('.75'), full_cap*Decimal('.5')",src)
         self.assertIn('authorized_qty=qty, verified_available_qty=qty',src)

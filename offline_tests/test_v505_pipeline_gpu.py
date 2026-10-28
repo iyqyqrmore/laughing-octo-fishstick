@@ -68,7 +68,7 @@ class Tests(unittest.TestCase):
         self.assertIn('NO ORDER SUBMISSIONS',report(a))
     def test_version_and_source_mode_no_legacy_fast_lane(self):
         root=Path(__file__).resolve().parents[1]
-        self.assertIn('70.2',(root/'app/coincat_version.py').read_text())
+        self.assertIn('70.3',(root/'app/coincat_version.py').read_text())
         self.assertTrue((root/'01_START_COINCAT.bat').exists())
         self.assertFalse((root/'build_windows').exists())
         live=(root/'app/coincat_live.py').read_text()

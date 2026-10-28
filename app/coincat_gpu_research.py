@@ -27,18 +27,21 @@ def _features(at, bid,ask,spot_taker_fee=None):
             math.cos(2*math.pi*hour/24),math.sin(2*math.pi*t.weekday()/7),
             math.cos(2*math.pi*t.weekday()/7),rate*10000]
 
-def collect_two_way_examples(db_path):
+def collect_two_way_examples(db_path,*,allowed_pairs=None):
+    pairs=None if allowed_pairs is None else sorted(set(allowed_pairs))
+    if pairs==[]:return []
     with sql(db_path) as conn:
         exists=conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='directional_trials'").fetchone()
         if not exists:return []
         cols={r[1] for r in conn.execute('PRAGMA table_info(directional_trials)')}
         if not {'fee_taker_at_entry','fee_source_at_entry'}.issubset(cols):return []
+        scope='' if pairs is None else ' AND pair IN ('+','.join('?' for _ in pairs)+')'
         rows=conn.execute("""SELECT observed_at,entry_bid,entry_ask,buy_net_pct,sell_rebuy_net_pct,fee_taker_at_entry
           FROM directional_trials WHERE state='OBSERVED'
             AND buy_net_pct IS NOT NULL AND sell_rebuy_net_pct IS NOT NULL
             AND fee_source_at_entry='AUTHENTICATED_ACCOUNT_TIER_AT_ENTRY'
             AND fee_taker_at_entry IS NOT NULL
-          ORDER BY observed_at,id""").fetchall()
+          """+scope+' ORDER BY observed_at,id',pairs or ()).fetchall()
     out=[]
     for row in rows:
         try:
@@ -49,8 +52,8 @@ def collect_two_way_examples(db_path):
         except (ValueError,TypeError,OverflowError):continue
     return out
 
-def train_observe_only(db_path,output_folder,minimum=240,epochs=45):
-    rows=collect_two_way_examples(db_path)
+def train_observe_only(db_path,output_folder,minimum=240,epochs=45,*,allowed_pairs=None):
+    rows=collect_two_way_examples(db_path,allowed_pairs=allowed_pairs)
     n=len(rows)
     if n<minimum:
         return {'status':'WAIT','labeled':n,'required':minimum,

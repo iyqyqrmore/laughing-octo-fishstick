@@ -50,7 +50,7 @@ class EvolvingShadow(unittest.TestCase):
             strict_quotes=True,risk_budgets=RISK if risk is None else risk)
     def test_combined_3_legs_evolve_wallet_and_original_hold_remains_unchanged(self):
         self.observe([multi()])
-        s=self.sh.snapshot()
+        s=self.sh.snapshot(now=self.sh.last_observation)
         self.assertEqual(s['shadow_fifo_posted_legs'],3)
         self.assertEqual(s['modeled_basket_scenarios'],4)  # price-band research scenarios
         self.assertEqual(s['rolling_24h_model_attempts'],3)
@@ -76,24 +76,24 @@ class EvolvingShadow(unittest.TestCase):
         bal=self.sh.model_balances()
         self.assertEqual(bal['BTC'],Decimal('.0015'))
         self.assertEqual(bal['USD'],Decimal('102.45'))
-        self.assertEqual(self.sh.snapshot()['rolling_24h_model_attempts'],4)
+        self.assertEqual(self.sh.snapshot(now=self.sh.last_observation)['rolling_24h_model_attempts'],4)
     def test_minimum_is_lower_bound_not_upper_band(self):
         high=multi();high['net_p10_usd']=Decimal('12.00')
         self.observe([high])
-        self.assertEqual(self.sh.snapshot()['shadow_fifo_posted_legs'],3)
+        self.assertEqual(self.sh.snapshot(now=self.sh.last_observation)['shadow_fifo_posted_legs'],3)
     def test_joint_unverified_does_not_count_as_certified(self):
         not_ready=multi();not_ready['shadow_simulation_eligible']=False
         self.observe([not_ready])
-        self.assertEqual(self.sh.snapshot()['shadow_fifo_posted_legs'],0)
+        self.assertEqual(self.sh.snapshot(now=self.sh.last_observation)['shadow_fifo_posted_legs'],0)
     def test_stale_quotes_reject_instead_of_imputed_fill(self):
         self.observe([multi()],books={'BTC-USD':BOOKS['BTC-USD']})
-        s=self.sh.snapshot()
+        s=self.sh.snapshot(now=self.sh.last_observation)
         self.assertEqual(s['shadow_fifo_posted_legs'],0)
         self.assertGreater(s['rejected_quote_freshness_or_drift'],0)
     def test_model_daily_and_per_order_budget_block(self):
         self.observe([multi()],risk={**RISK,'per_order_usd':'10'})
-        self.assertEqual(self.sh.snapshot()['shadow_fifo_posted_legs'],0)
-        self.assertGreater(self.sh.snapshot()['rejected_shadow_budget'],0)
+        self.assertEqual(self.sh.snapshot(now=self.sh.last_observation)['shadow_fifo_posted_legs'],0)
+        self.assertGreater(self.sh.snapshot(now=self.sh.last_observation)['rejected_shadow_budget'],0)
     def test_strict_limit_price_touch_is_not_counterfeit_fill(self):
         self.observe([multi()])
         before=self.sh.fifo_portfolios['LIMIT_ASK_MINUS_5BPS'].balances()
@@ -101,10 +101,10 @@ class EvolvingShadow(unittest.TestCase):
                'USDC-USD':('1','1',NOW+11),'ETH-USD':('2000','2000',NOW+11)}
         self.observe([],now=NOW+11,books=later)
         self.assertEqual(self.sh.fifo_portfolios['LIMIT_ASK_MINUS_5BPS'].balances(),before)
-        self.assertGreater(self.sh.snapshot()['passive_price_touches_without_fill_proof'],0)
+        self.assertGreater(self.sh.snapshot(now=self.sh.last_observation)['passive_price_touches_without_fill_proof'],0)
     def test_no_duplicate_simultaneous_plan_and_rolling_attempt_gate(self):
         self.observe([multi(),multi()])
-        self.assertEqual(self.sh.snapshot()['rolling_24h_model_attempts'],3)
+        self.assertEqual(self.sh.snapshot(now=self.sh.last_observation)['rolling_24h_model_attempts'],3)
         new=multi();new['target']='ETH';new['trigger_pair']='ETH-USD';new['research_size_cap_usd']=Decimal('100')
         new['shadow_fifo_steps']=[dict(pair='ETH-USD',side='BUY',gross_base_quantity=Decimal('.01'),
             input_quantity=Decimal('20.2'),output_quantity=Decimal('.01'),fee_rate_used=Decimal('.01'))]
@@ -112,7 +112,7 @@ class EvolvingShadow(unittest.TestCase):
         new['funding_inputs']={'USD':Decimal('20.2')}
         new['net_p10_usd']=Decimal('4')
         self.observe([new],now=NOW+10,books={k:(v[0],v[1],NOW+10) for k,v in BOOKS.items()},risk={**RISK,'max_attempts':'3'})
-        self.assertEqual(self.sh.snapshot()['rolling_24h_model_attempts'],3)
+        self.assertEqual(self.sh.snapshot(now=self.sh.last_observation)['rolling_24h_model_attempts'],3)
 
 class OnePlannerGpuFlow(unittest.TestCase):
     def test_gpu_only_reorders_existing_buy_no_auto_signal(self):

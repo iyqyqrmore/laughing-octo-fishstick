@@ -143,7 +143,7 @@ class ShadowStartValuation(unittest.TestCase):
         app.relative_lab=NS(paired_outcomes=lambda *a,**kw:{'status':'NOT_VERIFIED'})
         app.switch_minimum_usd=D('.1')
         app.forward=NS(recent_bid_ask=lambda **kw:books.copy(),
-            record_quote=lambda p,ts,b,a,**kw:books.update({p:(b,a,ts)}))
+            record_quotes=lambda rows:[books.update({p:(b,a,ts)}) for p,ts,b,a,source in rows])
         books={}
         def snapshot(pair,**kw):
             self.assertEqual(pair,'SOL-USD')

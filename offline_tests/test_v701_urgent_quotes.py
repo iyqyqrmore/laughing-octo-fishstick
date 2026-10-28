@@ -111,9 +111,12 @@ class SyntheticSequentialWallet(unittest.TestCase):
 
     def test_queued_plan_is_rejected_if_urgent_conversion_changed_wallet(self):
         app=CoinCatApp.__new__(CoinCatApp)
+        app._research_catalog=lambda **kw:['ETH-USD']
         session=NS(model_balances=lambda:{'ETH':D('1')})
-        self.assertEqual(app._current_shadow_ideas({'model':{'BTC':'1'}},session,'model',[{}]),())
-        self.assertEqual(app._current_shadow_ideas({'model':{'ETH':'1.00'}},session,'model',[{}]),[{}])
+        ideas=[{'shadow_fifo_steps':[{'pair':'ETH-USD'}]}]
+        self.assertEqual(app._current_shadow_ideas({'model':{'BTC':'1'}},session,'model',ideas),())
+        self.assertEqual(app._current_shadow_ideas({'model':{'ETH':'1.00'}},session,'model',ideas),ideas)
+        self.assertEqual(app._current_shadow_ideas({'model':{'ETH':'1.00'}},session,'model',[{}]),[])
 
     def test_incomplete_or_asynchronous_marks_cannot_mature_wallet_outcomes(self):
         app=CoinCatApp.__new__(CoinCatApp)
@@ -195,6 +198,7 @@ class UrgentScheduling(unittest.TestCase):
         app._connection_requested=app._connection_in_progress=False
         app._fill_sync_faulted=False
         app.stream_research=NS(rank_for_rest_scout=lambda *args,**kw:['SOL-USD'])
+        app._research_catalog=lambda **kw:app.catalog
         app.jobs=queue.Queue();app._fast_cycle=Mock(return_value={'kind':'fast_snowball'})
         return app
 
@@ -234,6 +238,7 @@ class SyntheticFastIntegration(unittest.TestCase):
         app.broker=NS(catalog_product_rules={p:{'base_increment':'.00000001',
             'base_min_size':'.00000001','quote_min_size':'.01'} for p in ['SOL-USDC','SOL-BTC']})
         app.catalog=['SOL-USDC','SOL-BTC','SOL-USD','BTC-USD','USDC-USD']
+        app.broker.catalog_product_rules={p:{'base_increment':'.00000001','base_min_size':'.00000001','quote_min_size':'.01'} for p in app.catalog}
         app._last_portfolio_sync_monotonic=time.monotonic()
         app.current_balances={'USDC':'100','BTC':'.01'}
         app.external_mismatches=[]
@@ -248,7 +253,7 @@ class SyntheticFastIntegration(unittest.TestCase):
         app.relative_lab=NS(paired_outcomes=lambda *a,**kw:{'status':'NOT_VERIFIED'})
         app.switch_minimum_usd=D('.10')
         books={}
-        app.forward=NS(record_quote=lambda p,ts,b,a,**kw:books.update({p:(b,a,ts)}))
+        app.forward=NS(record_quotes=lambda rows:[books.update({p:(b,a,ts)}) for p,ts,b,a,source in rows])
         app._shadow_valuation_books=lambda:books.copy()
         return app
 

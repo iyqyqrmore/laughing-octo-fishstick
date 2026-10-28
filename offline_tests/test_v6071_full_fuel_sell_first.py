@@ -26,7 +26,7 @@ class FullFuelShadow(unittest.TestCase):
             saved=save(file,old)
             self.assertEqual(load(file),saved)
             self.assertEqual(effective(saved,'72.45')['per_order_usd'],'72.45')
-            self.assertEqual(effective(saved,'72.45')['daily_buy_usd'],'72.45')
+            self.assertEqual(effective(saved,'72.45')['daily_buy_usd'],saved['daily_buy_usd'])
             self.assertEqual(effective(saved,'72.45')['incremental_exposure_usd'],'72.45')
             self.assertEqual(effective(saved,'72.45')['max_attempts'],'12')
             self.assertEqual(effective(saved,'95.5')['per_order_usd'],'95.5')
@@ -78,7 +78,7 @@ class FullFuelShadow(unittest.TestCase):
         self.assertIn('mode=self.shadow_budget_mode.get()',s)
         self.assertEqual(s.count('auto_rotation_screen('),1)
         self.assertIn('SELL-first spot exits studied=',s)
-        self.assertEqual(DISPLAY,'CoinCat v70.2')
+        self.assertEqual(DISPLAY,'CoinCat v70.3')
         broker=(root/'app/coincat_live.py').read_text()
         self.assertIn('def submit(',broker)
         import ast

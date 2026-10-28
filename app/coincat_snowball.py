@@ -33,9 +33,12 @@ def _valid_book(raw,now):
     except (ValueError,TypeError,IndexError,OverflowError):return None
 
 
-def _liquidation_usd(asset,books,*,now,route_pair,fee):
+def _liquidation_usd(asset,books,*,now,route_pair,fee,_fx_cache=None):
     if asset=='USD':return Decimal(1),()
-    fx=usd_conversion(asset,books,now=now,max_age=MAX_AGE_S,max_legs=2)
+    cache={} if _fx_cache is None else _fx_cache
+    if asset not in cache:
+        cache[asset]=usd_conversion(asset,books,now=now,max_age=MAX_AGE_S,max_legs=2)
+    fx=cache[asset]
     if (fx is None or not fx['path'] or (route_pair in fx['path'] and
             not (len(fx['path'])==1 and 'USD' in route_pair.split('-')))):
         return None
@@ -51,7 +54,7 @@ def _liquidation_usd(asset,books,*,now,route_pair,fee):
     return fx['rate']*factor,tuple(stamps)
 
 
-def assess_idea(idea,quotes,*,now,taker_fee):
+def assess_idea(idea,quotes,*,now,taker_fee,_fx_cache=None):
     """Assess existing single-leg planner receipts; NO entry pricing invented.
 
     Returns NOT_VERIFIED unless all direct and USD-mark books are sufficiently
@@ -96,8 +99,8 @@ def assess_idea(idea,quotes,*,now,taker_fee):
             result['reason']='ENTRY_PRICE_DRIFT';return result
     except (InvalidOperation,ZeroDivisionError):
         result['reason']='ENTRY_PRICE_DRIFT';return result
-    src_mark=_liquidation_usd(src,quotes,now=float(now),route_pair=pair,fee=fee)
-    dst_mark=_liquidation_usd(dst,quotes,now=float(now),route_pair=pair,fee=fee)
+    src_mark=_liquidation_usd(src,quotes,now=float(now),route_pair=pair,fee=fee,_fx_cache=_fx_cache)
+    dst_mark=_liquidation_usd(dst,quotes,now=float(now),route_pair=pair,fee=fee,_fx_cache=_fx_cache)
     if src_mark is None or dst_mark is None:return result
     stamps=(book[2],)+src_mark[1]+dst_mark[1]
     if max(stamps)-min(stamps)>MAX_SKEW_S:
@@ -121,11 +124,11 @@ def screen(ideas,quotes,*,now,taker_fee,minimum_usd='0.10'):
             'fee_source':'ACCOUNT_TAKER_TIER_ESTIMATE_NOT_PAIR_PREVIEW',
             'status':'NO_IMMEDIATE_ADVANTAGE_VERIFIED','threshold_usd':str(floor),
             'live_order_authorized':False}
-    output=[]
+    output=[];fx_cache={}
     for old in list(ideas or ())[:100]:
         if not isinstance(old,dict):continue
         idea=dict(old)
-        evidence=assess_idea(idea,quotes,now=now,taker_fee=taker_fee)
+        evidence=assess_idea(idea,quotes,now=now,taker_fee=taker_fee,_fx_cache=fx_cache)
         totals['screened']+=1
         reason=evidence['reason'];totals['reasons'][reason]=totals['reasons'].get(reason,0)+1
         delta=evidence.get('delta_usd')
@@ -150,7 +153,10 @@ def screen(ideas,quotes,*,now,taker_fee,minimum_usd='0.10'):
 
 def report(summary):
     s=summary or {}
+    import time
+    age=max(0,int(time.time()-s['observed_at'])) if s.get('observed_at') else None
     lines=['CoinCat v60.17 • SNOWBALL IMMEDIATE USD ADVANTAGE / READ ONLY',
+           'Decision source: '+str(s.get('event_source','UNKNOWN'))+'; age seconds: '+str(age if age is not None else 'UNAVAILABLE'),
            'All marks at conservative USD liquidation-side REST bid/ask with fee + 15bps slippage assumption per exit path.',
            'Proposed one-order entry receipt ALREADY pays its own fee; liquidation amounts are comparable HOLD vs SWITCH estimates, NOT additional executed legs.',
            'Synchronized book requirement: age <=30s, per-route timestamp spread <=12s; route book can supply its own conservative USD bid/ask mark only for direct USD pairs.',

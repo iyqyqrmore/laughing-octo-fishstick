@@ -58,24 +58,36 @@ class ForwardStore:
             with c:yield c
         finally:c.close()
     def record_quote(self,pair,timestamp_utc,bid,ask,source='coinbase-live-v40'):
-        from coincat_live import dec
-        b=dec(bid);a=dec(ask)
-        if not pair or not 0<b<=a:raise ValueError('Bad market bid/ask')
-        t=int(timestamp_utc)
+        return bool(self.record_quotes([(pair,timestamp_utc,bid,ask,source)]))
+
+    def record_quotes(self,rows):
+        """One atomic public-quote journal write per bounded event batch."""
+        from coincat_live import dec,LiveBlocked
+        records=[]
+        for pair,stamp,bid,ask,source in rows:
+            try:b=dec(bid);a=dec(ask)
+            except LiveBlocked:raise ValueError('Bad market bid/ask') from None
+            if not pair or not b.is_finite() or not a.is_finite() or not 0<b<=a:
+                raise ValueError('Bad market bid/ask')
+            records.append((pair,int(stamp),b,a,source))
+        count=0
+        if not records:return 0
         with self._db() as c:
-            cur=c.execute('INSERT OR IGNORE INTO market_quotes(pair,at_utc,bid,ask,source) VALUES(?,?,?,?,?)',
-                          (pair,t,str(b),str(a),source))
-            if not cur.rowcount:return False
-            mid=float((a+b)/2);spread=float((a-b)/a*10000)
-            for size in (3600,86400):
-                bucket=t-t%size
-                c.execute('''INSERT INTO live_quote_summaries VALUES(?,?,?,?,?,?,?,?,?)
-                 ON CONFLICT(pair,interval_seconds,bucket_utc) DO UPDATE SET
-                   samples=samples+1,close_mid=excluded.close_mid,
-                   high_mid=MAX(high_mid,excluded.high_mid),low_mid=MIN(low_mid,excluded.low_mid),
-                   mean_spread_bps=(mean_spread_bps*samples+excluded.mean_spread_bps)/(samples+1)''',
-                  (pair,size,bucket,1,mid,mid,mid,mid,spread))
-        return True
+            for pair,t,b,a,source in records:
+                cur=c.execute('INSERT OR IGNORE INTO market_quotes(pair,at_utc,bid,ask,source) VALUES(?,?,?,?,?)',
+                              (pair,t,str(b),str(a),source))
+                if not cur.rowcount:continue
+                count+=1
+                mid=float((a+b)/2);spread=float((a-b)/a*10000)
+                for size in (3600,86400):
+                    bucket=t-t%size
+                    c.execute("""INSERT INTO live_quote_summaries VALUES(?,?,?,?,?,?,?,?,?)
+                     ON CONFLICT(pair,interval_seconds,bucket_utc) DO UPDATE SET
+                       samples=samples+1,close_mid=excluded.close_mid,
+                       high_mid=MAX(high_mid,excluded.high_mid),low_mid=MIN(low_mid,excluded.low_mid),
+                       mean_spread_bps=(mean_spread_bps*samples+excluded.mean_spread_bps)/(samples+1)""",
+                      (pair,size,bucket,1,mid,mid,mid,mid,spread))
+        return count
     def recent_bid_ask(self,*,now=None,max_age=120,limit=3500):
         """Recent Coinbase public REST bid/ask observations for read-only FX.
 

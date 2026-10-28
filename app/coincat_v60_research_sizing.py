@@ -12,8 +12,8 @@ from coincat_cross_quote import usd_conversion
 from coincat_multicurrency import _snapshots
 
 
-def funding_inventory_snapshot(holdings, verified_balances, quotes, catalog, *, now):
-    books=_snapshots(catalog, quotes, now, max_age=120)
+def funding_inventory_snapshot(holdings, verified_balances, quotes, catalog, *, now,_context=None):
+    books=_context.books if _context is not None else _snapshots(catalog, quotes, now, max_age=120)
     inventory=[]
     reasons={'STALE_OR_WIDE_USD_BOOK':0, 'INVALID_QUANTITY':0,
              'NO_VERIFIED_AVAILABLE_BALANCE':0,'ZERO_QUANTITY':0}
@@ -32,7 +32,8 @@ def funding_inventory_snapshot(holdings, verified_balances, quotes, catalog, *, 
                 reasons['NO_VERIFIED_AVAILABLE_BALANCE']+=1;continue
             qty=min(owned,available)
             if qty<=0:reasons['ZERO_QUANTITY']+=1;continue
-            fx=usd_conversion(asset,books,now=now,max_age=120,max_legs=2)
+            fx=(_context.usd(asset) if _context is not None else
+                usd_conversion(asset,books,now=now,max_age=120,max_legs=2))
             if fx is None:
                 reasons['STALE_OR_WIDE_USD_BOOK']+=1;continue
             rate=Decimal(str(fx['rate']))

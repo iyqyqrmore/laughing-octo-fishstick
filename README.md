@@ -1,4 +1,10 @@
-# CoinCat v70.2 — one self-contained folder
+# CoinCat v70.3 — fast one-order decision chain
+
+The approved, available portfolio funds one canonical planner. Fresh Coinbase
+books feed one-leg proposals into the explicitly armed, isolated SHADOW wallet;
+its current quantities and same-time HOLD comparison return to P&L. Excluded
+assets and unsupported products cannot become trade candidates. Model counts
+and execution counts are separate. See [PATCH_NOTES.md](PATCH_NOTES.md).
 
 Read [START_HERE.md](START_HERE.md). Use one permanent main folder named `CoinCat`.
 The app, databases, encrypted credential vault, tax files and verified private

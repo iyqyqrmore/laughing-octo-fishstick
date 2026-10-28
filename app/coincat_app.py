@@ -355,10 +355,11 @@ class CoinCatApp:
             self.manual_budget_status.set('NOT APPLIED • '+str(exc))
             messagebox.showwarning('Manual SHADOW budget','NOT APPLIED: '+str(exc));return
         self._manual_budget_saved=saved
-        self.manual_budget_status.set(('FULL AVAILABLE portfolio SHADOW mode saved • dollar ceilings update from strict verified modeled-wallet fuel each scan'
+        self.manual_budget_status.set(('FULL AVAILABLE portfolio SHADOW mode saved • order/exposure ceilings update from verified modeled-wallet fuel'
             if saved['mode']=='FULL_AVAILABLE' else
-            'MANUAL SHADOW caps saved • dollar ceilings never exceed strict verified modeled-wallet fuel') +
-            ' • attempt safety ceiling and other guards unchanged')
+            'MANUAL SHADOW caps saved • order/exposure ceilings never exceed verified modeled-wallet fuel') +
+            f' • turnover ${saved["daily_buy_usd"]}/24h • {saved["attempts_24h"]} conversions/24h'+
+            (' • 10/hour all day requires at least 240/24h' if int(saved['attempts_24h'])<240 else ''))
         self._refresh_budget_advisor()
 
     def _refresh_budget_advisor(self):
@@ -409,7 +410,9 @@ class CoinCatApp:
             detail=(f'Snowball best currently modeled slice: before ${s["best_before_usd"]:.4f} / '
                     f'after ${s["best_after_usd"]:.4f} / delta ${best:+.4f}. '
                     f'{s.get("above_floor",0)} candidates meet ${s.get("threshold_usd","0.10")} target.')
-        self.break_even_preview.set(detail+'\n'+costs+'\n'
+        age=max(0,int(time.time()-s['observed_at'])) if s.get('observed_at') else None
+        source=f'Last decision: {s.get("event_source","UNKNOWN")} • age {age if age is not None else "unknown"}s. '
+        self.break_even_preview.set(source+detail+'\n'+costs+'\n'
             'Estimated immediate values are research-only, not real fills. Independent Coinbase depth, pair preview and future performance NOT verified. LIVE BLOCKED.')
 
     def _size_lab_columns(self):
@@ -850,8 +853,8 @@ class CoinCatApp:
         params=ttk.LabelFrame(trader_left,text='SHADOW budget source • FULL AVAILABLE or MANUAL • LIVE remains BLOCKED')
         params.pack(fill='x',pady=6)
         for i,(label,var) in enumerate(zip(
-            ['Maximum per order $','Maximum daily buys $','Maximum added exposure $',
-             'Maximum BUY attempts / rolling 24h'],self.limits+[self.max_attempts_entry])):
+            ['Maximum per order $','Maximum daily conversion turnover $','Maximum added exposure $',
+             'Maximum conversions / rolling 24h'],self.limits+[self.max_attempts_entry])):
             ttk.Label(params,text=label).grid(row=i,column=0,sticky='w',padx=8,pady=4)
             ttk.Entry(params,textvariable=var,width=13).grid(row=i,column=1,sticky='ew',pady=4,padx=(0,12))
         params.columnconfigure(1,weight=1)
@@ -1394,12 +1397,16 @@ class CoinCatApp:
         for idea in ideas:
             for step in idea.get('shadow_fifo_steps') or ():
                 for asset in str(step.get('pair','')).split('-'):
-                    fx=usd_conversion(asset,books,now=now,max_age=30)
+                    if asset in rates:continue
+                    fx=usd_conversion(asset,books,now=now,max_age=30,max_legs=3,max_spread=DISPLAY_MAX_SPREAD)
                     if fx is not None: rates[asset]=str(fx['rate'])
         return rates,coverage['complete']
 
     def _current_shadow_ideas(self, payload, session, key, ideas):
         expected=payload.get(key)
+        allowed=set(self._research_catalog())
+        ideas=[i for i in ideas if len(i.get('shadow_fifo_steps') or ())==1 and
+               all(step.get('pair') in allowed for step in i['shadow_fifo_steps'])]
         if expected is not None and ({a:Decimal(str(q)) for a,q in expected.items() if Decimal(str(q))>0}
                 != session.model_balances()):
             return ()  # an earlier urgent conversion superseded this queued plan
@@ -2140,6 +2147,7 @@ class CoinCatApp:
             shadow.disarm()
             self.experimental_shadow_button.configure(text='ARM EXPERIMENT (UNVALIDATED • NO REAL ORDERS)')
             self.experimental_shadow_status.set('EXPERIMENT OFF • results remain in RAM until restart')
+            self._refresh_experimental_pnl()
             return
         if not self.broker or getattr(self.broker,'armed',False):
             messagebox.showwarning('Experimental SHADOW unavailable',
@@ -2177,6 +2185,61 @@ class CoinCatApp:
             if not self.broker:raise LiveBlocked('Connect Coinbase first')
             self.broker.release_stop();self.status.set('DISARMED • emergency stop cleared')
         except Exception as ex:messagebox.showerror('Stop release',str(ex))
+    def _apply_fast_experimental(self,payload):
+        """Single gas-pedal -> movement -> marked-P&L handoff, RAM only."""
+        session=self.experimental_shadow
+        if not session.armed or payload.get('state')!='RESEARCHED':return 0
+        now=time.time();plan=payload.get('plan') or {}
+        ideas=self._current_shadow_ideas(payload,session,'experimental_model_snapshot',plan.get('ideas') or ())
+        books=payload.get('decision_quotes') or {}
+        rates,complete=self._shadow_mark_rates(session,books,now,ideas)
+        caps=effective_manual_budgets(self._manual_budget_saved,plan.get('funding_inventory_usd',0))
+        if caps is None:return 0
+        before=session.fifo_posted
+        session.observe(now=now,quotes=books,usd_rates=rates,researched_reviews=(),
+            route_ideas=ideas if complete else (),minimum_advantage=str(self.switch_minimum_usd),
+            strict_quotes=True,risk_budgets=caps,approved_catalog=self._research_catalog())
+        self._experimental_model_balances={a:str(q) for a,q in session.model_balances().items()}
+        self._refresh_experimental_pnl()
+        return max(0,session.fifo_posted-before)
+
+    @staticmethod
+    def _shadow_budget_used(session,now=None):
+        now=time.time() if now is None else now
+        return {'turnover_usd':str(sum((v for t,v in list(getattr(session,'daily_model_buys',()))
+                                         if 0<=now-t<86400),Decimal(0))),
+                'attempts':sum(n for t,n in list(getattr(session,'rolling_model_attempts',())) if 0<=now-t<86400)}
+
+    def _refresh_experimental_pnl(self):
+        self._experimental_pnl_refreshed_at=time.monotonic()
+        sx=self.experimental_shadow.snapshot()
+        value=(sx.get('shadow_fifo_bands') or {}).get('TAKER_ASK',{}).get(
+            'counterfactual_portfolio_vs_hold_usd','NOT VERIFIED')
+        age=(max(0,int(time.time()-sx['last_mark_observed_at'])) if sx.get('last_mark_observed_at') else None)
+        status=('LAST MARK STALE' if age is not None and age>30 else 'LAST MARK')
+        self.experimental_pnl_status.set(
+            f'EXPERIMENT • {status} vs HOLD ${value} • age {age if age is not None else "unknown"}s • '
+            f'modeled conversions last hour {sx["modeled_conversions_last_hour"]}/10 goal • NO REAL P&L')
+
+    def _research_catalog(self,*,fundable=False):
+        from coincat_v703_chain import approved_pairs
+        rows=list(self.ledger.assets())
+        excluded={str(r.get('asset','')).upper() for r in rows if not r.get('enabled',1)}
+        funding=None
+        if fundable:
+            funding=set()
+            for row in rows:
+                asset=str(row.get('asset','')).upper()
+                if row.get('enabled',1) and min(Decimal(str(row.get('remaining_qty',0))),
+                        Decimal(str(self.current_balances.get(asset,0))))>0:funding.add(asset)
+            for session,key in ((self.experimental_shadow,'_experimental_model_balances'),
+                                (self.shadow_pilot,'_shadow_model_balances')):
+                if session.armed:
+                    funding.update(a for a,q in getattr(self,key,{}).items() if Decimal(str(q))>0)
+            funding-=excluded
+        return approved_pairs(self.catalog,getattr(self.broker,'catalog_product_rules',{}),
+                              excluded,funding=funding)
+
     def _watchlist(self,advance=False):
         """Study eligible spot markets independently of existing holdings.
 
@@ -2184,16 +2247,17 @@ class CoinCatApp:
         Dollar-conversion anchor quotes consume only a few fixed priority slots;
         otherwise mature scout results and a balanced fallback span the catalog.
         """
-        if not self.catalog:return []
-        valid=set(self.catalog)
+        catalog=self._research_catalog(fundable=True)
+        if not catalog:return []
+        valid=set(catalog)
         anchors=[p for p in ('BTC-USD','ETH-USD','SOL-USD','USDC-USD') if p in valid]
         capacity=max(getattr(self,'max_focus_pairs',22),len(anchors))
         # Ensure actual crypto-quoted markets reach 64-pair deep research.
         # The cohort is selected without reference to personal holdings.
-        cross_priority=priority_cross_cohort(self.catalog,anchors,capacity=capacity,
+        cross_priority=priority_cross_cohort(catalog,anchors,capacity=capacity,
             cohort_epoch=int(time.time())//2700)
         required=anchors+cross_priority
-        other=balanced_market_universe(self.catalog,reserved=required)
+        other=balanced_market_universe(catalog,reserved=required)
         planner=getattr(self,'focus_planner',None)
         if planner is not None:
             plan=planner.select(required,required+other,capacity=capacity)
@@ -2472,6 +2536,7 @@ class CoinCatApp:
         if not schedule.claim(now):return False
         self.gpu_status.set('GPU research '+('AUTO' if automatic else 'MANUAL')+
                             ' • training historical + forward market-only labels, no orders')
+        training_pairs=tuple(self._research_catalog())
         # No manual GPU train button: scheduled CUDA worker owns the lifecycle.
         def task():
             from coincat_gpu_research import train_observe_only
@@ -2487,7 +2552,7 @@ class CoinCatApp:
             # objective. Retain archived reports for diagnostics, but DO NOT
             # launch that second training workload every time CoinCat starts.
             historical={'status':'LEGACY_CONTEXT_ONLY_NOT_RETRAINED'}
-            forward=train_observe_only(self.forward.path,ROOT/'gpu_research')
+            forward=train_observe_only(self.forward.path,ROOT/'gpu_research',allowed_pairs=training_pairs)
             return {'kind':'gpu','automatic':automatic,'report':forward,
                     'runtime':runtime,'historical':historical}
         def work():
@@ -2580,7 +2645,7 @@ class CoinCatApp:
             and not self._connection_requested and not self._connection_in_progress
             and not self._fill_sync_faulted and not self.broker.ledger.pending()
             and 0<=time.monotonic()-self._last_portfolio_sync_monotonic<=120
-            and self.stream_research.rank_for_rest_scout(self.catalog,now=time.time(),limit=1))
+            and self.stream_research.rank_for_rest_scout(self._research_catalog(fundable=True),now=time.time(),limit=1))
 
     def _service_fast_checkpoint(self):
         # Called ONLY on the existing serial market/history worker, between
@@ -2594,6 +2659,9 @@ class CoinCatApp:
     def _tick_impl(self):
         if self.shutdown:return
         now=time.monotonic()
+        if (getattr(getattr(self,'experimental_shadow',None),'last_observation',None) is not None
+                and now-getattr(self,'_experimental_pnl_refreshed_at',0)>=5):
+            self._refresh_experimental_pnl()
         busy=(self.worker_busy or self._connection_requested or self._connection_in_progress
               or self._scan_processing)
         needs_sync=bool(self.broker and
@@ -2658,7 +2726,12 @@ class CoinCatApp:
         tier=self.fee_learning.latest_tier()
         if not tier.get('fresh'):
             result['reason']='FEE_EVIDENCE_UNAVAILABLE';return self._finish_fast(result,started)
-        alerts=self.stream_research.rank_for_rest_scout(self.catalog,now=time.time(),limit=12)
+        catalog=self._research_catalog()
+        fundable_catalog=self._research_catalog(fundable=True)
+        excluded=tuple(str(r.get('asset','')).upper() for r in self.ledger.assets() if not r.get('enabled',1))
+        alerts=self.stream_research.rank_for_rest_scout(fundable_catalog,now=time.time(),limit=12)
+        result['scope']={'authenticated_products':len(self.catalog),'approved_products':len(catalog),
+                         'fundable_products':len(fundable_catalog),'excluded_products':len(self.catalog)-len(catalog)}
         result['alerts']=len(alerts)
         sources=[str(row.get('asset','')).upper() for row in self.ledger.assets()
                  if row.get('enabled',1) and Decimal(str(row.get('remaining_qty','0')))>0]
@@ -2669,14 +2742,20 @@ class CoinCatApp:
         if self.shadow_pilot.armed: cached_assets.update(getattr(self,'_shadow_model_balances',{}))
         if self.experimental_shadow.armed: cached_assets.update(getattr(self,'_experimental_model_balances',{}))
         required=required_shadow_assets(self.experimental_shadow,self.shadow_pilot,funding=cached_assets)
+        stream=self.stream_research.snapshot(now=time.time())
+        stream_rows=stream.get('rows',())
+        target_assets={r['pair']:(r['pair'].split('-')[1] if r.get('change_30s_pct') is not None
+            and Decimal(str(r['change_30s_pct']))<0 else r['pair'].split('-')[0]) for r in stream_rows}
         before_quotes=self._shadow_valuation_books()
-        plan=select_fast_books(alerts,self.catalog,sources,required_assets=required,
-                              quotes=before_quotes,now=time.time())
+        from coincat_v703_chain import approved_pairs
+        valuation_catalog=approved_pairs(self.catalog,getattr(self.broker,'catalog_product_rules',{}))
+        plan=select_fast_books(alerts,catalog,sources,required_assets=required,
+                              quotes=before_quotes,now=time.time(),target_assets=target_assets,
+                              valuation_catalog=valuation_catalog)
         result['required_mark_assets']=required
         result['unlisted_mark_assets']=plan['unlisted_mark_assets']
         result['queue_delay_ms']=round(max(0,started-getattr(self,'_fast_queued_at',started))*1000,2)
         result['selected']=len(plan['targets']);result['book_requests']=len(plan['books'])
-        stream_rows=self.stream_research.snapshot(now=time.time()).get('rows',())
         latest={r.get('pair'):r.get('last_trade') for r in stream_rows}
         ages=[r['age_ms'] for r in stream_rows if r.get('pair') in plan['books'] and r.get('age_ms') is not None]
         result['alert_age_ms']=max(ages) if ages else None
@@ -2695,9 +2774,9 @@ class CoinCatApp:
             'age_basis':'LOCAL_REQUEST_START','exchange_timestamp_verified':False,
             'depth_verified':False}
         result['request_latency_ms']=percentiles([b.request_ms for b in snapshots.values()])
-        for pair,book in snapshots.items():
-            self.forward.record_quote(pair,book.observed_at,book.bid,book.ask,source=book.source)
-            result['quote_pairs'].append(pair)
+        result['journal_quotes_inserted']=self.forward.record_quotes([
+            (pair,book.observed_at,book.bid,book.ask,book.source) for pair,book in snapshots.items()])
+        result['quote_pairs']=list(snapshots)
         result['fetched']=len(snapshots)
         valuation_quotes=newest_books(self._shadow_valuation_books(),now=time.time(),max_age=25)
         quotes=newest_books(valuation_quotes,now=time.time(),max_age=25,max_spread=Decimal('.0025'))
@@ -2722,17 +2801,19 @@ class CoinCatApp:
             self._fast_candidate_signature_at=time.monotonic()
         planner_started=time.monotonic()
         rate=tier['taker']
-        fee_rates={p:rate for p in self.catalog}
+        fee_rates={p:rate for p in catalog}
         if self.experimental_shadow.armed and self._experimental_model_balances:
             from coincat_v605_shadow_bridge import shadow_screen
             result['experimental_model_snapshot']=dict(self._experimental_model_balances)
             researched=shadow_screen(balances=result['experimental_model_snapshot'],
-                excluded=getattr(self,'_experimental_excluded_assets',()),
-                buy_signals=(),age_s=balance_age,catalog=self.catalog,quotes=quotes,
+                excluded=tuple(set(excluded)|set(getattr(self,'_experimental_excluded_assets',()))),
+                buy_signals=(),age_s=balance_age,catalog=catalog,quotes=quotes,
                 product_rules=getattr(self.broker,'catalog_product_rules',{}),
                 portfolio_usd_cap=Decimal('1e24'),now=time.time(),
                 fee_rates_by_pair=fee_rates,relative_evidence=self.relative_lab.paired_outcomes,
-                exploratory_candidates=candidates, direct_only=True,max_targets=3)
+                exploratory_candidates=candidates, direct_only=True,max_targets=3,urgent=True,experimental=True,
+                budget_settings=getattr(self,'_manual_budget_saved',None),
+                budget_usage=self._shadow_budget_used(self.experimental_shadow))
         else:
             from coincat_v605_shadow_bridge import shadow_screen
             balances={}
@@ -2744,12 +2825,14 @@ class CoinCatApp:
                             Decimal(str(self.current_balances.get(asset,0))))
                     if qty>0:balances[asset]=str(qty)
                 except (InvalidOperation,TypeError,ValueError):continue
-            researched=shadow_screen(balances=balances,excluded=(),buy_signals=(),
-                age_s=balance_age,catalog=self.catalog,quotes=quotes,
+            researched=shadow_screen(balances=balances,excluded=excluded,buy_signals=(),
+                age_s=balance_age,catalog=catalog,quotes=quotes,
                 product_rules=getattr(self.broker,'catalog_product_rules',{}),
                 portfolio_usd_cap=Decimal('1e24'),now=time.time(),
                 fee_rates_by_pair=fee_rates,relative_evidence=self.relative_lab.paired_outcomes,
-                exploratory_candidates=candidates,direct_only=True,max_targets=3)
+                exploratory_candidates=candidates,direct_only=True,max_targets=3,urgent=True,experimental=True,
+                budget_settings=getattr(self,'_manual_budget_saved',None),
+                budget_usage=self._shadow_budget_used(self.experimental_shadow))
         # Validated SHADOW may observe urgent research using its own modeled
         # wallet, but its held-out OOS qualification remains unchanged.
         if self.shadow_pilot.armed and self._shadow_model_balances:
@@ -2757,12 +2840,16 @@ class CoinCatApp:
             result['validated_model_snapshot']=dict(self._shadow_model_balances)
             result['validated_plan']=shadow_screen(
                 balances=result['validated_model_snapshot'],
-                excluded=getattr(self,'_shadow_excluded_assets',()),
-                buy_signals=(),age_s=balance_age,catalog=self.catalog,quotes=quotes,
+                excluded=tuple(set(excluded)|set(getattr(self,'_shadow_excluded_assets',()))),
+                buy_signals=(),age_s=balance_age,catalog=catalog,quotes=quotes,
                 product_rules=getattr(self.broker,'catalog_product_rules',{}),
                 portfolio_usd_cap=Decimal('1e24'),now=time.time(),
                 fee_rates_by_pair=fee_rates,relative_evidence=self.relative_lab.paired_outcomes,
-                exploratory_candidates=candidates,direct_only=True,max_targets=3)
+                exploratory_candidates=candidates,direct_only=True,max_targets=3,urgent=True,
+                budget_settings=getattr(self,'_manual_budget_saved',None),
+                budget_usage=self._shadow_budget_used(self.shadow_pilot))
+        result['decision_quotes']=dict(valuation_quotes)
+        result['decision_at']=time.time()
         result['plan']=researched
         ideas,stats=snowball_screen(researched.get('ideas') or (),quotes,now=time.time(),
             taker_fee=rate,minimum_usd=str(self.switch_minimum_usd))
@@ -2777,6 +2864,7 @@ class CoinCatApp:
 
     def _cycle(self,allow_orders=True):
         result={'kind':'cycle','strategy_horizons':{'state':'NOT_RUN'},'strategy_research':{'state':'NOT_RUN'},'gpu_advisory':{},'quotes':0,'failures':0,'signals':[],'reviews':[],'handoffs':[],'sell_reviews':[],'full_exit_reviews':[],'trade':None,'reconcile':None,'message':'','storage':None,'two_way':None,'rotation':[],'auto_rotation':{'state':'WAIT','reason':'Not yet evaluated','ideas':[]},'broker_pair_reviews':[],'cross_spot_previews':[],'discovery':{'sampled':0,'failed':0,'coverage':0,'total':0,'progress':0}}
+        decision_catalog=self._research_catalog()
         if self.broker:
             try:
                 result['reconcile']=self.broker.reconcile()
@@ -2787,7 +2875,7 @@ class CoinCatApp:
         watch=self._watchlist(advance=True)
         self._last_research_watch=list(watch)
         result['focused_discovery']=dict(getattr(self,'_last_focus_plan',{}))
-        result['catalog_quote_mix']=quote_mix(self.catalog)
+        result['catalog_quote_mix']=quote_mix(decision_catalog)
         result['registry_audit']=dict(getattr(self.broker,'catalog_registry_audit',{}) or {})
 
         result['focused_quote_mix']=quote_mix(watch)
@@ -2802,7 +2890,7 @@ class CoinCatApp:
         pending=getattr(self,'_depth_probe_pending',False)
         if (self.broker and watch and not pending and
             time.monotonic()-getattr(self,'_last_depth_probe_at',0)>600):
-            allowed=set(one_order_catalog(self.catalog,getattr(self.broker,'catalog_product_rules',{})))
+            allowed=set(one_order_catalog(decision_catalog,getattr(self.broker,'catalog_product_rules',{})))
             candidates=[p for p in watch if p in allowed]
             previous=((getattr(self,'last_cycle',{}) or {}).get('auto_rotation',{}) or {}).get('ideas',[]) or []
             evidence_pair=next((str(idea.get('trigger_pair','')) for idea in previous
@@ -2824,9 +2912,10 @@ class CoinCatApp:
                     name='CoinCatReadOnlyDepthAdvisory',daemon=True).start()
                 result['authenticated_market_probe']={'state':'ASYNC_PENDING','extra_gets':0}
 
+        result['market_observed_at']=time.time()
         result['stream_telemetry']=self.stream_research.snapshot()
         result['adaptive_focus']=self.focus_capacity.snapshot()
-        self.stream.set_pairs(self.catalog)  # ALL authenticated eligible spot pairs; public trade tickers ONLY
+        self.stream.set_pairs(self._research_catalog())  # ALL authenticated eligible spot pairs; public trade tickers ONLY
         self.jobs.put(('scan_progress',f'Scanning {len(watch)} eligible pairs for fresh bid/ask…'))
         with ThreadPoolExecutor(max_workers=4) as pool:
             futures={pool.submit(fetch_snapshot,p):p for p in watch}
@@ -2844,16 +2933,16 @@ class CoinCatApp:
         # Explore the wider catalog with one-off public ticker snapshots. These
         # are stored in a SEPARATE latest-only table so they cannot mature a
         # BUY signal or become a forward trade label. Live order policy unchanged.
-        if self.catalog:
+        if decision_catalog:
             cursor=self.forward.get_state_int('universe_discovery_cursor',0)
-            rotation,next_cursor=choose_discovery(self.catalog,watch,cursor,self.discovery_per_cycle)
+            rotation,next_cursor=choose_discovery(decision_catalog,watch,cursor,self.discovery_per_cycle)
             # Any actively trading rare pair can request EXTRA REST scouting,
             # never replace the systematic rotation that observes silent pairs.
             # Event-driven scout budget expands with healthy research throughput,
             # but complete-catalog rotation always gets its 12 guaranteed slots.
             stream_scout_budget=max(4,min(12,self.max_focus_pairs//8))
             extra=getattr(self.stream_research,'rank_for_rest_scout',lambda *a,**kw:[])(
-                self.catalog,exclude=set(watch)|set(rotation),now=time.time(),limit=stream_scout_budget)
+                decision_catalog,exclude=set(watch)|set(rotation),now=time.time(),limit=stream_scout_budget)
             scouts=rotation+[p for p in extra if p not in rotation]
             sampled=failed=0
             self.jobs.put(('scan_progress',f'Deep study {len(watch)} done; sampling {len(rotation)} rotating + {len(extra)} stream-alert catalog pairs (REST verification; research only)…'))
@@ -2869,16 +2958,16 @@ class CoinCatApp:
                     except Exception:
                         failed+=1
             self.forward.set_state_int('universe_discovery_cursor',next_cursor)
-            coverage=self.forward.universe_coverage(self.catalog)
+            coverage=self.forward.universe_coverage(decision_catalog)
             result['discovery']={'sampled':sampled,'failed':failed,'coverage':coverage,
-                                 'total':len(set(self.catalog)),
-                                 'progress':round(100*coverage/max(1,len(set(self.catalog))),1),
+                                 'total':len(set(decision_catalog)),
+                                 'progress':round(100*coverage/max(1,len(set(decision_catalog))),1),
                                  'stream_alerts_rest':len(extra),
                                  'stream_alert_budget':stream_scout_budget,
                                  'focused_capacity':len(watch)}
         # Bid/ask market observations supply counterfactual results for BOTH
         # sides; history candles and hypothetical labels are NEVER fills.
-        direct_watch=[p for p in watch if p in set(one_order_catalog(self.catalog,
+        direct_watch=[p for p in watch if p in set(one_order_catalog(decision_catalog,
             getattr(self.broker,'catalog_product_rules',{}))) ]
         for pair in direct_watch:
             recent=self.lab.observations(pair)
@@ -2896,7 +2985,7 @@ class CoinCatApp:
             self._last_trials_cleanup=time.time()
         result['storage']=self.forward.history_health()
         if maintenance['over_limit'] and self.broker:self.broker.disarm();result['message']='Forward DB storage cap; trading stopped'
-        if self.catalog:
+        if decision_catalog:
             self.lab.update_trials(direct_watch,now=int(time.time()))
         fee_snapshot=self.fee_learning.latest_tier()
         result['fee_evidence_state']=fee_snapshot['state']
@@ -2986,7 +3075,7 @@ class CoinCatApp:
         # of account enrollment. No ledger writes, execution requests or orders.
         try:
             result['relative_mark_count']=self.relative_lab.observe(
-                catalog=self.catalog,quotes=self._shadow_valuation_books(),
+                catalog=decision_catalog,quotes=self._shadow_valuation_books(),
                 now=time.time(),fee_verified=self.fee_learning.latest_tier()['fresh'])
         except Exception:
             result['relative_mark_count']=0
@@ -3014,7 +3103,7 @@ class CoinCatApp:
             from coincat_relative_strength_research import rank_observed_markets
             research_books=self._shadow_valuation_books()
             funding=funding_inventory_snapshot(self.ledger.assets(),
-                self.current_balances,research_books,self.catalog,now=time.time())
+                self.current_balances,research_books,decision_catalog,now=time.time())
             cap=funding['funding_usd']
             result['research_portfolio_usd_ceiling']=cap
             result['research_funding_eligibility']={
@@ -3072,7 +3161,7 @@ class CoinCatApp:
             tier=self.fee_learning.latest_tier()
             # Same account fee tier can screen all authenticated spot pairs, but
             # no pair-specific discounts/rebates are invented.
-            pair_fees={pair:tier['taker'] for pair in self.catalog} if tier['fresh'] else {}
+            pair_fees={pair:tier['taker'] for pair in decision_catalog} if tier['fresh'] else {}
             strategy_candidates=annotate_study(
                 result['strategy_research'].get('candidates') or (),
                 (result.get('strategy_horizons') or {}).get('study') or {})
@@ -3083,7 +3172,7 @@ class CoinCatApp:
             result['auto_rotation']=auto_rotation_screen(
                 buy_signals=result['signals'],holdings=self.ledger.assets(),
                 verified_balances=dict(self.current_balances),balance_age_s=balance_age,
-                catalog=self.catalog,quotes=research_books,
+                catalog=decision_catalog,quotes=research_books,
                 product_rules=(getattr(self.broker,'catalog_product_rules',{}) if self.broker else {}),
                 usd_per_order_cap=cap,now=time.time(),stats_for_pair=self.directional.stats,
                 fee_rates_by_pair=pair_fees,
@@ -3099,37 +3188,40 @@ class CoinCatApp:
                 result['validated_model_snapshot']=dict(self._shadow_model_balances)
                 result['shadow_rotation']=shadow_screen(
                     balances=result['validated_model_snapshot'],
-                    excluded=self._shadow_excluded_assets,
+                    excluded=tuple(set(self._shadow_excluded_assets)|{str(r['asset']).upper() for r in self.ledger.assets() if not r.get('enabled',1)}),
                     buy_signals=result['signals'],age_s=balance_age,
-                    catalog=self.catalog,quotes=research_books,
+                    catalog=decision_catalog,quotes=research_books,
                     product_rules=(getattr(self.broker,'catalog_product_rules',{}) if self.broker else {}),
                     portfolio_usd_cap=Decimal('1e24'),now=time.time(),fee_rates_by_pair=pair_fees,
                     relative_evidence=self.relative_lab.paired_outcomes,
                     exploratory_candidates=exploratory['candidates'],
                     strategy_candidates=strategy_candidates,
-                    gpu_advisories=result['gpu_advisory'],direct_only=True)
+                    gpu_advisories=result['gpu_advisory'],direct_only=True,budget_settings=self._manual_budget_saved,
+                    budget_usage=self._shadow_budget_used(self.shadow_pilot))
             # EXPERIMENTAL SHADOW reuses the SAME market observations and planner.
-            # First cycle uses the portfolio screen; after a hypothetical fill,
-            # recalculate routes from the evolved experimental wallet inside
+            # From ARM onward, recalculate routes from its own evolving wallet inside
             # this already-running background scan (never a second REST scan).
             if self.experimental_shadow.armed:
-                if self.experimental_shadow.fifo_posted>0 and self._experimental_model_balances:
+                if self._experimental_model_balances:
                     from coincat_v605_shadow_bridge import shadow_screen
                     result['experimental_model_snapshot']=dict(self._experimental_model_balances)
                     result['experimental_rotation']=shadow_screen(
                         balances=result['experimental_model_snapshot'],
-                        excluded=getattr(self,'_experimental_excluded_assets',()),
+                        excluded=tuple(set(getattr(self,'_experimental_excluded_assets',()))|{str(r['asset']).upper() for r in self.ledger.assets() if not r.get('enabled',1)}),
                         buy_signals=result['signals'],age_s=balance_age,
-                        catalog=self.catalog,quotes=research_books,
+                        catalog=decision_catalog,quotes=research_books,
                         product_rules=(getattr(self.broker,'catalog_product_rules',{}) if self.broker else {}),
                         portfolio_usd_cap=Decimal('1e24'),now=time.time(),fee_rates_by_pair=pair_fees,
                         relative_evidence=self.relative_lab.paired_outcomes,
                         exploratory_candidates=exploratory['candidates'],
                         strategy_candidates=strategy_candidates,
                         gpu_advisories=result['gpu_advisory'],direct_only=True,
-                        max_targets=8)  # bounded experimental rescreen; no network or new scanner
+                        max_targets=8,experimental=True,budget_settings=self._manual_budget_saved,
+                        budget_usage=self._shadow_budget_used(self.experimental_shadow))  # bounded experimental rescreen; no network or new scanner
                 else:
                     result['experimental_rotation']=result['auto_rotation']
+                    result['experimental_rotation']=dict(result['experimental_rotation'],
+                        ideas=result['auto_rotation'].get('experimental_ideas',result['auto_rotation'].get('ideas',[])))
             result['funding_size_observations']=result['auto_rotation'].get('funding_size_observations',{})
         except Exception as exc:
             # The new research sibling may never obstruct the older
@@ -3154,7 +3246,7 @@ class CoinCatApp:
                         {'pair':sig['pair'],'reason':small,'state':'SMALL'})
                     continue
                 review=self.broker.review_spot_candidate(
-                    pair=sig['pair'],side='BUY',catalog=self.catalog,
+                    pair=sig['pair'],side='BUY',catalog=decision_catalog,
                     quotes=shared_books,verified=self.current_balances,
                     balance_age_s=(time.monotonic()-self._last_portfolio_sync_monotonic
                          if self._last_portfolio_sync_monotonic else float('inf')),
@@ -3170,7 +3262,7 @@ class CoinCatApp:
                     and hasattr(self.broker,'preview_cross_spot_candidate')):
                     try:
                         authenticated_preview=self.broker.preview_cross_spot_candidate(
-                            pair=sig['pair'],side='BUY',catalog=self.catalog,
+                            pair=sig['pair'],side='BUY',catalog=decision_catalog,
                             quotes=shared_books,
                             balance_age_s=(time.monotonic()-self._last_portfolio_sync_monotonic
                                 if self._last_portfolio_sync_monotonic else float('inf')),
@@ -3212,7 +3304,7 @@ class CoinCatApp:
             for s in result['signals']:
                 result['handoffs'].append({'pair':s['pair'],'state':'SKIPPED','reason':reason})
             return result
-        if not self.catalog or time.time()-self.catalog_at>7200:
+        if not decision_catalog or time.time()-self.catalog_at>7200:
             self.broker.disarm();result['message']='Coinbase authenticated catalog expired; trading disarmed'
             for s in result['signals']:
                 result['handoffs'].append({'pair':s['pair'],'state':'SKIPPED','reason':'Coinbase catalog stale; trading disarmed'})
@@ -3372,7 +3464,7 @@ class CoinCatApp:
                     retired_count=len(previous-updated)
                     self.catalog=sorted(updated)
                     self.catalog_at=float(payload.get('at') or time.time())
-                    self.stream.set_pairs(self.catalog)
+                    self.stream.set_pairs(self._research_catalog())
                     self.portfolio_sync_status.set(
                         f'Catalog recheck complete • {len(self.catalog)} active Coinbase SPOT products • '
                         f'{new_count} newly eligible, {retired_count} no longer eligible • NO orders/enrollment changes')
@@ -3385,42 +3477,29 @@ class CoinCatApp:
                     self._fast_latencies.append(float(duration)*1000)
                     self._fast_latencies=self._fast_latencies[-256:]
                 self._fast_latency_summary=percentiles(self._fast_latencies)
-                self._fast_last_result={k:v for k,v in payload.items() if k not in ('plan','validated_plan','experimental_model_snapshot','validated_model_snapshot')}
+                self._fast_last_result={k:v for k,v in payload.items() if k not in ('plan','validated_plan','experimental_model_snapshot','validated_model_snapshot','decision_quotes')}
                 self._fast_totals['attempted']+=1
                 self._fast_totals['rest_books']+=int(payload.get('fetched',0))
                 self._fast_totals['rest_errors']+=int(payload.get('failed',0))
+                if payload.get('state')=='RESEARCHED':self._fast_observed_at=payload.get('decision_at')
                 plan=dict(payload.get('plan') or {})
                 plan['ideas']=self._current_shadow_ideas(payload,self.experimental_shadow,
                     'experimental_model_snapshot',plan.get('ideas') or ())
                 snow=payload.get('snowball') or {}
+                if payload.get('state')=='RESEARCHED':
+                    self._snowball_summary=dict(snow,event_source='URGENT',observed_at=payload.get('decision_at'))
+                    self._refresh_break_even()
                 posted=0
                 # This is an EXTRA experimental observation between full
                 # scans, NOT permission for an additional live broker attempt.
                 if self.experimental_shadow.armed and payload.get('state')=='RESEARCHED':
-                    try:
-                        now_fast=time.time()
-                        books=self._shadow_valuation_books()
-                        fx_rates,marks_complete=self._shadow_mark_rates(
-                            self.experimental_shadow,books,now_fast,plan.get('ideas',()))
-                        before=self.experimental_shadow.fifo_posted
-                        effective=effective_manual_budgets(self._manual_budget_saved,
-                            plan.get('funding_inventory_usd',0))
-                        if effective is not None:
-                            self.experimental_shadow.observe(now=now_fast,quotes=books,
-                                usd_rates=fx_rates,researched_reviews=(),
-                                route_ideas=(plan.get('ideas') or ()) if marks_complete else (),
-                                minimum_advantage=str(self.switch_minimum_usd),
-                                strict_quotes=True,risk_budgets=effective)
-                            self._experimental_model_balances={k:str(v) for k,v in
-                                self.experimental_shadow.model_balances().items()}
-                            posted=max(0,self.experimental_shadow.fifo_posted-before)
+                    try:posted=self._apply_fast_experimental(payload)
                     except Exception as exc:
                         self._fast_last_result['shadow_observation_error']=type(exc).__name__
-                        # Fast research failure MUST NOT unlock other modes.
                 if self.shadow_pilot.armed and payload.get('validated_plan'):
                     try:
                         now_valid=time.time()
-                        books_valid=self._shadow_valuation_books()
+                        books_valid=payload.get('decision_quotes') or {}
                         from coincat_cross_quote import usd_conversion
                         rates_valid,valid_marks_complete=self._shadow_mark_rates(
                             self.shadow_pilot,books_valid,now_valid,
@@ -3434,7 +3513,7 @@ class CoinCatApp:
                                 usd_rates=rates_valid,researched_reviews=(),
                                 route_ideas=valid_ideas if valid_marks_complete else (),
                                 minimum_advantage=str(self.switch_minimum_usd),
-                                strict_quotes=True,risk_budgets=cap)
+                                strict_quotes=True,risk_budgets=cap,approved_catalog=self._research_catalog())
                             self._shadow_model_balances={k:str(v) for k,v in
                                 self.shadow_pilot.model_balances().items()}
                     except Exception as exc:
@@ -3479,7 +3558,7 @@ class CoinCatApp:
                     self._inactive_market_pairs.difference_update(new_active)
                     self.catalog=list(new_catalog)
                     self.catalog_at=float(payload.get('catalog_checked_at') or time.time())
-                    self.stream.set_pairs(self.catalog)
+                    self.stream.set_pairs(self._research_catalog())
                     one_order_count = len(one_order_catalog(
                         self.catalog, getattr(self.broker, "catalog_product_rules", {})
                     ))
@@ -3586,7 +3665,7 @@ class CoinCatApp:
                 self.status.set('DISARMED • review externally changed holdings before trading' if self.external_mismatches else 'DISARMED • eligible assets enrolled; ARM LIVE separately')
                 self._log('Authenticated Coinbase balances/catalog refreshed. Orders still DISARMED.')
                 watch=self._watchlist(advance=False)
-                self.stream.set_pairs(self.catalog)
+                self.stream.set_pairs(self._research_catalog())
                 self.stream.start()
                 cached=sum(self.forward.history_status(pair)['candles']>=12 for pair in watch)
                 self.lab_history.set(f'10-day historical context present for {cached}/{len(watch)} watched Coinbase pairs • click START to refresh/import')
@@ -3648,7 +3727,7 @@ class CoinCatApp:
                             researched_reviews=payload.get('reviews') or (),
                             route_ideas=shadow_ideas,
                             minimum_advantage=str(self.switch_minimum_usd),
-                            strict_quotes=True,
+                            strict_quotes=True,approved_catalog=self._research_catalog(),
                             risk_budgets=(effective_manual_budgets(self._manual_budget_saved,
                                 (payload.get('shadow_rotation') or {}).get('funding_inventory_usd',0))
                                 or {'per_order_usd':'0','incremental_exposure_usd':'0',
@@ -3664,11 +3743,11 @@ class CoinCatApp:
                             self.manual_budget_status.set(
                                 'SHADOW '+effective['mode']+' effective ceiling $'+str(Decimal(effective['per_order_usd']).quantize(Decimal('.01')))+
                                 '/order, $'+str(Decimal(effective['daily_buy_usd']).quantize(Decimal('.01')))+
-                                '/day, $'+str(Decimal(effective['incremental_exposure_usd']).quantize(Decimal('.01')))+
+                                ' turnover/24h, $'+str(Decimal(effective['incremental_exposure_usd']).quantize(Decimal('.01')))+
                                 ' exposure, '+effective['max_attempts']+' attempts/24h'+
                                 (' • verified modeled-wallet fuel (not a live ARM)' if effective['mode']=='FULL_AVAILABLE' else
                                  ' • manually applied caps')+
-                                (' • rolling attempt anti-storm cap applies' if effective['clamped'] else ''))
+                                (' • available fuel clamps per-order/exposure; chosen daily caps retained' if effective['clamped'] else ''))
                         self.shadow_mode_status.set('ARMED SHADOW • scans '+str(ss['completed_fresh_scans'])+
                             ' • modeled FIFO legs '+str(ss['shadow_fifo_posted_legs'])+
                             ' • actual Coinbase orders ZERO')
@@ -3691,7 +3770,8 @@ class CoinCatApp:
                         source.get('ideas') or (),snow_books,now=now_snow,
                         taker_fee=tier.get('taker') if tier.get('fresh') else None,
                         minimum_usd=str(self.switch_minimum_usd))
-                    self._snowball_summary=snow_stats
+                    if (getattr(self,'_snowball_summary',{}).get('observed_at') or 0)<=payload.get('market_observed_at',0):
+                        self._snowball_summary=dict(snow_stats,event_source='BROAD_SCAN',observed_at=payload.get('market_observed_at'))
                     if payload.get('experimental_rotation') is source:
                         # Do not change historical held-out approvals.
                         payload['experimental_rotation']=dict(source,ideas=annotated)
@@ -3722,7 +3802,7 @@ class CoinCatApp:
                             researched_reviews=payload.get('reviews') or (),
                             route_ideas=exp_ideas,
                             minimum_advantage=str(self.switch_minimum_usd),
-                            strict_quotes=True,risk_budgets=effective)
+                            strict_quotes=True,risk_budgets=effective,approved_catalog=self._research_catalog())
                         self._experimental_model_balances={k:str(v) for k,v in
                             self.experimental_shadow.model_balances().items()}
                         sx=self.experimental_shadow.snapshot()
@@ -3730,13 +3810,7 @@ class CoinCatApp:
                             str(sx['completed_fresh_scans'])+' • what-if FIFO legs '+
                             str(sx['shadow_fifo_posted_legs'])+
                             ' • historical validation BYPASSED FOR TEST ONLY • LIVE ZERO')
-                        exp_value=(sx.get('shadow_fifo_bands') or {}).get('TAKER_ASK',{})
-                        self.experimental_pnl_status.set('EXPERIMENT ONLY • modeled FIFO '+
-                            str(sx['shadow_fifo_posted_routes'])+' routes / '+
-                            str(sx['shadow_fifo_posted_legs'])+' legs • mark vs frozen HOLD $'+
-                            str(exp_value.get('counterfactual_portfolio_vs_hold_usd','N/A'))+
-                            ' • modeled fees $'+str(exp_value.get('estimated_fees_usd','N/A'))+
-                            ' • simulated, NOT real P&L')
+                        self._refresh_experimental_pnl()
                     except Exception as exc:
                         self.experimental_shadow.disarm()
                         self.experimental_shadow_button.configure(

@@ -68,6 +68,7 @@ class FastPathEndToEnd(unittest.TestCase):
         app=CoinCatApp.__new__(CoinCatApp)
         app.broker=SimpleNamespace(catalog_product_rules={})
         app.catalog=['SOL-USDC','SOL-USD','USDC-USD']
+        app.broker.catalog_product_rules={p:{'base_increment':'.00000001','base_min_size':'.00000001','quote_min_size':'.01'} for p in app.catalog}
         app._last_portfolio_sync_monotonic=time.monotonic()
         app.current_balances={'USDC':'100'}
         app.external_mismatches=[]
@@ -82,7 +83,7 @@ class FastPathEndToEnd(unittest.TestCase):
         app.relative_lab=SimpleNamespace(paired_outcomes=lambda *a,**kw:{'status':'NOT_VERIFIED'})
         app.switch_minimum_usd=Decimal('.10')
         books={}
-        app.forward=SimpleNamespace(record_quote=lambda p,ts,b,a,**kw:books.update({p:(Decimal(str(b)),Decimal(str(a)),float(ts))}))
+        app.forward=SimpleNamespace(record_quotes=lambda rows:[books.update({p:(Decimal(str(b)),Decimal(str(a)),float(ts))}) for p,ts,b,a,source in rows])
         app._shadow_valuation_books=lambda:books.copy()
         prices={'SOL-USDC':('9.98','10.00'),'SOL-USD':('9.98','10.00'),'USDC-USD':('0.999','1.001')}
         from coincat_v701_transport import QuoteSnapshot

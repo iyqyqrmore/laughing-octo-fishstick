@@ -27,7 +27,7 @@ def validate(values):
         answer[key]=format(v,'f')
     raw=str(values.get('attempts_24h','')).strip()
     if not raw.isdecimal() or not 0<int(raw)<=1000000:
-        raise ValueError('24-hour BUY attempts must be a positive whole number up to 1 million')
+        raise ValueError('24-hour conversion attempts must be a positive whole number up to 1 million')
     answer['attempts_24h']=str(int(raw))
     return answer
 
@@ -51,7 +51,7 @@ def save(path,values):
 
 
 def effective(values,verified_funding_usd):
-    """SHADOW-only caps. Clamps amounts to strictly verified modeled fuel.
+    """SHADOW-only caps. Clamp order/exposure amounts to verified modeled fuel.
 
     No capital emerges from typing big numbers; positive FX funding is required.
     Caps are never enlarged by AI Lab suggestions, training or event signals.
@@ -60,21 +60,21 @@ def effective(values,verified_funding_usd):
     try:fund=Decimal(str(verified_funding_usd))
     except (InvalidOperation,TypeError,ValueError):return None
     if not fund.is_finite() or fund<=0:return None
-    # Consistent conservative anti-storm ceiling with the manual LIVE preflight;
-    # unlike silent truncation, GUI/diagnostics explicitly show the effective cap.
-    attempts=min(int(settings['attempts_24h']),min(1000,max(12,int(fund))))
+    # Attempts are counts, not dollars. Turnover may recycle the same fuel;
+    # honor the user's explicit 24h limits instead of inventing wallet-sized
+    # daily turnover or one-attempt-per-dollar limits. No LIVE change.
+    attempts=int(settings['attempts_24h'])
     if settings['mode']=='FULL_AVAILABLE':
         # Operator chooses full AVAILABLE fuel, not a fictitious balance.
         # Recompute from newly modeled SHADOW wallet per scan, never the broker.
         return {'mode':'FULL_AVAILABLE',
-                'per_order_usd':str(fund), 'daily_buy_usd':str(fund),
+                'per_order_usd':str(fund), 'daily_buy_usd':settings['daily_buy_usd'],
                 'incremental_exposure_usd':str(fund),'max_attempts':str(attempts),
                 'verified_funding_usd':str(fund),
-                'clamped':attempts<int(settings['attempts_24h'])}
+                'clamped':False}
     return {'mode':'MANUAL',
             'per_order_usd':str(min(fund,Decimal(settings['per_order_usd']))),
-            'daily_buy_usd':str(min(fund,Decimal(settings['daily_buy_usd']))),
+            'daily_buy_usd':settings['daily_buy_usd'],
             'incremental_exposure_usd':str(min(fund,Decimal(settings['added_exposure_usd']))),
             'max_attempts':str(attempts),'verified_funding_usd':str(fund),
-            'clamped':(fund<max(Decimal(settings['per_order_usd']),Decimal(settings['daily_buy_usd']),
-                                Decimal(settings['added_exposure_usd'])) or attempts<int(settings['attempts_24h']))}
+            'clamped':fund<max(Decimal(settings['per_order_usd']),Decimal(settings['added_exposure_usd']))}

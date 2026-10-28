@@ -107,7 +107,7 @@ class ExperimentalIntegration(unittest.TestCase):
         self.assertIn("result['experimental_rotation']=shadow_screen(",src)
         self.assertIn("result['experimental_rotation']=result['auto_rotation']",src)
         self.assertIn('self.experimental_pnl_status',src)
-        self.assertIn('max_targets=8)',src)
+        self.assertIn('max_targets=8,experimental=True',src)
         self.assertIn("self.experimental_shadow.disarm()",src)
         self.assertNotIn('self.broker.arm()\n            self.experimental_shadow',src)
     def test_shareable_diagnostics_includes_experiment(self):

@@ -55,7 +55,7 @@ class RisingPriority(unittest.TestCase):
         src=(APP/'coincat_app.py').read_text()
         self.assertEqual(1,src.count("result['auto_rotation']=auto_rotation_screen("))
         self.assertIn('rank_capacity=max(4,min(12,4+len(result[\'reviews\'])//16))',src)
-        self.assertIn('max_targets=8)',src)
+        self.assertIn('max_targets=8,experimental=True',src)
         self.assertIn('max_legs=1', (APP/'coincat_rotation_autopilot.py').read_text())
         for name in ('coincat_market_intelligence.py','coincat_stream_research.py','coincat_relative_strength_research.py'):
             text=(APP/name).read_text()
