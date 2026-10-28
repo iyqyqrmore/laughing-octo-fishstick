@@ -41,7 +41,7 @@ def _safe_timestamp(value):
 
 
 def _state(value):
-    return value if value in ('SHADOW ONLY', 'WAIT') else 'UNAVAILABLE'
+    return value if value in ('SHADOW ONLY', 'WAIT','MODELED_RESEARCH') else 'UNAVAILABLE'
 
 
 def _market(value):
@@ -122,6 +122,9 @@ def make_shadow_report(app, now=None):
         'OFFLINE REPORT / READ ONLY / NO COINBASE ACCESS / NO ORDER SUBMISSIONS',
         'Privacy: no source funding assets, holding balances, quantities, cost basis, keys, account/order IDs or raw logs.',
         'RESEARCH ONLY: not live order clearance or evidence of trading profitability.',
+        *(['PRIMARY V80 IMMEDIATE FUNNEL: '+str((cycle.get('auto_rotation') or {}).get('immediate_summary')),
+           'Positive-unverified models remain visible; missing evidence is not an economic loss. Forward labels below are separate advisory/validated research.']
+          if isinstance(cycle,dict) and (cycle.get('auto_rotation') or {}).get('primary_policy')=='STRICT_IMMEDIATE_V80' else []),
         '-'*72,
         f'Actual broker armed now: {"YES (do not use this report for arming)" if armed else "NO / DISARMED"}',
         'V60.10 authenticated tradable SPOT pairs, ONE order per modeled route; USD/stablecoin can be a directly held trade asset, never a mandatory bridge.',

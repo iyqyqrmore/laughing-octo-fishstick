@@ -105,7 +105,7 @@ class ExperimentalIntegration(unittest.TestCase):
     def test_source_contains_second_independent_arm_and_reuses_planner(self):
         src=(Path(__file__).parent.parent/'app'/'coincat_app.py').read_text()
         self.assertIn('def _toggle_experimental_shadow(self)',src)
-        self.assertIn('self.experimental_shadow=ShadowArmedResearch(experimental=True)',src)
+        self.assertIn('self.experimental_shadow=StrictImmediateShadow(experimental=True)',src)
         self.assertIn("result['experimental_rotation']=shadow_screen(",src)
         self.assertIn("result['experimental_rotation']=result['auto_rotation']",src)
         self.assertIn('self.experimental_pnl_status',src)

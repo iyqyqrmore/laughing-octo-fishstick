@@ -257,13 +257,14 @@ class PortablePaths(unittest.TestCase):
 
     def test_no_versioned_launchers_or_old_data_targets(self):
         root_bats=list(ROOT.glob('*.bat'))
-        self.assertEqual(len(root_bats),6)
+        self.assertEqual(len(root_bats),4)
         for p in root_bats+list((ROOT/'tools').glob('*.bat'))+list((ROOT/'verification').glob('*.bat')):
             self.assertNotRegex(p.name,r'_V\d+')
             self.assertNotIn('%APPDATA%',p.read_text())
             self.assertNotRegex(p.read_text(),r'COINCAT_[A-Z_]+_V(?:60|70)\.bat')
-        for name in ('01_START_COINCAT.bat','04_IMPORT_PRIVATE_DATA.bat','05_CHECK_CLEANUP.bat'):
-            self.assertIn('%~dp0private_data',(ROOT/name).read_text())
+        for name in ('01_START_COINCAT.bat','04_FIRST_TIME_SETUP.bat','tools/RECOVER_PRIVATE_DATA.bat','tools/CHECK_OLD_FOLDER.bat'):
+            source=(ROOT/name).read_text()
+            self.assertTrue('%~dp0private_data' in source or ('cd /d "%~dp0.."' in source and '%CD%\\private_data' in source))
 
     def test_safety_verifier_accepts_arbitrary_source_folder_name(self):
         import shutil

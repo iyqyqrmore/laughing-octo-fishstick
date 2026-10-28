@@ -1,50 +1,109 @@
-CoinCat v70.6.1 — diagnostic-retention verification
+CoinCat v80.0 — source-only Milestone A verification
+2026-10-28; baseline 57b47576d8b46a426900cc3fe8cfba74eaa46ddc
 
-PASS: 405 offline tests; 0 failures, 0 errors, 0 skips, 0 expected failures.
-PASS: eight new stopped-session/concurrent-file regressions plus prior suite.
-PASS: obsolete source-string diagnostic wiring assertion replaced with actual
-      experimental/learning report rendering through the combined-section path.
-PASS: complete GUI starts DISARMED as v70.6.1; one-button export COMPLETE 18/18.
-PASS: Python 3.11 syntax for all 152 shipped Python sources.
-PASS: CPython 3.11.17 / Linux, existing hash-locked dependencies; HTTP Session
-      requests forbidden during test discovery and execution.
-PASS: deterministic synthetic WAL removal between is_file() and stat()
-      reproduced the old FileNotFoundError and loss of the whole SHADOW section.
-      With the fix, the same race completes with retained experimental results.
-PASS: disarming keeps modeled wallet, counts, fees and same-time HOLD value;
-      reporting does not re-arm, mutate counters or change the synthetic ledger.
-PASS: persistent storage failure attempts exactly two diagnostic reads, retains
-      wallet/learning results, and marks the combined export INCOMPLETE.
-PASS: permission failures are not retried; storage gates remain unchanged and
-      do not replace unavailable usage with zero or a passing state.
-PASS: failed learner, route and wallet subreports preserve the other results.
-      Missing wallet results are not interpreted as zero conversions or P&L.
-PASS: safe code breadcrumbs include only vetted CoinCat basenames/functions/
-      line numbers, never private paths, exception messages or local variables.
-PASS: selection, planner, scan worker, shared storage/gates, live broker,
-      settlement/FIFO, inventory and importer source bytes unchanged from v70.6.
-      ShadowArmedResearch class AST unchanged: no selection/accounting behavior
-      modified. Only its diagnostic report function/import changes.
-PASS: LiveBroker.submit still begins with an unconditional LiveBlocked raise.
-PASS: source hashes, byte-exact ZIP and extracted source verifier.
+Immediate discrepancy discovery, modeled positive-opportunity reporting and strict evidence gating. Live-observation strict qualification is unavailable until candidate-sized depth and candidate-specific fee/preview evidence integrations are completed and verified.
 
-LIMITS: the uploaded v70.6 report lacked a failure code location, so the exact
-  PC-side stack is not independently established by the matching reproduction.
-  This patch does not recover RAM results from an app already closed/re-armed.
-  Re-export from the still-open stopped v70.6 session first if possible.
-  No connected Windows timing, exchange opportunity, fill, fee, liquidity,
-  slippage, production recovery, GPU or DPAPI certification. Selection history
-  and cost rules remain unchanged; no profitability or trade-frequency claim.
-  No private datasets, keys, tax lots, financial schemas, user balances or saved
-  settings were opened, migrated or modified. Tests use disposable synthetic data.
-  LIVE ORDER POST REMAINS UNCONDITIONALLY BLOCKED.
+OBSERVED VALIDATION
+PASS: CPython 3.11.17, pinned app_requirements.lock environment.
+PASS: 428 discovered / 428 distinct unittest cases; 428 run, 0 failures,
+      0 errors, 0 skips, 0 expected failures. HTTP forbidden throughout
+      discovery and execution. Actual complete suite run from an extracted
+      source ZIP, not only the development checkout.
+PASS: Actual Tk GUI smoke via Linux Xvfb; title CoinCat v80.0; default
+      DISARMED; one-button diagnostics COMPLETE (18/18); Unicode retained.
+PASS: Additional extracted first-use test: real new-install confirmation
+      wizard, unchanged verified-copy bootstrap, independent initial backup,
+      repeat startup without an older folder/import, no API key, actual GUI,
+      complete 18-section diagnostic export and HTTP forbidden. Synthetic
+      evidence is disabled in this normal product constructor.
+PASS: All 162 shipped Python files parsed with Python 3.11.
+PASS: 204 source-manifest entries, zero hash mismatches; source ZIP has
+      205 files including its manifest; ZIP CRC and byte equality checked.
+      Final package has an independent .zip.sha256 alongside it.
+PASS: git diff --check; source-only package audit excludes private data,
+      private backups, credentials, raw user diagnostics, DBs, bytecode,
+      environments and logs. No real private dataset was used or changed.
+PASS: Seven protected files exactly match the baseline bytes:
+      app/coincat_live.py, app/coincat_unified_fifo_v501.py,
+      app/coincat_state_v50.py, app/coincat_data_transfer.py,
+      app/coincat_inventory_lots.py, app/coincat_storage.py,
+      app_requirements.lock.
+PASS: LiveBroker.submit first statement unconditionally raises LiveBlocked.
+PASS: Synthetic Ed25519 raw/base64 and PEM plus ECDSA signing verified
+      through pinned coinbase-advanced-py 1.8.4; no real keys or HTTP used.
 
-Final suite output:
-.....................................................................................................................................................................................................................................................................................................................................................................................................................
-----------------------------------------------------------------------
-Ran 405 tests in 3.893s
+ACCEPTANCE MATRIX — PASS MEANS OFFLINE/SYNTHETIC ONLY
+T01 PASS: test_v80_immediate positive gross-trade reference and
+    test_v80_discovery actual zero-momentum producer -> planner -> strict
+    synthetic consumer -> atomic RAM FIFO -> same-time P&L. W rounds to
+    +$0.50583, simplified unrounded L to +$0.50053. Product-rounded,
+    size-aware exits and residuals use their separately asserted receipts.
+T02 PASS: test_v80_immediate zero W/L and each one-positive/one-nonpositive
+    combination; favorable forward evidence never overrides either check.
+T03 PASS: test_v80_immediate negative costs, adverse sized depth, minima,
+    rounding, preserved dust; no false strict gain after costs erase it.
+T04 PASS: test_v80_discovery bounded fair static BUY/SELL directions,
+    BTC/ETH/USD sources and actual cold/no-alert producer. No momentum or
+    eight-quote prerequisite in primary discovery.
+T05 PASS: test_v80_immediate and retained urgent-quote tests cover stale,
+    future, missing, wide/skewed books and frame conflicts as unpriced or
+    unverified, separately from economic-negative results.
+T06 PASS: alternate independent FX path, circular-only rejection,
+    pair-isolated cache, eligibility exclusions, observed stablecoin marks
+    and retained direct-USD cases.
+T07 PASS: missing/insufficient/truncated depth, fee amount/currency,
+    preview/frame conflicts retain visible positive-unverified candidates;
+    only explicitly opted-in complete synthetic evidence may qualify.
+T08 PASS: shared canonical native receipt tests plus retained fee-handoff,
+    full-funding and FIFO tests assert actual currency quantities, fees once,
+    exchange rounding/minima, native residuals and no overspend. Sub-$0.10
+    positive complete synthetic model passes; no Experimental dollar floor.
+T09 PASS: test_v80_startup preserves unrelated unknown-mark quantities and
+    nullable bases, permits a fully priced affected synthetic conversion,
+    keeps whole-wallet P&L unverified and Validated startup unchanged.
+T10 PASS: newly acquired modeled ETH funds a later independently qualified
+    SOL conversion; parity holds. Failed/no-op/replayed posting records
+    zero completed movement and cannot silently consume a successful fill.
+T11 PASS: five distinct positive routes vs fifteen size reviews, separate
+    strict and actual-post counters, missing evidence distinct from loss;
+    actual pipeline/report and local economics remain visible.
+T12 PASS: bounded unverified-positive 5/15/60-minute counterfactuals do not
+    spend a wallet. Public prospective endpoint causes are additive in the
+    same market DB; historical cause stays UNKNOWN; samples not independent.
+T13 PASS: retained worker/urgent/diagnostic tests cover request fairness,
+    deadlines, 429 backoff, late results, STOP, stopped-session retention,
+    resilient partial report and 18 sections. New consumer rechecks current
+    approvals, rules, funding and risk budgets; explicit re-arm is separate.
+T14 PASS: unconditional broker block, no new order/preview adapter, protected
+    byte comparison and HTTP-forbidden source tests.
+T15 PASS: Python 3.11, source integrity/CRC, extracted suite, actual first
+    use/GUI diagnostics, current docs and Unicode; native Windows NOT RUN.
 
-OK
-PASS V70 GUI 1-button report 59083 bytes CoinCat v70.6.1 • CoinCat Auto Trader • DISARMED by default
-PASS: v50.3 held-out, read-only AI budget immediately beneath Auto Trader budget; ARM unchanged
-COUNTS 405 failures 0 errors 0 skipped 0 expected_failures 0
+REPRODUCE
+1. Set up Python 3.11 using the unchanged hash-pinned app_requirements.lock.
+2. python -B VERIFY_SOURCE.py
+3. python -B tools/RUN_OFFLINE_TESTS.py
+   A graphical display is required for the GUI smoke (normal Windows or
+   Linux Xvfb). Data is disposable and HTTP is forbidden by the runner.
+4. On Windows, 03_VERIFY_COINCAT.bat combines the local integrity/syntax/
+   offline checks. No Coinbase connection is required by those tests.
+
+OBSERVED CPU TIMING, NOT TRADE LATENCY
+Synthetic 804-product / 23-funding-asset fixture: bounded dependency
+selection 0.011680s; primary planner 0.347077s for 207 costed size checks
+over 69 directions. One local measurement, no network/GUI/exchange/fills;
+not an assertion of connected latency, opportunity frequency or profit.
+
+NOT RUN / NOT PROVIDED
+- Native Windows batch execution, shortcuts, Windows DPAPI round trip,
+  this user's new API key, account access and actual Coinbase observations.
+- CUDA/GPU hardware validation; default core CPU research needs no CUDA.
+- Connected candidate-sized depth and candidate-specific fee-unit/preview
+  adapters (separate Milestone B proposal in docs/STRATEGY_AND_EVIDENCE.md).
+- Exchange fills, production fee reconciliation, settlement/recovery
+  certification, independent live loss controls, LIVE readiness or profit.
+- Any guaranteed trades/hour or proof that a displayed estimate can fill.
+
+The running v70.6.1 installation, real data and RAM session are untouched.
+Fresh v80 does not recover old local financial/tax history from a new key.
+LIVE POST remains blocked. Production-ready status is unavailable.

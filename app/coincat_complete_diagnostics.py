@@ -232,6 +232,7 @@ def _shadow_section(app,wall):
     cycle=getattr(app,'last_cycle',None) or {}
     if not isinstance(cycle,dict):cycle={}
     parts=(
+        ('STRICT IMMEDIATE OPPORTUNITY FUNNEL',lambda:__import__('coincat_v80_immediate').diagnostic_report(app)),
         ('ROUTE RESEARCH',lambda:make_shadow_report(app,now=wall)),
         ('SNOWBALL IMMEDIATE COMPARISON',lambda:snowball_report(getattr(app,'_snowball_summary',{}))),
         ('EXPERIMENTAL SHADOW RESULTS',lambda:experimental_shadow_report(app,include_learning=False)),
@@ -439,8 +440,9 @@ def _finish_complete_report(wall, sections_count, fragments, failed, *,elapsed_s
         'This report is neither a profit forecast nor go-live authorization.',
         'SECTION COMPLETENESS: ' + (f'COMPLETE ({sections_count}/{sections_count})' if not failed else 'INCOMPLETE — '+', '.join(failed)),
         'All-spot LIVE submission DISABLED. Previous dollar-quoted fill journal retained only for historical reconciliation; no dollar-only live fast lane.',
-        'ACTIVE v60.10 RESEARCH: all authenticated eligible SPOT products, one exchange order per funded conversion; USD/USDC may be traded directly when held and eligible; USD value remains the profit measure.',
-        'V60.17 FULL-FUEL RESEARCH: no optional-profit or 10% BUY withholding; modeled taker fee/slippage remain inside actual input-coin spend, within verified enrolled available balance, product rules and order-size checks. LIVE protections unchanged.',
+        'PRIMARY V80: Strict Immediate Snowball; W>0 AND L>0. Positive unverified estimates remain visible; connected strict qualification is unavailable pending depth/fee-evidence integration.',
+        'ACTIVE SPOT RESEARCH: all authenticated eligible SPOT products, one exchange order per funded conversion; USD/USDC may be traded directly when held and eligible; USD value remains the profit measure.',
+        'FULL-FUEL RESEARCH: no optional-profit or 10% BUY withholding; modeled taker fee/slippage remain inside actual input-coin spend, within verified enrolled available balance, product rules and order-size checks. LIVE protections unchanged.',
         'LEGACY v50-v60.9 sections below retain historical two-leg research/recovery evidence, NOT active route-selection policy.',
         'New available spot assets may locally auto-enroll under user authorization; original externally purchased tax basis remains UNKNOWN; past lots preserved.',
         '-'*76,

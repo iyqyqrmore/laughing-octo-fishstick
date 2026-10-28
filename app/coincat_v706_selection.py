@@ -1,4 +1,4 @@
-"""Experimental cost-aware selection from passive, causal market observations.
+"""Advisory v70 cost scenarios from passive, causal market observations.
 
 One canonical public quote store; no wallet quantities, keys, broker, orders or
 financial-ledger access. These empirical scenarios do not certify a forecast.
@@ -72,6 +72,11 @@ def receipt_values(idea):
 
 
 def assess(idea,*,now):
+    """Archived/advisory v70 scenario score; not primary v80 authority.
+
+    StrictImmediateShadow evaluates and gates its own complete frame first,
+    then supplies only positive immediate receipts to the accounting engine.
+    """
     result={'state':'HOLD_NO_FORWARD_EDGE','score_usd':None,'basis':None,'evidence_key':None,
             'reason':'NO_MATCHED_FORWARD_EVIDENCE'}
     values=receipt_values(idea)
@@ -132,6 +137,9 @@ class ForwardCostLearner:
             CREATE INDEX IF NOT EXISTS v706_due ON v706_forward_cost(state,due_at);
             CREATE INDEX IF NOT EXISTS v706_pair_time ON v706_forward_cost(pair,opened_at DESC);
             CREATE UNIQUE INDEX IF NOT EXISTS v706_one_pending ON v706_forward_cost(pair) WHERE state='PENDING';
+            CREATE TABLE IF NOT EXISTS v80_endpoint_causes(
+                pair TEXT NOT NULL,opened_at REAL NOT NULL,reason TEXT NOT NULL,
+                observed_at REAL NOT NULL,PRIMARY KEY(pair,opened_at));
             ''')
 
     @contextmanager
@@ -165,15 +173,34 @@ class ForwardCostLearner:
         stats={'state':'OBSERVING','recorded':0,'matured':0,'missed':0,'pending':0}
         try:
             with self._db() as db:
+                def cause(row,reason,*,keep_prior=False):
+                    if keep_prior:
+                        found=db.execute('SELECT reason FROM v80_endpoint_causes WHERE pair=? AND opened_at=?',
+                            (row['pair'],row['opened_at'])).fetchone()
+                        if found:reason=found[0]
+                    db.execute('INSERT OR REPLACE INTO v80_endpoint_causes VALUES(?,?,?,?)',
+                        (row['pair'],row['opened_at'],reason,now))
                 due=db.execute("SELECT * FROM v706_forward_cost WHERE state='PENDING' AND due_at<=? ORDER BY due_at LIMIT 32",(now,)).fetchall()
                 for row in due:
                     if now>row['due_at']+GRACE_S:
+                        cause(row,'DEADLINE_MISSED_UNKNOWN_CAUSE',keep_prior=True)
                         db.execute("UPDATE v706_forward_cost SET state='MISSED',closed_at=? WHERE pair=? AND opened_at=?",(now,row['pair'],row['opened_at']))
                         stats['missed']+=1;continue
                     ratio=frame(row['pair']) if row['pair'] in listed else None
-                    if ratio is None:continue
+                    if ratio is None:
+                        raw=quotes.get(row['pair'])
+                        reason=('PAIR_NO_LONGER_APPROVED' if row['pair'] not in listed else
+                                'PAIR_BOOK_NOT_OBSERVED' if raw is None else 'USD_PATH_MISSING_STALE_WIDE_OR_SKEWED')
+                        if raw is not None:
+                            try:
+                                if not 0<=now-float(raw[2])<=MAX_MARK_AGE:reason='PAIR_BOOK_STALE_OR_FUTURE'
+                                elif (decimal(raw[1])-decimal(raw[0]))/decimal(raw[1])>Decimal('.0025'):reason='PAIR_BOOK_WIDE'
+                            except (ValueError,TypeError,InvalidOperation,ZeroDivisionError,IndexError):reason='PAIR_BOOK_INVALID'
+                        cause(row,reason)
+                        continue
                     entry=decimal(row['entry_ratio'])
                     if entry is None or entry<=0:
+                        cause(row,'INVALID_ENTRY_RATIO')
                         db.execute("UPDATE v706_forward_cost SET state='MISSED',closed_at=? WHERE pair=? AND opened_at=?",(now,row['pair'],row['opened_at']))
                         stats['missed']+=1;continue
                     growth=ratio/entry-1
@@ -194,6 +221,7 @@ class ForwardCostLearner:
                     stats['recorded']+=1
                 if now-self.last_prune>=3600:
                     db.execute('DELETE FROM v706_forward_cost WHERE opened_at<?',(now-KEEP_S,))
+                    db.execute('DELETE FROM v80_endpoint_causes WHERE opened_at<?',(now-KEEP_S,))
                 stats['pending']=db.execute("SELECT COUNT(*) FROM v706_forward_cost WHERE state='PENDING'").fetchone()[0]
             if now-self.last_prune>=3600:self.last_prune=now
         except sqlite3.Error:
@@ -247,6 +275,11 @@ class ForwardCostLearner:
         try:
             with self._db() as db:
                 counts=dict(db.execute('SELECT state,COUNT(*) FROM v706_forward_cost GROUP BY state').fetchall())
+                causes=dict(db.execute("""SELECT COALESCE(c.reason,'LEGACY_CAUSE_UNKNOWN'),COUNT(*)
+                    FROM v706_forward_cost f LEFT JOIN v80_endpoint_causes c
+                    ON f.pair=c.pair AND f.opened_at=c.opened_at WHERE f.state='MISSED'
+                    GROUP BY COALESCE(c.reason,'LEGACY_CAUSE_UNKNOWN')""").fetchall())
             return {'model':MODEL,'horizon_s':HORIZON_S,'minimum_windows':MIN_WINDOWS,
-                    'observations':counts,'last_update':dict(self.last_summary),'execution_certified':False}
+                    'observations':counts,'missed_causes':causes,'advisory_only':True,
+                    'last_update':dict(self.last_summary),'execution_certified':False}
         except sqlite3.Error:return {'model':MODEL,'state':'DEFERRED_MODEL_BUSY','execution_certified':False}

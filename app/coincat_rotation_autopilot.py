@@ -125,7 +125,7 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                          usd_per_order_cap, now, stats_for_pair=None, fee_rates_by_pair=None,
                          max_targets=MAX_TARGETS, relative_evidence=None, minimum_net_advantage_usd='0.10',
                          exploratory_candidates=(), strategy_candidates=(), gpu_advisories=None,
-                         direct_only=False,urgent=False,budget_settings=None,budget_usage=None,forward_evidence=None):
+                         direct_only=False,urgent=False,budget_settings=None,budget_usage=None,forward_evidence=None,primary_immediate=False):
     """Build bounded, continuously refreshed two-way coin rotation *research*.
 
     Holdings fund proposals but do not bias the underlying market scan. An
@@ -227,6 +227,15 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
     if not enabled:
         outcome['reason']='No enrolled funding with fresh, strict Coinbase USD conversion; other assets remain unaltered';return outcome
     inventory=[(x['asset'],x['quantity'],x['usd_value']) for x in snapshot['eligible']]
+    if primary_immediate:
+        # Discovery is independent of old BUY/history/strategy gates. Each
+        # actual listed direction can propose its quote or base as target.
+        buy_signals=();strategy_candidates=()
+        if not exploratory_candidates:
+            from coincat_v80_discovery import select_books
+            discovery=select_books(catalog,product_rules,{a for a,q in enabled},
+                quotes=quotes,now=now,cursor=int(now//5),max_routes=max_targets)
+            exploratory_candidates=discovery['candidates']
     from coincat_multicurrency import _snapshots
     books=context.books
     # Source-first SELL feasibility is evaluated regardless of whether any
@@ -297,7 +306,7 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                 base,quote=split_spot(pair)
                 momentum=Decimal(str(item['momentum_pct']))
                 if not momentum.is_finite():continue
-                target=quote if direct_only and momentum<0 else base
+                target=item.get('target_asset') or (quote if direct_only and momentum<0 else base)
                 if target in excluded or target in targets:continue
                 targets[target]=(momentum,pair)
                 ranked_observation_bases.add(target)
@@ -325,6 +334,7 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                 if pair not in catalog or (direct_only and pair not in direct_products):continue
                 target,quote=split_spot(pair)
                 if direct_only and Decimal(str(item.get('momentum_pct',0)))<0:target=quote
+                target=item.get('target_asset') or target
                 if target in excluded:continue
                 momentum=Decimal(str(item['momentum_pct']))
                 if not momentum.is_finite():continue
@@ -373,16 +383,25 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
                         reason='Observed relative-strength ranking, not BUY or forward USD evidence'))
                     outcome['exploratory_shortlist']+=1
         if direct_only:
-            from coincat_v703_chain import rank_experimental
-            outcome['ideas']=rank_experimental(outcome['ideas'],quotes,now,forward_evidence=forward_evidence)
+            if primary_immediate:
+                from coincat_v80_immediate import rank as rank_immediate
+                outcome['all_primary_ideas']=list(outcome['ideas'])
+                outcome['ideas'],outcome['immediate_summary']=rank_immediate(outcome['ideas'],quotes,product_rules,now=now)
+            else:
+                from coincat_v703_chain import rank_experimental
+                outcome['ideas']=rank_experimental(outcome['ideas'],quotes,now,forward_evidence=forward_evidence)
             outcome['experimental_ideas']=outcome['ideas']
         else:outcome['ideas']=outcome['ideas'][:6]
         outcome['exploratory_shortlist']=len(outcome['ideas'])
         outcome['route_blockers']=blockers
         outcome['threshold_research']=threshold_sweep(outcome['ideas'])
-        outcome['state']='WAIT'
+        outcome['state']='MODELED_RESEARCH' if primary_immediate else 'WAIT'
         outcome['reason']=('Exploratory funding routes observed; no BUY signal or verified USD advantage'
                            if outcome['ideas'] else 'No BUY signals; exploratory route checks could not clear fees, spreads or product rules')
+        if primary_immediate:
+            outcome['primary_policy']='STRICT_IMMEDIATE_V80'
+            count=outcome.get('immediate_summary',{}).get('positive_unverified_routes',0)
+            outcome['reason']=f'MODELED_POSITIVE_UNVERIFIED={count}; strict qualification needs connected evidence integration'
         return outcome
     # Multiple read-only funding size candidates: compare $5/$10/$25/$100 with
     # fractional and full pool sizes, constrained by independently verified

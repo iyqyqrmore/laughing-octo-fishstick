@@ -1,4 +1,4 @@
-"""Causal SYNTHETIC selection replay, no exchange IO or market backtest.
+"""Archived advisory SYNTHETIC selection replay; NOT primary v80 movement.
 
 Run: python -B tools/replay_cost_selection.py
 Both policies use the canonical Decimal planner and segregated RAM FIFO.
@@ -87,6 +87,8 @@ def replay(name):
                         counts[label]+=1
                         if key is not None:used.add(key)
             output={'scenario':name,'data':'ARTIFICIAL_SYNTHETIC_NOT_MARKET_DATA',
+                'policy_role':'ARCHIVED_ADVISORY_COUNTERFACTUAL_NOT_PRIMARY_V80',
+                'connected_strict_qualification_available':False,
                 'minutes':(len(prices)-1)*.5,'taker_fee_rate':str(FEE),
                 'slippage_bps':'15','spread_fraction':'.0001','initial_usd':str(PRINCIPAL),
                 'observation_summary':store.selection.summary()['observations'],'policies':{}}

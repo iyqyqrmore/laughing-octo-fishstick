@@ -1,4 +1,4 @@
-"""CoinCat v50.6R four-tab Tkinter dashboard; complete-catalog research and safeguarded live pilot.
+"""CoinCat dashboard; direct immediate research and unconditional LIVE POST block.
 Always disarmed on launch. Never place orders from a GUI event handler thread.
 """
 from __future__ import annotations
@@ -35,7 +35,8 @@ from coincat_shadow_diagnostics import shadow_snapshot
 from coincat_trade_frequency import frequency_report
 from coincat_order_verify import verify_latest_filled_order
 from coincat_state_v50 import data_root, state_status, StateError
-from coincat_version import DISPLAY
+from coincat_version import DISPLAY,VERSION
+EXPORT_PREFIX='CoinCat_v'+VERSION.replace('.','_')
 from coincat_portfolio_sync import reconcile_authorized
 from coincat_portfolio_prices import fetch_portfolio_books, portfolio_usd_rates, portfolio_coverage, DISPLAY_MAX_SPREAD
 from coincat_storage import financial_storage_gate, storage_health, verified_ledger_backup, RESEARCH_LIMIT_MIB
@@ -59,6 +60,9 @@ from coincat_v503_lab_evidence import capture_app_lab, budget_text, saved_gpu_he
 from coincat_v606_budgets import load as load_manual_budgets, save as save_manual_budgets, effective as effective_manual_budgets, validate as validate_manual_budgets
 from coincat_v505_pipeline import snapshot as v505_snapshot, status_line as v505_status_line
 from coincat_v507_shadow_arm import ShadowArmedResearch
+from coincat_v80_shadow import StrictImmediateShadow
+from coincat_v80_discovery import select_books as select_immediate_books
+from coincat_v80_immediate import economics_text,RELEASE_LIMIT
 from coincat_v508_table_ui import add_tree_tips
 from coincat_v60112_decision_display import decision_label, reason_tooltip, known_small_direct_buy
 from coincat_v508_gpu_schedule import GPUResearchSchedule
@@ -96,7 +100,7 @@ class CoinCatApp:
         self._history_auto=False;self._auto_history_checked=0;self._last_trials_cleanup=0
         self._scan_started_at=0;self._last_scan_at=0;self._focus_cycles=0;self._scan_epoch=0;self._scan_processing=False;self._scan_progress_text='Waiting for next scheduled market scan';self._next_scan_at=time.monotonic()+1.5
         self.shadow_pilot=ShadowArmedResearch()  # Validated track, strict held-out gate
-        self.experimental_shadow=ShadowArmedResearch(experimental=True)  # Separate RAM-only experiment; NO POST
+        self.experimental_shadow=StrictImmediateShadow(experimental=True)  # Primary v80; connected evidence unavailable
         self._experimental_model_balances={}
         self.experimental_shadow_status=tk.StringVar(value='EXPERIMENT OFF • unvalidated what-if only; no Coinbase orders')
         self.experimental_pnl_status=tk.StringVar(value='EXPERIMENT P&L vs frozen HOLD • no simulated fills yet')
@@ -104,7 +108,7 @@ class CoinCatApp:
         self.ledger=LiveLedger(ROOT/'CoinCat_Live_Orders.sqlite3')
         self.fee_learning=FeeLearning(ROOT/'research_data'/'CoinCat_Fee_Evidence_v502.sqlite3')
         self.relative_lab=RelativeUSDLab(ROOT/'research_data'/'CoinCat_Public_Relative_USD_v502.sqlite3')
-        self.external_balance_warning=tk.StringVar(value='CoinCat v60 preserves enrolled eligible liquid assets and settings from your verified data copy; previous exclusions, costs, and traded quantities remain protected. Live trading always starts DISARMED.')
+        self.external_balance_warning=tk.StringVar(value='This installation preserves its enrolled eligible liquid assets, exclusions, costs and traded quantities. A fresh dataset does not recover old local history. LIVE starts DISARMED and order submission remains blocked.')
         self.forward=ForwardStore(ROOT/'research_data'/'CoinCat_Forward_Market.sqlite3',Retention(max_mb=RESEARCH_LIMIT_MIB))
         self.lab=LiveSignalLab(self.forward,self.ledger,fee_learning=self.fee_learning)
         self.strategy_lab=StrategyResearch(self.forward)  # SAME public market DB, never a broker
@@ -121,7 +125,8 @@ class CoinCatApp:
         self._fast_latencies=[]
         self._fast_totals={'attempted':0,'rest_books':0,'rest_errors':0,'simulated_fills':0}
         self._fast_last_result={'state':'WAIT','reason':'Awaiting verified stream movement'}
-        self.fast_research_status=tk.StringVar(value='FAST SNOWBALL • waiting for stream alerts; ≤16 REST books, same planner, NO LIVE POST')
+        self.fast_research_status=tk.StringVar(value='IMMEDIATE SNOWBALL • fair direct-pair discovery; ≤16 REST books, no momentum/history wait; LIVE BLOCKED')
+        self.immediate_economics_status=tk.StringVar(value=RELEASE_LIMIT)
         self.stream_research=StreamResearch() # bounded sub-second in-memory ticker telemetry; NO orders
         self.stream=PublicTickerTape(on_tick=self.stream_research.observe)  # trade-price telemetry, never execution
         self.focus_planner=FocusPlanner(self.forward) # persistent ~45min research-only cohorts
@@ -253,7 +258,7 @@ class CoinCatApp:
         if self._pulse_phase % 9==0:
             self._refresh_budget_advisor()
         self._scheduled['pulse']=self.root.after(450,self._pulse)
-        self._log('CoinCat v60.6 started DISARMED. First eligible liquid balances auto-enroll once; live order submission remains BLOCKED.')
+        self._log(DISPLAY+' started DISARMED. First eligible liquid balances auto-enroll once; live order submission remains BLOCKED.')
 
     def _resize_brand(self,event=None):
         if event is not None and event.widget is not self.root:return
@@ -692,6 +697,9 @@ class CoinCatApp:
         ttk.Label(lab_left,textvariable=self.strategy_pipeline_status,foreground='#8aceff',wraplength=460).pack(anchor='w',fill='x',pady=(1,4))
         ttk.Label(lab_left,textvariable=self.fast_research_status,foreground='#41c9df',wraplength=465,
                   justify='left').pack(anchor='w',fill='x',pady=(0,5))
+        ttk.Label(lab_left,textvariable=self.immediate_economics_status,foreground='#8aceff',
+                  wraplength=465,justify='left').pack(anchor='w',fill='x',pady=(0,5))
+        ttk.Button(lab_left,text='Immediate opportunity details',command=self._show_immediate_opportunities).pack(anchor='w')
         self.lab_progress=ttk.Progressbar(lab_left,mode='indeterminate')
         self.lab_progress.pack(fill='x',pady=(1,4))
         # All telemetry widgets stay alive for the existing callbacks, but
@@ -1060,7 +1068,7 @@ class CoinCatApp:
     def _view_inventory_lots(self):
         """Show preserved opening holdings separately from later verified fills."""
         rows=self.ledger.inventory_lots()
-        win=tk.Toplevel(self.root);win.title('CoinCat v60 • Verified inventory lots • NO ORDERS')
+        win=tk.Toplevel(self.root);win.title(DISPLAY+' • Verified inventory lots • NO ORDERS')
         win.geometry('1140x530');win.configure(bg=BG)
         ttk.Label(win,text='Existing approved inventory and confirmed Coinbase buys are separate lots. '
             'A blank original tax cost is UNKNOWN; a market starting value is NOT original tax basis.',
@@ -1117,7 +1125,7 @@ class CoinCatApp:
         # already embeds the same checks; future UI cleanup may remove this.
         from coincat_v506_gate_verifier import report as gate_report
         path=filedialog.asksaveasfilename(defaultextension='.txt',
-            initialfile='CoinCat_v50_6R_Offline_Predictive_Safeguards.txt',
+            initialfile=EXPORT_PREFIX+'_Offline_Predictive_Safeguards.txt',
             filetypes=[('Text diagnostics','*.txt')])
         if not path:return
         try:
@@ -1134,7 +1142,7 @@ class CoinCatApp:
         if getattr(self,'_diagnostics_session',None) is not None:
             return
         path=filedialog.asksaveasfilename(defaultextension='.txt',
-            initialfile='CoinCat_v60_1_Complete_Diagnostics.txt',
+            initialfile=EXPORT_PREFIX+'_Complete_Diagnostics.txt',
             filetypes=[('Text diagnostics','*.txt')])
         if not path:return
         session=CompleteReportSession(self)
@@ -1468,7 +1476,7 @@ class CoinCatApp:
             messagebox.showwarning('Archive','Stop trading before creating financial archives.')
             return
         destination=filedialog.asksaveasfilename(defaultextension='.sqlite3',
-            initialfile='CoinCat_v50_2_Financial_Ledger_Archive.sqlite3',
+            initialfile=EXPORT_PREFIX+'_Financial_Ledger_Archive.sqlite3',
             filetypes=[('SQLite ledger','*.sqlite3')])
         if not destination:return
         try:
@@ -2082,7 +2090,17 @@ class CoinCatApp:
             self.ledger.log('USER_ARMED_LIVE','Current Windows process only')
             self.target_preview_status.set(f'LIVE ARMED • active ordinary SELL target ${target:.2f}; edits will NOT change live orders until separately rearmed')
         except Exception as ex:messagebox.showerror('Live blocked',str(ex))
-    def _shadow_start_inputs(self):
+    def _show_immediate_opportunities(self):
+        window=tk.Toplevel(self.root);window.title('CoinCat • modeled immediate opportunities')
+        window.geometry('920x560')
+        body=tk.Text(window,wrap='word',background=BG,foreground=FG,font=('Segoe UI',10))
+        body.pack(fill='both',expand=True)
+        rows=getattr(self,'_positive_opportunity_rows',())
+        body.insert('end',RELEASE_LIMIT+'\n\n'+('\n\n'.join(rows) if rows else
+            'No modeled-positive candidate is retained yet. See the discovery funnel for unpriced, deferred and negative routes.'))
+        body.configure(state='disabled')
+
+    def _shadow_start_inputs(self,*,partial=False):
         """Read-only start gate shared by both RAM wallets; never authorizes LIVE."""
         if str(self.ledger.setting('halted','0'))=='1':
             raise ValueError('EMERGENCY_STOP_ACTIVE — release STOP only after reviewing Coinbase')
@@ -2110,13 +2128,14 @@ class CoinCatApp:
         # Full authorized holdings can be valued at conservative bid/inverse ask
         # without granting a wide-spread holding permission to fund any trade.
         coverage=portfolio_coverage(holdings,self.catalog,self._shadow_valuation_books(),now=time.time())
-        if not coverage['complete']:
+        if not coverage['complete'] and not partial:
             missing=coverage['missing']
             details='; '.join(asset+': '+reason for asset,reason in list(missing.items())[:12])
             raise ValueError(f'USD_VALUATION_INCOMPLETE — {len(missing)}/{len(holdings)} enrolled holdings. '+
                 details+'. Refresh portfolio prices and retry. No amounts or lots were changed.')
         rates={name:str(info['rate']) for name,info in coverage['rates'].items()
                if isinstance(info,dict) and info.get('rate') is not None}
+        rates.setdefault('USD','1')
         return holdings,tuple(excluded),rates
 
     def _toggle_shadow_arm(self):
@@ -2158,7 +2177,8 @@ class CoinCatApp:
                 'Connect Coinbase read-only; real LIVE must remain DISARMED.')
             return
         try:
-            holdings,excluded,rates=self._shadow_start_inputs()
+            holdings,excluded,rates=self._shadow_start_inputs(
+                partial=bool(getattr(shadow,'primary_immediate',False)))
             shadow.arm(connected=True,real_arm=False,stopped=False,
                 verified_balances=True,usd_coverage=True,
                 enrolled_quantities=holdings,fresh_usd_rates=rates)
@@ -2216,7 +2236,9 @@ class CoinCatApp:
         session.observe(now=now,quotes=books,usd_rates=rates,researched_reviews=(),
             route_ideas=eligible,minimum_advantage=str(self.switch_minimum_usd),
             strict_quotes=True,risk_budgets=caps,approved_catalog=self._research_catalog(),
-            portfolio_marks_complete=complete)
+            portfolio_marks_complete=complete,
+            **({'current_product_rules':getattr(self.broker,'catalog_product_rules',{})}
+               if getattr(session,'primary_immediate',False) else {}))
         # Only the resulting wallet determines whole-wallet P&L completeness.
         rates,complete=self._shadow_mark_rates(session,books,now,allow_partial=True)
         session.last_usd_rates=rates;session.portfolio_marks_complete=complete
@@ -2693,7 +2715,7 @@ class CoinCatApp:
             and not self._connection_requested and not self._connection_in_progress
             and not self._fill_sync_faulted and not self.broker.ledger.pending()
             and 0<=time.monotonic()-self._last_portfolio_sync_monotonic<=120
-            and self._urgent_alerts(limit=1))
+            and (getattr(getattr(self,'experimental_shadow',None),'primary_immediate',False) or self._urgent_alerts(limit=1)))
 
     def _urgent_alerts(self,*,limit=12,catalog=None,sources=None,snapshot=None):
         catalog=self._research_catalog() if catalog is None else catalog
@@ -2822,6 +2844,10 @@ class CoinCatApp:
 
     def _finish_fast(self,result,started):
         now=time.monotonic()
+        if (getattr(getattr(self,'experimental_shadow',None),'primary_immediate',False) and
+            hasattr(self,'_immediate_research') and 'immediate_outcomes' not in result):
+            result['immediate_outcomes']=self._immediate_research.observe(
+                (),self._shadow_valuation_books(),now=time.time())
         result['research_duration_s']=round(now-started,3)
         self._fast_next_at=max(getattr(self,'_fast_next_at',0),now+1)
         return result
@@ -2866,10 +2892,24 @@ class CoinCatApp:
         before_quotes=self._shadow_valuation_books()
         from coincat_v703_chain import approved_pairs
         valuation_catalog=approved_pairs(self.catalog,getattr(self.broker,'catalog_product_rules',{}))
-        plan=select_fast_books(alerts,catalog,sources,required_assets=required,
-                              quotes=before_quotes,now=time.time(),target_assets=target_assets,
-                              valuation_catalog=valuation_catalog,route_cursor=getattr(self,'_fast_route_cursor',0),
-                              target_cursor=getattr(self,'_fast_target_cursor',0))
+        primary=bool(getattr(getattr(self,'experimental_shadow',None),'primary_immediate',False))
+        if primary:
+            plan=select_immediate_books(catalog,getattr(self.broker,'catalog_product_rules',{}),sources,
+                quotes=before_quotes,now=time.time(),cursor=getattr(self,'_fast_route_cursor',0),
+                valuation_catalog=valuation_catalog)
+            result['immediate_coverage']={k:plan[k] for k in ('candidate_routes','selected_directions',
+                'funding_routes_deferred','missing_independent_paths','request_budget_deferred')}
+            result['immediate_funnel']=dict(result['immediate_coverage'],
+                unpriced_routes=plan['selected_directions'],negative_routes=0,zero_routes=0,
+                positive_unverified_routes=0,strict_qualified=0,ram_conversions=0,
+                stage='DEPENDENCY_COLLECTION',connected_strict_qualification_available=False)
+        else:
+            # Retained offline v70 compatibility harness; the v80 UI always
+            # constructs StrictImmediateShadow and uses the branch above.
+            plan=select_fast_books(alerts,catalog,sources,required_assets=required,
+                quotes=before_quotes,now=time.time(),target_assets=target_assets,
+                valuation_catalog=valuation_catalog,route_cursor=getattr(self,'_fast_route_cursor',0),
+                target_cursor=getattr(self,'_fast_target_cursor',0))
         self._fast_target_cursor=plan['next_target_cursor']
         result['required_mark_assets']=required
         result['unlisted_mark_assets']=plan['unlisted_mark_assets']
@@ -2881,7 +2921,7 @@ class CoinCatApp:
         ages=[r['age_ms'] for r in stream_rows if r.get('pair') in plan['books'] and r.get('age_ms') is not None]
         result['alert_age_ms']=max(ages) if ages else None
         fingerprint=(tuple((a,p,str(latest.get(p))) for a,p in plan['targets']),funding_signature) if plan['targets'] else ()
-        if (fingerprint and fingerprint==self._fast_candidate_signature and
+        if (not primary and fingerprint and fingerprint==self._fast_candidate_signature and
                 time.monotonic()-self._fast_candidate_signature_at<10):
             result['reason']='STREAM_PRICES_UNCHANGED_COOLDOWN';return self._finish_fast(result,started)
         result['selected_pairs']=[p for a,p in plan['targets']]
@@ -2891,6 +2931,8 @@ class CoinCatApp:
         self._fast_route_cursor=plan['next_route_cursor']
         result['get_errors']=errors
         result['failed']=sum(errors.values())
+        if primary:
+            result['immediate_funnel']['quote_errors']=dict(errors)
         result['fetch_ms']=fetch_ms
         result['quote_provenance']={'source':'COINBASE_PUBLIC_REST_BEST_BID_ASK',
             'age_basis':'LOCAL_REQUEST_START','exchange_timestamp_verified':False,
@@ -2915,8 +2957,12 @@ class CoinCatApp:
         stream=self.stream_research.snapshot(now=time.time())
         result['passive_selection']=self._observe_selection(catalog,list(snapshots),quotes)
         forward_evidence=self._selection_forecasts(catalog,quotes,stream)
-        candidates,rejected=fast_candidates(plan['targets'],quotes,stream,now=time.time(),
-                                            target_routes=plan['target_routes'])
+        if primary:
+            candidates=[c for c in plan['candidates'] if c['pair'] in quotes]
+            rejected=len(plan['candidates'])-len(candidates)
+        else:
+            candidates,rejected=fast_candidates(plan['targets'],quotes,stream,now=time.time(),
+                                                target_routes=plan['target_routes'])
         result['targets']=len(candidates);result['candidate_quote_rejects']=rejected
         if not candidates:
             result['reason']='NO_FRESH_NARROW_SPREAD_TARGET_BOOKS';return self._finish_fast(result,started)
@@ -2937,7 +2983,8 @@ class CoinCatApp:
                 fee_rates_by_pair=fee_rates,relative_evidence=self.relative_lab.paired_outcomes,
                 exploratory_candidates=candidates, direct_only=True,max_targets=3,urgent=True,experimental=True,
                 budget_settings=getattr(self,'_manual_budget_saved',None),
-                budget_usage=self._shadow_budget_used(self.experimental_shadow),forward_evidence=forward_evidence)
+                budget_usage=self._shadow_budget_used(self.experimental_shadow),forward_evidence=forward_evidence,
+                primary_immediate=primary)
         else:
             from coincat_v605_shadow_bridge import shadow_screen
             balances={}
@@ -2956,7 +3003,8 @@ class CoinCatApp:
                 fee_rates_by_pair=fee_rates,relative_evidence=self.relative_lab.paired_outcomes,
                 exploratory_candidates=candidates,direct_only=True,max_targets=3,urgent=True,experimental=True,
                 budget_settings=getattr(self,'_manual_budget_saved',None),
-                budget_usage=self._shadow_budget_used(self.experimental_shadow),forward_evidence=forward_evidence)
+                budget_usage=self._shadow_budget_used(self.experimental_shadow),forward_evidence=forward_evidence,
+                primary_immediate=primary)
         # Validated SHADOW may observe urgent research using its own modeled
         # wallet, but its held-out OOS qualification remains unchanged.
         if self.shadow_pilot.armed and self._shadow_model_balances:
@@ -2974,6 +3022,30 @@ class CoinCatApp:
                 budget_usage=self._shadow_budget_used(self.shadow_pilot))
         result['decision_quotes']=dict(valuation_quotes)
         result['decision_at']=time.time()
+        if primary:
+            from coincat_v80_immediate import rank as rank_immediate
+            if 'immediate_summary' in researched:
+                ranked=researched.get('ideas',());immediate_summary=researched['immediate_summary']
+            else:
+                original=researched.get('all_primary_ideas',researched.get('ideas',()))
+                ranked,immediate_summary=rank_immediate(original,quotes,
+                    getattr(self.broker,'catalog_product_rules',{}),now=time.time())
+            researched=dict(researched,ideas=ranked,immediate_summary=immediate_summary)
+            result['immediate_funnel']=dict(immediate_summary,**result.get('immediate_coverage',{}))
+            costed=set()
+            for item in researched.get('all_primary_ideas',researched.get('ideas',())):
+                for step in item.get('shadow_fifo_steps',()):
+                    costed.add((step['pair'],step['side'],item.get('source'),item.get('target')))
+            missing=len(set(plan['directions'])-costed)
+            result['immediate_funnel']['selected_without_costed_receipt']=missing
+            result['immediate_funnel']['unpriced_routes']+=missing
+            result['immediate_funnel']['planner_blocker_size_counts']=researched.get('route_blockers',{})
+            result['immediate_funnel']['quote_errors']=dict(errors)
+            result['positive_economics']=[economics_text(i) for i in ranked if
+                (i.get('immediate_assessment') or {}).get('positive_estimate')]
+            from coincat_v80_immediate import ObservationLog
+            if not hasattr(self,'_immediate_research'):self._immediate_research=ObservationLog()
+            result['immediate_outcomes']=self._immediate_research.observe(ranked,quotes,now=time.time())
         result['plan']=researched
         ideas,stats=snowball_screen(researched.get('ideas') or (),quotes,now=time.time(),
             taker_fee=rate,minimum_usd=str(self.switch_minimum_usd))
@@ -2986,6 +3058,9 @@ class CoinCatApp:
             'reasons':dict(Counter(i.get('selection_reason','UNASSESSED') for i in ideas))}
         result['reason']=('COST_EDGE_CANDIDATES' if result['selection']['eligible'] else
             'OBSERVING_NO_COST_EDGE') if self.experimental_shadow.armed else 'READ_ONLY_RESEARCH'
+        if primary:
+            count=result.get('immediate_funnel',{}).get('positive_unverified_routes',0)
+            result['reason']=f'MODELED_POSITIVE_UNVERIFIED={count}; STRICT_QUALIFIED=0; CONNECTED_EVIDENCE_NOT_INTEGRATED'
         if not ideas and not researched.get('funding_assets',0):
             result['state']='WAIT';result['reason']='NO_FRESH_SOURCE_DESTINATION_FX'
         result['captured_at']=time.time()
@@ -3318,7 +3393,8 @@ class CoinCatApp:
                 exploratory_candidates=exploratory['candidates'],
                 strategy_candidates=strategy_candidates,
                 gpu_advisories=result['gpu_advisory'],direct_only=True,
-                forward_evidence=forward_evidence)  # NEVER GPU-only BUY signals
+                forward_evidence=forward_evidence,
+                primary_immediate=bool(getattr(getattr(self,'experimental_shadow',None),'primary_immediate',False)))  # One canonical planner
             # After ARM SHADOW, ONLY the modeled wallet funds follow-on routes.
             # The same core planner is reused; no parallel strategy/trader engine.
             if (self.shadow_pilot.armed and self._shadow_model_balances):
@@ -3356,7 +3432,8 @@ class CoinCatApp:
                         gpu_advisories=result['gpu_advisory'],direct_only=True,
                         max_targets=8,experimental=True,budget_settings=self._manual_budget_saved,
                         budget_usage=self._shadow_budget_used(self.experimental_shadow),
-                        forward_evidence=forward_evidence)  # bounded experimental rescreen; no network or new scanner
+                        forward_evidence=forward_evidence,
+                        primary_immediate=bool(getattr(getattr(self,'experimental_shadow',None),'primary_immediate',False)))  # Same planner
                 else:
                     result['experimental_rotation']=result['auto_rotation']
                     result['experimental_rotation']=dict(result['experimental_rotation'],
@@ -3397,7 +3474,8 @@ class CoinCatApp:
                 # Bounded authenticated Coinbase PREVIEW, never POST/submit.
                 # Only one cross-pair candidate per DISARMED cycle to preserve
                 # API health and the independent order-reconciliation worker.
-                if (review.get('candidate') and sig['pair'].split('-')[-1] not in USD_QUOTES
+                if (not getattr(getattr(self,'experimental_shadow',None),'primary_immediate',False)
+                    and review.get('candidate') and sig['pair'].split('-')[-1] not in USD_QUOTES
                     and not self.broker.armed and not result['cross_spot_previews']
                     and hasattr(self.broker,'preview_cross_spot_candidate')):
                     try:
@@ -3671,6 +3749,19 @@ class CoinCatApp:
                     f'fundable {funnel["fundable_alerts"]} → fresh quotes {funnel["fresh_books"]} → '
                     f'costed routes {funnel["one_order_routes"]} → immediate +$ target {funnel["above_target"]} → '
                     f'experimental FIFO +{posted} • {payload.get("reason","WAIT")} • LIVE BLOCKED')
+                if 'immediate_funnel' in payload:
+                    immediate=payload['immediate_funnel']
+                    self.fast_research_status.set(
+                        f'IMMEDIATE • fundable directions {immediate.get("candidate_routes",0)} • '
+                        f'deferred {immediate.get("funding_routes_deferred",0)} • '
+                        f'unpriced {immediate.get("unpriced_routes",0)} • negative {immediate.get("negative_routes",0)} • '
+                        f'positive unverified {immediate.get("positive_unverified_routes",0)} • '
+                        f'strict qualified 0 • RAM conversions +{posted} • LIVE BLOCKED')
+                    self._positive_opportunity_rows=list(payload.get('positive_economics',()))
+                    self.immediate_economics_status.set(
+                        (self._positive_opportunity_rows[0] if self._positive_opportunity_rows else
+                         'No modeled-positive estimate in this pass. Missing evidence is not an economic loss.')+
+                        '\nDepth / fee-currency / preview integration pending. Positive estimates are research-only.')
                 if posted:
                     self._log(f'FAST Snowball: {posted} hypothetical FIFO conversion(s); no Coinbase order')
             elif payload.get('kind')=='portfolio_sync':
@@ -3935,7 +4026,9 @@ class CoinCatApp:
                         self.experimental_shadow_status.set('EXPERIMENT ARMED • scans '+
                             str(sx['completed_fresh_scans'])+' • what-if FIFO legs '+
                             str(sx['shadow_fifo_posted_legs'])+
-                            ' • immediate / forward-cost scenarios only • UNVALIDATED • LIVE ZERO')
+                            (' • STRICT IMMEDIATE • positive-unverified research retained • connected qualification pending • LIVE ZERO'
+                             if getattr(self.experimental_shadow,'primary_immediate',False) else
+                             ' • archived advisory scenarios • UNVALIDATED • LIVE ZERO'))
                         self._refresh_experimental_pnl()
                     except Exception as exc:
                         self.experimental_shadow.disarm()
@@ -4059,11 +4152,15 @@ class CoinCatApp:
                             (idea.get('oos_validated') is True or idea.get('shadow_simulation_eligible') is True))
                         label=decision_label(idea,shadow_armed=active_shadow,
                             delivered_to_shadow=delivered)
+                        if 'immediate_assessment' in idea:
+                            assessed=idea['immediate_assessment']
+                            label=assessed['state']+' • '+', '.join(assessed.get('blockers',())[:2])
                         iid=self.rotation_auto_tree.insert('','end',values=(
                             idea['source'],idea['target'],route,
                             f"${idea['immediate_change_usd']:+.4f}",label))
                         self._route_decision_details[iid]=reason_tooltip(
                             idea,shadow_armed=active_shadow,delivered_to_shadow=delivered)
+                        if 'immediate_assessment' in idea:self._route_decision_details[iid]=economics_text(idea)
                 if proposals:self._log(f'AI → AUTO TRADER • {auto.get("exploratory_shortlist",0)} prequalification exploratory routes, {len(proposals)-auto.get("exploratory_shortlist",0)} normal research routes • no BUY permission or orders')
                 self.directional_status.set(f'Two-way verified: {tw["verified"]} • offline gaps excluded {tw["missed"]} • '
                     f'ROTATE comparisons {len(payload.get("rotation",[]))} (research-only) • last scanner active')
@@ -4444,12 +4541,12 @@ class CoinCatApp:
                 self.ax.set_title('Awaiting verified SELL outcomes',color='white',fontsize=11)
             self.canvas.draw_idle()
     def _export(self,kind):
-        path=filedialog.asksaveasfilename(defaultextension='.csv',initialfile=f'CoinCat_v50_2_{ {"orders":"Orders","fills":"Fills","snapshots":"Enrollment_Snapshots"}.get(kind,kind)}.csv',filetypes=[('CSV','*.csv')])
+        path=filedialog.asksaveasfilename(defaultextension='.csv',initialfile=f'{EXPORT_PREFIX}_{ {"orders":"Orders","fills":"Fills","snapshots":"Enrollment_Snapshots"}.get(kind,kind)}.csv',filetypes=[('CSV','*.csv')])
         if path:
             n=self.broker.export(kind,path) if self.broker else LiveBroker(self.ledger,None).export(kind,path)
             messagebox.showinfo('CSV saved',f'Exported {n} {kind} records')
     def _export_quotes(self):
-        path=filedialog.asksaveasfilename(defaultextension='.csv',initialfile='CoinCat_v50_2_Forward_Research.csv',filetypes=[('CSV','*.csv')])
+        path=filedialog.asksaveasfilename(defaultextension='.csv',initialfile=EXPORT_PREFIX+'_Forward_Research.csv',filetypes=[('CSV','*.csv')])
         if not path:return
         import csv
         with self.forward._db() as c:
@@ -4472,7 +4569,7 @@ class CoinCatApp:
         export_dir=ROOT/'tax_exports'
         export_dir.mkdir(parents=True,exist_ok=True)
         dest=filedialog.asksaveasfilename(defaultextension='.csv',
-            initialdir=str(export_dir), initialfile=f'CoinCat_v60_1_{tag}_{start}_through_{end}.csv',
+            initialdir=str(export_dir), initialfile=f'{EXPORT_PREFIX}_{tag}_{start}_through_{end}.csv',
             filetypes=[('Excel-compatible CSV','*.csv')])
         if not dest:return
         try:
@@ -4539,8 +4636,8 @@ class CoinCatApp:
                 row['tax_basis_quote']=''
                 row['tax_realized_quote']=''
         for filename,items,fields in (
-            ('CoinCat_v60_1_Acquisition_Lots.csv',lots,['lot_id','asset','source','source_trade_id','opened_at','initial_qty','remaining_qty','performance_unit_quote','tax_unit_quote','quote_ccy','tax_cost_status']),
-            ('CoinCat_v60_1_Lot_Disposals.csv',sold,['trade_id','lot_id','used_qty','performance_basis_quote','tax_basis_quote','fee_quote','performance_realized_quote','tax_realized_quote','tax_cost_status']),
+            (EXPORT_PREFIX+'_Acquisition_Lots.csv',lots,['lot_id','asset','source','source_trade_id','opened_at','initial_qty','remaining_qty','performance_unit_quote','tax_unit_quote','quote_ccy','tax_cost_status']),
+            (EXPORT_PREFIX+'_Lot_Disposals.csv',sold,['trade_id','lot_id','used_qty','performance_basis_quote','tax_basis_quote','fee_quote','performance_realized_quote','tax_realized_quote','tax_cost_status']),
         ):
             with open(os.path.join(directory,filename),'w',newline='',encoding='utf-8-sig') as out:
                 writer=csv.DictWriter(out,fieldnames=fields);writer.writeheader();writer.writerows(items)

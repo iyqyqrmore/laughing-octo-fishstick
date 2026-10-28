@@ -74,6 +74,6 @@ class AtomicJournalTests(unittest.TestCase):
         self.assertIn('NOT CONNECTED',out)
         self.assertIn('NOT APPROVED',out)
     def test_runtime_version_bumped(self):
-        self.assertEqual(DISPLAY,'CoinCat v70.6.1')
+        self.assertEqual(DISPLAY,'CoinCat v80.0')
 
 if __name__=='__main__':unittest.main()

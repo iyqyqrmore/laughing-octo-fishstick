@@ -1,12 +1,18 @@
-CoinCat v70.6.1 — ONE SELF-CONTAINED FOLDER
+CoinCat v80.0 — fresh installation
 
-Read START_HERE.md. Use a new permanent CoinCat folder; do not overwrite an old installation.
-1. Run 02_SETUP_COINCAT.bat (CUDA) or 02_SETUP_COINCAT_CPU.bat.
-2. Run 03_VERIFY_COINCAT.bat.
-3. Close ALL older versions, then run 04_IMPORT_PRIVATE_DATA.bat once.
-4. Start with 01_START_COINCAT.bat and confirm the expected records.
-5. Run 05_CHECK_CLEANUP.bat on each old folder before MANUAL deletion.
+1. Extract this complete source build into a NEW folder named CoinCat.
+2. Run 02_SETUP_COINCAT.bat (core CPU research; optional GPU is under tools).
+3. Run 03_VERIFY_COINCAT.bat and require all checks to pass.
+4. Run 04_FIRST_TIME_SETUP.bat, then 01_START_COINCAT.bat.
+5. In the app, choose Import CDP Key JSON and select your new Coinbase key locally.
+   Required permissions: View and Trade; Transfer OFF. Ed25519 and ECDSA
+   signing are covered by offline tests with the pinned Python SDK.
 
-Keep private_data and private_backups in the current main folder.
-The import is copy-only with verified backup. No old folder is deleted automatically.
-LIVE ORDER POST BLOCKED; DISARMED by default.
+No older folders, credentials or databases are required. No automatic import.
+A new key does not recover old local financial or tax records. Keep a separate
+private backup of old private_data before deleting an older installation.
+The initial v80 backup contains NEW data, not those old records.
+
+Positive modeled estimates remain visible with missing-evidence reasons.
+Connected strict qualification is not available yet. LIVE POST remains blocked.
+Read START_HERE.md for setup, recovery and evidence limits.

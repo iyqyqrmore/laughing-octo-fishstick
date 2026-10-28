@@ -125,6 +125,7 @@ def _rule(product_rules,pair):
         minquote=_d(p['quote_min_size'],positive=True)
         maxbase=_d(p['base_max_size'],positive=True) if p.get('base_max_size') else None
         maxquote=_d(p['quote_max_size'],positive=True) if p.get('quote_max_size') else None
+        if p.get('quote_increment') is not None:_d(p['quote_increment'],positive=True)
     except (ValueError,KeyError):return None
     if maxbase is not None and maxbase<minbase:return None
     if maxquote is not None and maxquote<minquote:return None
@@ -133,6 +134,81 @@ def _rule(product_rules,pair):
 
 def _floor(value,increment):
     return (value/increment).to_integral_value(rounding=ROUND_DOWN)*increment
+
+
+class ResearchDepthError(ValueError):
+    """The observed bounded book cannot price the requested modeled size."""
+
+
+def research_order(*,pair,side,available,cap,usd_rate,book,product_rules,fee,
+                   slip=Decimal('.0015'),levels=None):
+    """The canonical native receipt, optionally walking supplied depth.
+
+    No network, orders or financial writes. Depth is an observation, never a
+    fill. BUY depth uses a bounded integer search for the rounded affordable
+    quantity; fee/slippage are paid once from the original source budget.
+    """
+    rules=_rule(product_rules,pair)
+    if rules is None:raise ValueError('Product increments/minimums not verified')
+    inc,minbase,minquote,maxbase,maxquote=rules
+    bid,ask,_=book
+    available=_d(available,positive=True);cap=_d(cap,positive=True);usd_rate=_d(usd_rate,positive=True)
+    fee=_d(fee);slip=_d(slip)
+    if side not in ('BUY','SELL') or not 0<=fee<Decimal('.05') or not 0<=slip<=Decimal('.005'):
+        raise ValueError('Invalid modeled side/fee/slippage')
+    budget=min(available,_d(cap,positive=True)/_d(usd_rate,positive=True))
+    # No extra 10% holding reserve: only a supplied quote-order increment may
+    # round a BUY budget down; fee/slippage remain inside actual native spend.
+    quote_increment=(product_rules or {}).get(pair,{}).get('quote_increment')
+    if side=='BUY' and quote_increment is not None:
+        budget=_floor(budget,_d(quote_increment,positive=True))
+    if side=='BUY':qty=_floor(budget/(ask*(1+slip)*(1+fee)),inc)
+    else:qty=_floor(budget,inc)
+    volume=[]
+    if levels is not None:
+        if not isinstance(levels,(list,tuple)) or not 1<=len(levels)<=128:
+            raise ResearchDepthError('DEPTH_MISSING_OR_TRUNCATED')
+        for row in levels:
+            price=_d(row['price'],positive=True);size=_d(row['size'],positive=True)
+            if volume and ((side=='BUY' and price<volume[-1][0]) or
+                           (side=='SELL' and price>volume[-1][0])):
+                raise ResearchDepthError('DEPTH_LEVEL_ORDER_INVALID')
+            volume.append((price,size))
+        if volume[0][0]!=(ask if side=='BUY' else bid):
+            raise ResearchDepthError('DEPTH_TOP_CONFLICT')
+        if sum((s for p,s in volume),Decimal(0))<qty:
+            raise ResearchDepthError('DEPTH_INSUFFICIENT')
+    def consideration(size):
+        if not volume:return size*(ask if side=='BUY' else bid)
+        left=size;total=Decimal(0)
+        for price,units in volume:
+            take=min(left,units);total+=take*price;left-=take
+            if left==0:return total
+        if left>0:raise ResearchDepthError('DEPTH_INSUFFICIENT')
+        return total
+    if side=='BUY' and volume:
+        low,high=0,int(qty/inc)
+        if high.bit_length()>256:raise ValueError('Modeled quantity exceeds bounds')
+        while low<high:
+            mid=(low+high+1)//2
+            if consideration(inc*mid)*(1+slip)*(1+fee)<=budget:low=mid
+            else:high=mid-1
+        qty=inc*low
+    gross=consideration(qty)*(1+slip if side=='BUY' else 1-slip)
+    if qty<minbase or gross<minquote or (maxbase and qty>maxbase) or (maxquote and gross>maxquote):
+        raise ValueError('Coinbase pair minimum/maximum or rounded size blocks '+side)
+    spent=gross*(1+fee) if side=='BUY' else qty
+    received=qty if side=='BUY' else gross*(1-fee)
+    if spent<=0 or spent>available or spent*_d(usd_rate,positive=True)>cap:
+        raise ValueError('Per-order USD cap or funding balance exceeded')
+    base,quote=split_spot(pair)
+    return {'pair':pair,'side':side,'input_asset':quote if side=='BUY' else base,
+            'output_asset':base if side=='BUY' else quote,'input_quantity':spent,
+            'output_quantity':received,'gross_base_quantity':qty,
+            'approx_usd_notional':spent*usd_rate,'fee_rate_used':fee,
+            'fee_amount_estimate':gross*fee,'assumed_fee_currency_for_research':quote,
+            'fee_rate_source':'AUTHENTICATED_ACCOUNT_TIER_ESTIMATE_NOT_PAIR_PREVIEW',
+            'depth_used':bool(volume),'modeled_slippage_fraction':slip}
 
 
 def evaluate_rotation(*,source,target,authorized_qty,verified_available_qty,
@@ -203,43 +279,22 @@ def evaluate_rotation(*,source,target,authorized_qty,verified_available_qty,
                 if not 0<=leg_fee<Decimal('.05'):raise ValueError('Invalid fee rate')
             except (KeyError,TypeError,ValueError):
                 failed='Authenticated fee evidence missing for route leg';break
-            bid,ask,_=valid[pair]
             available=wallet.get(from_asset,Decimal(0))
             if available<=0:failed='No planned input asset remaining';break
             fx=context.usd(from_asset)
             if fx is None:failed='Missing quote currency USD mark';break
-            # Every single simulated leg must fit the unchanged USD stage cap.
-            usd_max=cap/fx['rate']
-            if side=='SELL':
-                qty=_floor(min(available,usd_max),inc)
-                trade_quote=qty*bid*(1-slip)
-                if qty<minbase or trade_quote<minquote or (maxbase and qty>maxbase) or (maxquote and trade_quote>maxquote):
-                    failed='Coinbase pair minimum/maximum or rounded size blocks SELL';break
-                received=trade_quote*(1-leg_fee)
-                spent=qty
-            else:
-                # No extra 10% holding reserve: fee/slippage are already paid
-                # from this exact budget via the denominator below. Preserve
-                # every Coinbase minimum, increment and verified funding cap.
-                budget=min(available,usd_max)
-                qty=_floor(budget/(ask*(1+slip)*(1+leg_fee)),inc)
-                spent=qty*ask*(1+slip)*(1+leg_fee)
-                gross_quote=qty*ask*(1+slip)
-                if qty<minbase or gross_quote<minquote or (maxbase and qty>maxbase) or (maxquote and gross_quote>maxquote):
-                    failed='Coinbase pair minimum/maximum or rounded size blocks BUY';break
-                received=qty
-            if spent<=0 or spent>available or spent*fx['rate']>cap:
-                failed='Per-order USD cap or funding balance exceeded';break
+            try:
+                receipt=research_order(pair=pair,side=side,available=available,cap=cap,
+                    usd_rate=fx['rate'],book=valid[pair],product_rules=product_rules,
+                    fee=leg_fee,slip=slip)
+            except ValueError as exc:
+                failed=str(exc);break
+            spent=receipt['input_quantity'];received=receipt['output_quantity']
             wallet[from_asset]=available-spent
             wallet[to_asset]=wallet.get(to_asset,Decimal(0))+received
-            receipts.append({'pair':pair,'side':side,'input_asset':from_asset,'output_asset':to_asset,
-                             'input_quantity':spent,'output_quantity':received,
-                             'gross_base_quantity':qty,'approx_usd_notional':spent*fx['rate'],
-                             'output_usd_mark':(received*context.usd(to_asset)['rate']
-                                                if context.usd(to_asset) is not None else None),
-                             'assumed_fee_currency_for_research':pair.split('-')[1],
-                             'fee_rate_source':'AUTHENTICATED_ACCOUNT_TIER_ESTIMATE_NOT_PAIR_PREVIEW',
-                             'fee_rate_used':leg_fee})
+            receipt['output_usd_mark']=(received*context.usd(to_asset)['rate']
+                                       if context.usd(to_asset) is not None else None)
+            receipts.append(receipt)
             if index==0:start_amount=spent
         if failed:
             blocked_reasons[failed]=blocked_reasons.get(failed,0)+1

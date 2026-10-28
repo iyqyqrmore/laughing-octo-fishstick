@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 echo =======================================================
-echo CoinCat v70.6.1 - ONE-TIME LOCAL SOURCE ENVIRONMENT SETUP
+echo CoinCat v80.0 - FIRST-TIME LOCAL SOURCE SETUP
 echo No PyInstaller / no EXE compilation / no Coinbase orders
 echo =======================================================
 if exist ".venv\Scripts\python.exe" goto packages
@@ -21,24 +21,24 @@ if errorlevel 1 (
 :packages
 "%~dp0.venv\Scripts\python.exe" -m pip install --disable-pip-version-check --require-hashes -r "%~dp0app_requirements.lock"
 if errorlevel 1 goto fail
-if /I "%~1"=="--cpu-only" goto cpu_ready
+if /I not "%~1"=="--cuda" goto cpu_ready
 REM CUDA PyTorch wheels can be large. Installation occurs ONLY in .venv.
 "%~dp0.venv\Scripts\python.exe" -c "import torch; assert torch.cuda.is_available(); print(torch.cuda.get_device_name(0))" >nul 2>&1
 if errorlevel 1 (
- echo Installing CUDA PyTorch inside CoinCat v70 .venv. Internet/disk required.
+ echo Installing optional CUDA PyTorch inside CoinCat v80 .venv. Internet/disk required.
  "%~dp0.venv\Scripts\python.exe" -m pip install --disable-pip-version-check torch --index-url https://download.pytorch.org/whl/cu126
  if errorlevel 1 goto fail
 )
 set "PYTHONPATH=%~dp0app"
 "%~dp0.venv\Scripts\python.exe" -B "%~dp0app\coincat_launcher.py" --verify-cuda-runtime
 if errorlevel 1 goto fail
-echo PASS: Local v70 environment and CUDA allocation verified.
+echo PASS: Local v80 environment and CUDA allocation verified.
 goto shortcuts
 :cpu_ready
 echo CPU research and offline verification installed. GPU training is unavailable in this mode.
 :shortcuts
 call "%~dp0tools\CREATE_SHORTCUTS.bat"
-echo Setup finished. Run 04_IMPORT_PRIVATE_DATA.bat once, then 01_START_COINCAT.bat.
+echo Setup finished. Run 03_VERIFY_COINCAT.bat, then 04_FIRST_TIME_SETUP.bat and 01_START_COINCAT.bat.
 pause
 exit /b 0
 :fail

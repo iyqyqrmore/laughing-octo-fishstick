@@ -21,7 +21,8 @@ def ensure_private_data():
                 'The importer will not merge or overwrite it.',parent=ui)
             finally:ui.destroy()
             return False
-    return import_wizard()
+    from coincat_v80_first_run import first_run_wizard
+    return first_run_wizard()
 
 
 def main():

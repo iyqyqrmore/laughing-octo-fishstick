@@ -62,6 +62,7 @@ def legacy_repeat_score(idea):
 
 
 def experimental_score(idea,*,now=None):
+    """Compatibility/advisory score. Primary v80 uses its immediate evidence gate."""
     from coincat_v706_selection import assess
     import time
     now=idea.get('selection_asof',time.time()) if now is None else now

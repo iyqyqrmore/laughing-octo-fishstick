@@ -1,3 +1,3 @@
 """CoinCat source release identity; older module IDs preserve financial DB compatibility."""
-VERSION = "70.6.1"
+VERSION = "80.0"
 DISPLAY = "CoinCat v" + VERSION

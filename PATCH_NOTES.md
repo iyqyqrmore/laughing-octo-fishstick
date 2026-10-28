@@ -1,41 +1,18 @@
-# CoinCat v70.6.1 — preserve stopped SHADOW diagnostics
+# CoinCat v80.0 — Strict Immediate Snowball / clean first use
 
-Stopping the experiment preserves its modeled wallet, counters and last marks
-in RAM. The combined diagnostics should include those results while disarmed.
-This maintenance patch repairs a reporting failure; selection and trading
-behavior remain the v70.6 rules. **LIVE POST remains unconditionally blocked.**
+This is Milestone A of CC-IMMEDIATE-707, released as v80.0 at the owner's request. It replaces the user-facing primary Experimental policy, not the production financial engine.
 
-* A disappearing SQLite WAL/SHM or other transient file can raise FileNotFoundError
-  between the report's file-existence check and size read. The old combined
-  SHADOW generator discarded its entire output when its last storage check failed.
-  Reproduce this deterministically using a synthetic WAL removed between reads.
-* Retry storage metadata once, inside diagnostics only. No invented zero usage,
-  repeated polling, network requests or change to financial/storage gates.
-  A persistent error remains explicitly unavailable.
-* Collect route research, Snowball, experimental wallet results, passive forward
-  learning, strategy observations and decision/storage as separate subsections
-  within the existing SHADOW section. A failed subsection cannot discard the
-  successful results. The parent report remains INCOMPLETE when any part fails.
-* Isolate passive learner queries from the experimental wallet report. A research
-  query failure cannot hide retained conversion counts, fees and value vs HOLD.
-* Include only vetted code basename/function/line breadcrumbs for export failures,
-  without exception messages, paths, locals, balances or account identifiers.
-* Label the validated SHADOW stop reason separately, identify whether an
-  experimental session was previously started, and include latest cost-selection
-  and passive-update counts in the health section as additional context.
+- Primary discovery runs on fair bounded directly fundable spot routes, without ticker movement, BUY qualification, eight historical quotes or forward-model readiness. Conversion and independent USD-path quotes are requested together within the existing request/rate/deadline budget.
+- W and L are computed from consistent Decimal native receipts through the shared canonical order calculation. Both must be >0. Full available enrolled native funding, small holdings, residuals, exchange rules and acquired RAM-coin reuse remain.
+- Positive modeled estimates are visible with exact missing-evidence reasons. Future growth cannot authorize a negative immediate receipt. No Experimental dollar floor is added. Strict RAM movement requires complete evidence; connected strict qualification is not provided by this milestone.
+- Optional synthetic depth walks use the same native order calculation, with candidate-sized levels, rounding, fee currency/amount checks and current frame revalidation. Synthetic evidence is accepted only by an explicitly enabled offline harness, never the normal app.
+- Independent valuation paths are retried with the non-USD conversion pair forbidden. Direct USD paths can be a labeled fallback. Comparable liquidation includes conservatively marked retained native dust; it is not a promise of realized cash proceeds.
+- Experimental initial ARM may preserve unrelated unpriced holdings with unknown opening marks. Whole-wallet P&L stays NOT VERIFIED until complete synchronized marks arrive. Validated SHADOW is unchanged.
+- The immediate funnel separates route/direction counts and size reviews, unpriced/deferred, negative/zero, positive-unverified, strict-qualified and successful RAM posting. Local details include both deltas, size, costs, discrepancy basis, quote age/span and blockers. Unverified positive candidates get bounded RAM-only 5/15/60-minute counterfactual observations without wallet spending.
+- Public forward learning remains advisory in the same market database. Prospective endpoint blockers are recorded in an additive public-only table; old unknown causes are not invented. No financial schema or record changes.
+- Fresh setup creates only new local data and an initial verified backup. It imports no old credentials automatically. Setup defaults to core CPU research, with optional GPU/recovery under tools. Old release paperwork and duplicate root setup/import launchers are removed from the current source tree; Git history is retained.
+- Existing broker, unified production FIFO, private importer and state router are byte-preserved. The unconditional LIVE submission block remains. Automatic legacy preview attempts are not used by the primary v80 path.
 
-A synthetic disappearing-file regression now completes with the retained wallet
-report. Persistent storage, research and route-report failures preserve other
-results and correctly flag the export incomplete. The complete offline suite,
-GUI export, source/ZIP integrity and unchanged trading arithmetic are checked;
-see VERIFICATION.txt. The uploaded failure's exact code origin was absent from
-that older report, so this reproduction does not uniquely prove its PC-side cause.
+> Immediate discrepancy discovery, modeled positive-opportunity reporting and strict evidence gating. Live-observation strict qualification is unavailable until candidate-sized depth and candidate-specific fee/preview evidence integrations are completed and verified.
 
-If your v70.6 app is still open with results, export again while disarmed before
-closing or re-arming. Re-arming resets the modeled session; restarting loses
-session RAM. Passive public learning persists separately in the research DB.
-
-Use START_HERE.md to install this full source in a clean folder and import the
-currently active complete private_data. No real financial data, lot IDs, schemas,
-keys or settings were changed. All positive approved native funding, acquired-coin
-reuse, current-cost scenarios, scan speed, budgets, fees and LIVE blocks are retained.
+The full source has no user databases, keys, virtual environment, raw diagnostics or automatic old-folder deletion. See VERIFICATION.txt for actual validation results and platform limits.

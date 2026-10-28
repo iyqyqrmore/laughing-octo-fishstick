@@ -28,5 +28,6 @@ tax_exports/
 private_data/
 private_backups/
 .coincat-import-*/
+.coincat-v80-new-*/
 verification_reports/
 *.lnk

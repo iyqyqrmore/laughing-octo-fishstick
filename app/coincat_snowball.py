@@ -36,9 +36,12 @@ def _valid_book(raw,now):
 def _liquidation_usd(asset,books,*,now,route_pair,fee,_fx_cache=None):
     if asset=='USD':return Decimal(1),()
     cache={} if _fx_cache is None else _fx_cache
-    if asset not in cache:
-        cache[asset]=usd_conversion(asset,books,now=now,max_age=MAX_AGE_S,max_legs=2)
-    fx=cache[asset]
+    key=(asset,route_pair)
+    forbidden=() if 'USD' in route_pair.split('-') else (route_pair,)
+    if key not in cache:
+        cache[key]=usd_conversion(asset,books,now=now,max_age=MAX_AGE_S,max_legs=2,
+                                  excluded_pairs=forbidden)
+    fx=cache[key]
     if (fx is None or not fx['path'] or (route_pair in fx['path'] and
             not (len(fx['path'])==1 and 'USD' in route_pair.split('-')))):
         return None

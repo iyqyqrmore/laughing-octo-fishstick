@@ -102,7 +102,7 @@ class ShadowArmedResearch:
             enrolled_quantities=None, fresh_usd_rates=None, now=None):
         if real_arm or stopped:
             raise ValueError('Real ARM or emergency STOP prevents ARM SHADOW')
-        if not connected or not verified_balances or not usd_coverage:
+        if not connected or not verified_balances or (not usd_coverage and not getattr(self,'_allow_partial_opening',False)):
             raise ValueError('Fresh Coinbase read-only balances and complete USD coverage required')
         if self.armed:
             return False
@@ -112,7 +112,9 @@ class ShadowArmedResearch:
         try:
             for band,_ in PRICE_BANDS_BPS:
                 if self.experimental and band!='TAKER_ASK':continue
-                wallets[band]=ShadowFIFOPortfolio(enrolled_quantities,fresh_usd_rates,label=('EXPERIMENTAL_'+band if self.experimental else band))
+                wallets[band]=ShadowFIFOPortfolio(enrolled_quantities,fresh_usd_rates,
+                    label=('EXPERIMENTAL_'+band if self.experimental else band),
+                    allow_partial_marks=bool(self.experimental and getattr(self,'_allow_partial_opening',False)))
         except BaseException:
             for wallet in wallets.values():wallet.close()
             raise
@@ -626,6 +628,21 @@ def experimental_shadow_report(app,*,include_learning=True):
     obj=getattr(app,'experimental_shadow',None)
     if obj is None:return 'EXPERIMENTAL SHADOW: NOT INSTALLED'
     s=obj.snapshot()
+    if s.get('primary_strategy')=='STRICT_IMMEDIATE_V80':
+        from coincat_v80_immediate import diagnostic_report
+        value=(s.get('shadow_fifo_bands') or {}).get('TAKER_ASK',{})
+        return '\n'.join((DISPLAY+' • EXPERIMENTAL SHADOW • STRICT IMMEDIATE',
+            'Experimental mode: '+('ARMED' if obj.armed else 'DISARMED'),
+            'Experimental session previously started: '+str(s.get('started_at') is not None),
+            'Both immediate comparisons must be >0; no Experimental dollar floor; forward research is advisory only.',
+            'Simulated taker FIFO routes: '+str(s['shadow_fifo_posted_routes']),
+            'Simulated taker FIFO legs: '+str(s['shadow_fifo_posted_legs']),
+            'Whole-wallet mark coverage complete: '+str(s['whole_wallet_marks_complete']),
+            'Estimated modeled exchange fees USD: '+str(value.get('estimated_fees_usd','NOT VERIFIED')),
+            'Evolving experimental wallet vs same-time frozen HOLD USD: '+str(value.get('counterfactual_portfolio_vs_hold_usd','NOT VERIFIED')),
+            '5/15/60m posted-model counterfactuals: '+str(s['experimental_forward_horizons']),
+            'Stopping retains results. Re-arming/restarting begins a new RAM session.',
+            diagnostic_report(app),'NO LIVE POST; neither positive estimates nor model qualification prove profit.'))
     value=(s.get('shadow_fifo_bands') or {}).get('TAKER_ASK',{})
     stamp=s.get('last_mark_observed_at')
     mark_age=max(0,int(time.time()-stamp)) if stamp else None

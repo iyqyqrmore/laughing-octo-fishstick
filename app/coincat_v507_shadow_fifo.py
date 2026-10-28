@@ -30,7 +30,7 @@ def _memory(db):
 
 class ShadowFIFOPortfolio:
     """A session-local FIFO wallet; intentionally never exposes an exchange order API."""
-    def __init__(self, starting_quantities, starting_usd_rates, *, label='MARKET_TAKER'):
+    def __init__(self, starting_quantities, starting_usd_rates, *, label='MARKET_TAKER',allow_partial_marks=False):
         self.db=sqlite3.connect(':memory:',isolation_level=None)
         _memory(self.db)
         install(self.db)
@@ -48,10 +48,12 @@ class ShadowFIFOPortfolio:
                 asset=str(raw_asset).upper()
                 qty=exact(raw_qty)
                 if not asset.isalnum() or asset != str(raw_asset) or qty==0:continue
-                px=exact((starting_usd_rates or {})[asset],positive=True)
-                opening(self.db,asset,qty,performance_usd=qty*px,tax_usd=None)
+                raw=(starting_usd_rates or {}).get(asset)
+                if raw is None and not allow_partial_marks:raise ShadowFIFOBlocked('Missing opening USD mark')
+                px=exact(raw,positive=True) if raw is not None else None
+                opening(self.db,asset,qty,performance_usd=qty*px if px is not None else None,tax_usd=None)
                 self.start[asset]=qty
-                self.expected_usd[asset]=px
+                if px is not None:self.expected_usd[asset]=px
             if not self.start:raise ShadowFIFOBlocked('No verified enrolled opening quantities')
             verify(self.db)
         except BaseException:

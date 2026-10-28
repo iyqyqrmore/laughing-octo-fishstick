@@ -1,33 +1,20 @@
-# Codex Agent Instructions — CoinCat v70
+# Codex instructions — CoinCat v80.0
 
-## Mission
-Improve CoinCat's *after-cost full enrolled spot portfolio USD value versus HOLD* using one-order Coinbase Advanced Trade conversions. Research live market activity with minimal delay, learn from observed later outcomes, and state uncertainty honestly.
+Read START_HERE.md, DECISION_CHAIN_REVIEW.md and docs/STRATEGY_AND_EVIDENCE.md. Current source is self-contained; historical module names are compatibility identifiers, not older-folder dependencies. Use the existing checkout, not worktrees unless the user asks.
 
-## Nonnegotiable constraints
-- NEVER enable LIVE Coinbase POST, remove `LiveBroker.submit` unconditional block, auto-ARM, place trades, send/print keys, modify private ledgers, or claim profitable trades. Post remains blocked.
-- Source-only work. No production data or API calls in offline tests. DO NOT create `.env`/credentials in git.
-- Use one canonical planner, one market store. Public stream is discovery, Coinbase REST book is valuation input. No direct conversion without authenticated listed pair.
-- `Experimental SHADOW` and `Validated SHADOW` have separate RAM FIFO wallets; experimental is not live proof. All synthetic test data must be labeled synthetic.
-- Preserve V60-financial-ledger-compatible schema. The user authorized a self-contained installation. Default to **`<current app>/private_data`**; copy old private state only after the local import prompt, with a verified sibling `private_backups` snapshot. Do NOT open or migrate the user's V60 data without authorization.
-- Use fresh simultaneous market books, available + enrolled source balances, Decimal fees and precision. Never overestimate executable profit or silently zero missing FX. No extra profit reserve / legacy $5 SELL clipping.
-- Keep Windows Python 3.11 compatibility and all v60-compatible module names. Keep one-button 18-section diagnostics.
+## Nonnegotiable boundaries
 
-## First steps
-1. Read `docs/history/CODEX_HANDOFF_V70.md` and `START_HERE.md`.
-2. Verify integrity with `03_VERIFY_COINCAT.bat` (Windows, Python 3.11, disposable data) and report test counts and any errors exactly.
-3. Use current PATCH_NOTES.md and DECISION_CHAIN_REVIEW.md. Historical handoffs describe older policies; v70.6 replaces momentum-only experimental acceptance with the policy below. Preserve the Snowball UTF-8 label regression.
-4. Audit current diagnostics and the single planner-to-wallet-to-P&L path with isolated regression tests. Wait for explicit approval before touching user-owned data.
+- LiveBroker.submit must begin with unconditional LiveBlocked. Never enable LIVE, auto-ARM, order creation/edit/cancel, transfers or new authenticated preview traffic under Milestone A.
+- Preserve app/coincat_live.py, app/coincat_unified_fifo_v501.py, app/coincat_state_v50.py and app/coincat_data_transfer.py unless explicitly authorized otherwise. No private record, credential, schema, lot ID, risk-setting or tax-basis mutation for a source patch.
+- One canonical market store, planner and native receipt calculation. Exact Decimal amounts, source availability, exclusions, product rules, fee-once accounting, deadlines/backoff and synchronization remain binding.
+- Primary v80 uses StrictImmediateShadow. W>0 AND L>0, no Experimental dollar floor, no momentum/history prerequisite and no forward appreciation as immediate profit. Archived v70 advisory models must never authorize primary movement.
+- Positive unverified estimates remain visible. Missing depth, fee currency, preview evidence or pricing is not an economic loss. No live-observation strict qualification until separately scoped connected adapters are completed and verified.
+- Synthetic strict evidence is only for explicit offline harnesses. Normal UI cannot accept it. Qualified model does not mean fill or profit. Preserve manual ARM/STOP and the separate Validated track.
+- Partial opening marks are Experimental-only; preserve all native quantities and unknown marks. Full-wallet P&L remains unverified until complete synchronized prices. Never impute a missing price as zero.
+- Fresh v80 setup requires an empty destination and explicit confirmation; never overwrite, reset or silently import an old dataset/vault. Default data is current-installation/private_data. Keep private_backups. Do not delete old folders automatically.
 
-## Current experimental selection (v70.6)
-- Public stream momentum discovers candidates; it does not forecast a repeat move. The archived `legacy_repeat_score` is an offline comparison only and must never authorize RAM movement.
-- Require a positive actual current wallet receipt AND positive synchronized Snowball estimate, OR a matched causal forward-cost scenario from `ForwardStore.selection` in the same public market database. No extra exchange collector, wallet-based research table or alternate planner.
-- Forward scenarios use the actual listed pair, exact BUY/SELL direction, at least 8 nonoverlapping 5-minute windows, >=80% observed coverage, fresh features/labels and the current costed receipt. Mean and empirical lower quartile must both clear costs. These are unvalidated scenarios, not confidence bounds or held-out certification.
-- Passive observations do not spend the wallet and continue without ARM. Missing observation windows are not backfilled as later wins. Only completed prior outcomes may influence a decision.
-- Do not reuse a posted pair/side/context/last-label/fee scenario on a new quote or size alone. Failed/no-op receipts do not consume evidence. Fresh positive immediate routes and new qualified families remain eligible; no arbitrary global cooldown or forced 10/hour quota.
-- Preserve all positive approved native funding, small-wallet eligibility, acquired-coin reuse, current budgets, fees, slippage, product minima, precision and honest FX/P&L synchronization. Validated SHADOW retains its separate chronological held-out gates.
+## Validation and delivery
 
-## Definition of success
-Evidence-backed reductions to research latency; verified after-cost HOLD comparisons, no lookahead, no stale-book fake profits; reproducible tests; 100% preservation of safety and user consent for any future live pilot.
+Use Python 3.11, hash-locked dependencies and disposable synthetic data. Forbid HTTP during offline test discovery/execution. Run focused tests then the required full suite and GUI/18-section diagnostics. Report actual counts and limits; do not weaken assertions to pass. Preserve the Snowball UTF-8 label regression.
 
-## Portable data rules
-Use the existing checkout; do not create worktrees without a user request. Never commit private_data, private_backups, migration staging or credentials. Database schemas, lot IDs and unknown tax-basis flags remain unchanged. Never automatically delete old folders. Normal startup must work with all old folders absent; migration source paths in receipts are audit history only.
+Package source only, with a regenerated SHA256_MANIFEST.json and independent ZIP checksum. Exclude private_data, private_backups, raw user diagnostics, keys, virtual environments, logs and bytecode. Keep current instructions at the root; old source versions remain recoverable in Git history. Never claim connected Windows/DPAPI, exchange execution, fee reconciliation or profit from offline tests.

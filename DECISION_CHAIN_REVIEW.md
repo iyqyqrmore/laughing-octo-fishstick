@@ -1,163 +1,21 @@
-# v70.6.1 decision-chain review
+# v80.0 decision-chain review
 
-The v70.6 selection/math review below remains applicable. This maintenance patch
-changes reporting only. A reproducible concurrent SQLite WAL removal during
-storage metadata collection formerly raised FileNotFoundError and discarded the
-whole combined SHADOW section, including already-rendered experimental P&L.
-One diagnostic-only retry handles the transient case. Independently rendered
-subsections preserve wallet, learning, route, Snowball and strategy results;
-persistent failures mark the parent export INCOMPLETE with a vetted code location.
-Raw exception text, paths and variables are omitted. The shared storage functions
-and financial/storage gates are unchanged. Disarming preserves RAM results;
-re-arming or restarting begins a new modeled session.
+Portfolio funding → bounded static direct-route discovery → shared native receipt planner → consistent independent USD decision frame → visible modeled economics → explicit strict-evidence gate → manually armed segregated RAM FIFO → same-time HOLD P&L and diagnostics.
 
-The change replaces momentum-only experimental acceptance with a causal,
-current-cost scenario screen. The fast discovery/quote workers, canonical
-planner, financial arithmetic and segregated RAM FIFO remain the same.
+The product constructs StrictImmediateShadow. The older ShadowArmedResearch component remains the validated/accounting and archived advisory compatibility engine. Its favorable-forward scenario is not primary v80 authority: the v80 wrapper passes only re-evaluated strict immediate-positive candidates, without forward evidence, to that accounting engine. Archived strategy/plumbing tests are retained separately; v80 tests exercise the actual new producer and consumer without mocking qualification.
 
-| Stage | Contract | Verification |
-| --- | --- | --- |
-| Portfolio / fuel | min(enrolled, available) in native units; exclusions and restrictions bind. All positive positions considered, no wallet-dollar cutoff. Acquired SHADOW coins fund its next decision. | Existing tiny-wallet, 40-source, alternate-quote, reuse and late-exclusion tests. |
-| AI Lab / decision | Approved listed one-order products, authenticated fees, fresh actual route and FX books. Rank all costed sizes using the same selection rule consumed by movement. | All-funding ranking, pair/direction/context, current-cost and causal SQL tests. |
-| Auto Trader / movement | Explicit ARM; RAM wallet only; recheck approvals, current inventory, FX, budgets and evidence idempotency. | Actual fast producer → canonical planner → consumer → FIFO replay, including real learner cold/ready transitions. |
-| P&L / diagnostics | Current wallet minus starting HOLD quantities at the same synchronized marks. Fees already change quantities. Missing FX never becomes zero. | Independent receipt/accounting assertions and complete 18-section GUI export. |
+BUY quote budget: rounded_base=floor(budget/(ask*(1+s)*(1+f)), base_increment). Spent=rounded_base*ask*(1+s)*(1+f). SELL: rounded source base, net quote=base*bid*(1-s)*(1-f). s=0.0015 is an assumption. One fee is embedded in native receipts; do not subtract the displayed fee again from P&L. Stablecoins use observed USD marks. Optional supplied depth walks reprice the same canonical receipt implementation; no alternative trader or receipt engine.
 
-## Current-cost selection math
+W compares output and actual spent source in the same independent conservative USD frame. L compares hypothetical affected-slice USD exits, including residual native holdings. Remaining non-liquidated dust is explicitly marked, not silently made zero or claimed as realized cash. Both comparisons must be strictly positive. Native availability, actual product minima/increments, explicit budgets and STOP remain binding.
 
-For the actual listed BASE-QUOTE conversion, let r[A,t] be its conservative
-same-time USD mark for asset A. Passive public learning records:
+Frames bind product/side, rules, quote timestamps/prices, source allocation, cap and fee convention. Independent paths are bounded, skip circular non-USD conversion reuse, and retry alternatives. Age <=30s and combined timestamp span <=12s remain. The ordinary ticker source does not prove exchange quote-event time or executable depth.
 
-```text
-R(t) = r[BASE,t] / r[QUOTE,t]
-BUY relative_growth  = R(later) / R(entry) - 1
-SELL relative_growth = R(entry) / R(later) - 1
-```
+The live source cannot supply the entire strict contract in Milestone A. Positive estimates remain MODELED_POSITIVE_UNVERIFIED with DEPTH_MISSING, FEE_AMOUNT_UNVERIFIED, FEE_CURRENCY_UNVERIFIED, PREVIEW_UNAVAILABLE and CONNECTED_EVIDENCE_NOT_INTEGRATED. It is valid to report five such opportunities and zero strict-qualified/RAM conversions. Missing pricing/evidence is not an economic loss.
 
-The actual conversion book and every USD-path book must be fresh (<=30s), narrow
-(<=0.25%) and within 12s of each other. WebSocket trades supply the entry feature
-bucket only, never an execution price. Use the actual pair's fresh 30-second
-feature; an ALT-USD alert does not stand in for ALT-BTC training. Context buckets
-are observed percentage changes: below -2, -2 to -0.5, -0.5 to 0.5, 0.5 to 2,
-and >=2. SELL uses the exact inverse percentage change before bucketing.
+The normal UI does not enable synthetic evidence. Offline tests can opt into synthetic books and exact size/side/fee previews, then exercise one atomic RAM conversion and acquired-coin reuse. Current approvals/rules, native balances, frame freshness, budgets and successful/no-op posting are rechecked. Offline strict qualification never grants connected readiness or LIVE permission.
 
-The learner opens one pending window per pair from fetched approved books,
-including unselected candidates, independently of ARM or wallet quantities.
-Close after 300s only with an actually observed fresh comparable endpoint,
-allowing at most 120s delay. Do not overlap the next window with the last close.
-A late gap is MISSED, never a later gain. Keep three days of public observations;
-query the last six hours and at most 96 rows per pair/side/context lookup. Eight
-matching completed nonoverlapping windows and >=80% observed coverage are needed.
-Overdue pending windows count as missing even before maintenance processes them.
-The latest matched label must be <=720s old; current feature/evidence must be
-<=30s old when consumed. Clock rewinds cannot read later labels or open a
-window over a future close.
+Partial-mark Experimental startup preserves every approved available native quantity with nullable opening performance marks. It does not create zero-valued holdings, change tax basis, reset existing sessions or relax Validated SHADOW startup. Full-wallet versus HOLD requires complete synchronized current marks.
 
-Let I and O be the actual input/output conservative USD values in the canonical
-one-order receipt. The receipt already contains current fees, spread, assumed
-slippage, native precision and source residuals. For historical gross relative
-growth g, the current-source-USD scenario score is:
+Existing public forward labels and strategy history remain advisory and compatible. New endpoint-cause metadata lives in the same market DB; no wallet quantities are added to those public tables. Positive-unverified counterfactual proposals are bounded in RAM, expire with explicit missed-window states, and are not called independent samples or executed trades.
 
-```text
-net_scenario(g) = O * (1 + g) - I
-score = min(net_scenario(empirical_mean), net_scenario(empirical_p25))
-```
-
-Require BOTH scenarios positive, with no absolute USD-score floor. The lower
-quartile is an empirical order statistic, not a confidence bound. It is not the
-validated SHADOW held-out P10. Future dollar magnitude also depends on the future
-source/USD price: this is a relative-growth scenario in current source-dollar
-units, not an absolute future USD prediction. The sign of switch versus source
-HOLD follows relative growth; actual wallet P&L still uses actual later marks.
-A test where both coins fall against USD checks this distinction: a destination
-falling less than the funding coin can improve the relative comparison.
-
-The immediate path needs no training history. Require BOTH the synchronized
-Snowball hypothetical liquidation delta and the actual current receipt O-I to
-be positive. Score the smaller. A cheaper hypothetical exit cannot turn an
-immediately losing wallet receipt into immediate eligibility. Snowball remains
-an estimate without depth/partial-fill verification, never a guaranteed arbitrage.
-
-A successful forward-cost fill consumes its pair/side/context/last-label/fee
-scenario version. New quotes, UI refreshes and size changes cannot charge another
-fee against that same evidence. Failed budgets, blocked quotes and no-op FIFO
-receipts do not consume it. New completed labels, qualifying contexts or fee
-changes permit reconsideration; positive immediate routes remain separately
-eligible. There is no global cooldown preventing a newly acquired asset from
-funding another qualified family immediately.
-
-## Receipt and P&L math retained
-
-Let f be the authenticated taker fee estimate, s=0.0015 the slippage stress,
-i the base increment, and r[A] the current conservative USD mark per unit.
-
-```text
-BUY (source QUOTE):
-  budget = min(available_quote, cap_USD / r[QUOTE])
-  base_received = floor_to_increment(budget / (ask*(1+s)*(1+f)), i)
-  quote_spent = base_received * ask*(1+s)*(1+f)
-SELL (source BASE):
-  base_spent = floor_to_increment(min(available_base, cap_USD/r[BASE]), i)
-  quote_received = base_spent * bid*(1-s)*(1-f)
-HOLD_USD(t) = sum(starting_quantity[A] * mark[A,t])
-MODEL_USD(t) = sum(current_model_quantity[A] * mark[A,t])
-model_vs_HOLD(t) = MODEL_USD(t) - HOLD_USD(t)
-```
-
-Residuals stay in the wallet. USDC uses observed USD books, never a presumed peg.
-One conversion charges one modeled fee; subtracting the displayed fees again
-would double-count them. Exchange minima/maxima and explicit per-order, exposure,
-rolling turnover and attempt limits apply before movement. Dollar budgets are
-not conversion counts. Small wallets do not waive actual exchange minimums.
-Fully priced experimental routes may proceed while unrelated marks are missing;
-whole-wallet P&L stays NOT VERIFIED until all marks are complete and synchronized.
-Validated SHADOW keeps its manual USD floor and chronological held-out gates.
-LIVE submit still raises LiveBlocked as its unconditional first statement.
-
-## Causal synthetic comparison and limits
-
-Run `python -B tools/replay_cost_selection.py`. Each policy starts with synthetic
-USD 1,000, uses a USD 10 cap, 0.9% fee, 15 bps slippage and 1 bp spread. Both use
-the canonical Decimal planner and in-memory FIFO; features derive from prior
-30-second artificial prices. The real passive learner sees outcomes only as the
-artificial clock advances. No injected favorable evidence is used in this replay.
-Rounded two-hour results on the cloud host:
-
-| Artificial scenario | Old conversions | New conversions | Old vs HOLD USD | New vs HOLD USD |
-| --- | ---: | ---: | ---: | ---: |
-| Flat | 0 | 0 | 0.00 | 0.00 |
-| One jump, then flat | 1 | 0 | -0.11 | 0.00 |
-| Repeated reversing rebounds | 101 | 0 | -34.64 | 0.00 |
-| Artificial continuous rise | 0 | 16 | 0.00 | +97.50 |
-| Rise followed by reversal | 0 | 2 | 0.00 | -11.22 |
-
-The reversing case paid USD 8.92 in old modeled fees versus zero new fees. The
-new rule can still LOSE after learning a trend; it does not hedge or reverse
-already bought inventory automatically. These chosen artificial paths test
-causality, fee churn and limits, not predictive accuracy on markets. They are not
-a representative sample or a profit benchmark. The continued-rise result cannot
-be extrapolated. Neither policy promises to capture a real opportunity.
-
-Separate capacity/accounting fixtures explicitly inject favorable SYNTHETIC
-calibration to isolate small wallets, fast acquired-coin reuse, 12 decisions in
-an artificial hour and retention beyond 144 lifetime routes. A constant-price
-wallet loses costs in those fixtures, correctly. That calibration is never
-shipped as market observations or used by the strategy replay. An independent
-actual fast-chain test uses the real SQLite learner, starts cold with zero
-conversions, then trains only on later artificial endpoints and posts one
-qualified receipt. A refresh without a new outcome posts nothing further.
-
-Single-pair passive learning/lookup was below 1ms median in these replays. A
-separate cold-model workload with 804 products and 128 pair lookups measured
-about 16ms median / 69ms maximum on this host. These CPU-only observations add
-zero exchange requests and exclude Windows/HTTP latency. SQL busy work defers;
-the progress handler is cooperative, not forcible cancellation of arbitrary
-Python/SQLite/OS work. The existing five-second urgent target, bounded REST
-batches, rotating scope and broad-worker checkpoints are retained. No claim
-of professional HFT, guaranteed 10/hour, profit or complete opportunity capture.
-
-A fresh installed model needs at least 40 minutes of matching valid windows,
-often longer; positive immediate receipts need no such history. Histories in
-older formats are not reclassified as these conditioned forward observations.
-Use the current START_HERE.md import process, then run Windows verification and
-connected read-only diagnostics to assess real observation coverage and timing.
-No user financial data, credentials or raw uploaded diagnostics are in this release.
+The existing financial broker, production FIFO, importer and state router are unchanged. New-install bootstrap calls the existing verified-copy routines only on a newly created empty synthetic-compatible local dataset after explicit confirmation. It never opens an old dataset. A new key or new dataset does not restore historical local financial records.

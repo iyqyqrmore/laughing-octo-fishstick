@@ -36,7 +36,7 @@ def _positive(raw):
     return v
 
 
-def usd_conversion(currency, quotes, *, now, max_age=180, max_legs=2, max_spread=Decimal('.0025')):
+def usd_conversion(currency, quotes, *, now, max_age=180, max_legs=2, max_spread=Decimal('.0025'), excluded_pairs=()):
     """Return conservative USD/unit and source path, or None (unverifiable).
 
     quotes: {PAIR: (bid, ask, observed_epoch_secs)}. Reverse direction
@@ -53,6 +53,7 @@ def usd_conversion(currency, quotes, *, now, max_age=180, max_legs=2, max_spread
     if max_spread >= 1: raise ValueError('Unusable spread cap')
     graph = {}
     for pair, quote in quotes.items():
+        if pair in excluded_pairs:continue
         try:
             a, b = split_spot(pair)
             bid, ask, timestamp = quote
