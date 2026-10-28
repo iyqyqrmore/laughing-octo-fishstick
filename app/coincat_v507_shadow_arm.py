@@ -11,6 +11,7 @@ import time, math
 from coincat_v703_chain import experimental_score, step_input_usd, decision_key
 from coincat_multicurrency import RotationContext
 from coincat_v706_selection import assess as assess_selection,LOOKBACK_S
+from coincat_version import DISPLAY
 
 PRICE_BANDS_BPS = (("TAKER_ASK", Decimal('0')), ("LIMIT_ASK_MINUS_5BPS", Decimal('5')),
                    ("LIMIT_ASK_MINUS_20BPS", Decimal('20')), ("LIMIT_ASK_MINUS_50BPS", Decimal('50')))
@@ -620,7 +621,7 @@ def shadow_report(app):
     return '\n'.join(lines)
 
 
-def experimental_shadow_report(app):
+def experimental_shadow_report(app,*,include_learning=True):
     """Session-only, redacted non-executable experiment accounting evidence."""
     obj=getattr(app,'experimental_shadow',None)
     if obj is None:return 'EXPERIMENTAL SHADOW: NOT INSTALLED'
@@ -632,12 +633,14 @@ def experimental_shadow_report(app):
     settings=getattr(app,'_manual_budget_saved',DEFAULT)
     attempts=int(settings.get('attempts_24h',DEFAULT['attempts_24h']))
     learner=getattr(getattr(app,'forward',None),'selection',None)
-    learning=learner.summary() if learner is not None else {'state':'NO_FORWARD_OBSERVATIONS'}
+    learning=(learner.summary() if learner is not None else {'state':'NO_FORWARD_OBSERVATIONS'}) if include_learning else 'REPORTED IN SEPARATE SUBSECTION'
     return '\n'.join([
-        'CoinCat v70.6 • EXPERIMENTAL SHADOW (UNVALIDATED WHAT-IF)',
+        f'{DISPLAY} • EXPERIMENTAL SHADOW (UNVALIDATED WHAT-IF)',
         'SEPARATE IN-MEMORY FIFO • independently ARMED • NO financial/tax ledger writes',
         'No real Coinbase order POST and NO permissions to the validated SHADOW or LIVE path.',
         'Experimental mode: '+('ARMED' if s['armed'] else 'DISARMED'),
+        'Experimental session previously started: '+str(s['started_at'] is not None),
+        'Stopping retains wallet/counters in RAM; restarting the app or re-arming starts a new modeled session.',
         'Completed market scan observations: '+str(s['completed_fresh_scans']),
         'Experimental score policy: positive immediate receipt OR matched causal forward-cost scenario; any size, no absolute dollar floor.',
         'Momentum discovers candidates; a recent rise alone never justifies paying a conversion fee.',

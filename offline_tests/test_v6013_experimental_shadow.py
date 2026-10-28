@@ -113,8 +113,18 @@ class ExperimentalIntegration(unittest.TestCase):
         self.assertIn("self.experimental_shadow.disarm()",src)
         self.assertNotIn('self.broker.arm()\n            self.experimental_shadow',src)
     def test_shareable_diagnostics_includes_experiment(self):
-        s=(Path(__file__).parent.parent/'app'/'coincat_complete_diagnostics.py').read_text()
-        self.assertIn('experimental_shadow_report(app)',s)
+        from tempfile import TemporaryDirectory
+        from types import SimpleNamespace
+        from coincat_complete_diagnostics import _complete_sections,_section
+        with TemporaryDirectory() as folder:
+            app=SimpleNamespace(ledger=SimpleNamespace(path=Path(folder)/'synthetic.sqlite3'),
+                experimental_shadow=ShadowArmedResearch(experimental=True))
+            title,render=next(s for s in _complete_sections(app,NOW,0)
+                if s[0]=='SHADOW ROTATION & SIMULATED ROUTES')
+            body,ok=_section(title,render)
+        self.assertTrue(ok)
+        self.assertIn('EXPERIMENTAL SHADOW (UNVALIDATED WHAT-IF)',body)
+        self.assertIn('PASSIVE PUBLIC FORWARD-COST OBSERVATIONS',body)
 
 class ActualPlannerIntegration(unittest.TestCase):
     def test_real_unified_planner_hands_off_unvalidated_one_order_to_experiment(self):

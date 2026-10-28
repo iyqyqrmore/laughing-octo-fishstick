@@ -1,4 +1,10 @@
-# CoinCat v70.6 — fast scanning with forward-cost selection
+# CoinCat v70.6.1 — retained SHADOW diagnostics
+
+This maintenance patch preserves stopped-session results during diagnostic
+collection. A temporary SQLite file disappearing during a storage read no
+longer discards the experimental wallet report. A persistent failed subsection
+is identified without hiding the successful parts or claiming a complete export.
+The v70.6 cost-selection rule, fees, budgets, scanning and execution remain unchanged.
 
 The approved, available portfolio funds one canonical planner. Fresh Coinbase
 books feed one-leg proposals into the explicitly armed, isolated SHADOW wallet;

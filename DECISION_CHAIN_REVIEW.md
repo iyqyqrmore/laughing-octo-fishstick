@@ -1,4 +1,15 @@
-# v70.6 decision-chain review
+# v70.6.1 decision-chain review
+
+The v70.6 selection/math review below remains applicable. This maintenance patch
+changes reporting only. A reproducible concurrent SQLite WAL removal during
+storage metadata collection formerly raised FileNotFoundError and discarded the
+whole combined SHADOW section, including already-rendered experimental P&L.
+One diagnostic-only retry handles the transient case. Independently rendered
+subsections preserve wallet, learning, route, Snowball and strategy results;
+persistent failures mark the parent export INCOMPLETE with a vetted code location.
+Raw exception text, paths and variables are omitted. The shared storage functions
+and financial/storage gates are unchanged. Disarming preserves RAM results;
+re-arming or restarting begins a new modeled session.
 
 The change replaces momentum-only experimental acceptance with a causal,
 current-cost scenario screen. The fast discovery/quote workers, canonical

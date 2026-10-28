@@ -130,7 +130,7 @@ def _health_summary(app, wall, mono):
             '; observed labels='+str((getattr(app,'_gpu_last_forward_report',{}) or {}).get('labeled','unknown'))+
             '; required='+str((getattr(app,'_gpu_last_forward_report',{}) or {}).get('required','varies by temporal validation'))+
             '; reason='+str((getattr(app,'_gpu_last_forward_report',{}) or {}).get('message','await first completed GPU cycle'))[:240],
-        'SHADOW stop/pause reason (session only): '+str(getattr(app,'_shadow_stop_reason','UNKNOWN')),
+        'Validated SHADOW stop/pause reason (session only): '+str(getattr(app,'_shadow_stop_reason','UNKNOWN')),
         'Most recent sleep/resume research gap: ' + (_show_age(getattr(app,'_research_resume_gap_s',0)) if getattr(app,'_research_resume_gap_s',0)>120 else 'none observed') + ' • skipped quotes are NOT reconstructed',
         'Research scan processing: ' + str(bool(getattr(app,'_scan_processing',False))),
         'History catch-up processing: ' + str(bool(getattr(app,'_history_in_progress',False))),
@@ -174,6 +174,8 @@ def _health_summary(app, wall, mono):
         'Fast request and planner timing (ms): '+str({k:(getattr(app,'_fast_last_result',{}) or {}).get(k)
             for k in ('alert_age_ms','queue_delay_ms','fetch_ms','request_latency_ms','planner_ms')}),
         'Fast event latency percentiles (ms, completed events only): '+str(getattr(app,'_fast_latency_summary',{})),
+        'Fast latest cost-selection summary: '+str((getattr(app,'_fast_last_result',{}) or {}).get('selection',{'state':'NOT_OBSERVED'})),
+        'Fast passive learning update (counts only): '+str((getattr(app,'_fast_last_result',{}) or {}).get('passive_selection',{'state':'NOT_OBSERVED'})),
         'Fast mark coverage: '+str((getattr(app,'_fast_last_result',{}) or {}).get('mark_coverage',{})),
         'Fast GET failures: '+str((getattr(app,'_fast_last_result',{}) or {}).get('get_errors',{})),
         'Fast quote provenance: public REST best bid/ask; LOCAL REQUEST START age; exchange time/depth NOT VERIFIED.',
@@ -185,21 +187,73 @@ def _health_summary(app, wall, mono):
     return '\n'.join(lines)
 
 
+class _CompositeReport:
+    """Retain good subreports while propagating partial collection status."""
+    def __init__(self,text,complete):
+        self.text=text;self.complete=complete
+
+
 def _section(name, generate):
     """Keep generating other sections if a single read fails, without exporting exception details."""
     try:
         result = generate()
+        complete=True
+        if isinstance(result,_CompositeReport):
+            complete=result.complete;result=result.text
         if not isinstance(result, str) or not result.strip():
             raise ValueError('empty report')
-        return f'\n{"="*76}\n{name}\n{"="*76}\n{result.rstrip()}\n', True
+        return f'\n{"="*76}\n{name}\n{"="*76}\n{result.rstrip()}\n', complete
     except Exception as exc:
-        # Only the EXCEPTION CLASS is safe to include in a shared diagnostic.
-        # Exception strings/tracebacks might contain private paths or identifiers.
+        # Export only the class and vetted code metadata, never exception
+        # strings, full tracebacks, private paths or local variables.
         kind=type(exc).__name__
+        from coincat_v6011_observation import safe_callback_breadcrumb
         return (f'\n{"="*76}\n{name}\n{"="*76}\n'
                 'SECTION UNAVAILABLE: '+kind+'. This export is INCOMPLETE. '
                 'No balances, paths, or exception message included. '
-                'Inspect local redacted logs; do not infer zero orders or healthy data.\n'), False
+                'Inspect local redacted logs; do not infer zero orders or healthy data.\n'
+                'Safe code location: '+safe_callback_breadcrumb(exc)+'\n'), False
+
+
+def _diagnostic_storage_snapshot(root):
+    """Retry one transient disappearing-file read; never substitute zero usage.
+
+    SQLite WAL/SHM files can vanish between is_file() and stat() while the
+    collector keeps running. This changes diagnostic collection only; the
+    shared storage functions and trading/storage gates remain untouched.
+    """
+    from coincat_storage import storage_health
+    try:return storage_health(root)
+    except FileNotFoundError:return storage_health(root)
+
+
+def _shadow_section(app,wall):
+    """One of the existing 18 sections, with independent read-only subreports."""
+    cycle=getattr(app,'last_cycle',None) or {}
+    if not isinstance(cycle,dict):cycle={}
+    parts=(
+        ('ROUTE RESEARCH',lambda:make_shadow_report(app,now=wall)),
+        ('SNOWBALL IMMEDIATE COMPARISON',lambda:snowball_report(getattr(app,'_snowball_summary',{}))),
+        ('EXPERIMENTAL SHADOW RESULTS',lambda:experimental_shadow_report(app,include_learning=False)),
+        ('PASSIVE FORWARD-COST LEARNING',lambda:_selection_learning_report(app)),
+        ('STRATEGY OBSERVATIONS',lambda:strategy_research_report(cycle.get('strategy_research'))),
+        ('DECISION & STORAGE SNAPSHOT',lambda:v608_decision_diagnostics(
+            cycle.get('strategy_research'),
+            cycle.get('shadow_rotation') if getattr(getattr(app,'shadow_pilot',None),'armed',False) else cycle.get('auto_rotation'),
+            cycle.get('strategy_horizons'),_diagnostic_storage_snapshot(app.ledger.path.parent))),
+    )
+    fragments=[];complete=True
+    for title,generate in parts:
+        fragment,ok=_section(title,generate)
+        fragments.append(fragment);complete=complete and ok
+    return _CompositeReport(''.join(fragments),complete)
+
+
+def _selection_learning_report(app):
+    learner=getattr(getattr(app,'forward',None),'selection',None)
+    summary=learner.summary() if learner is not None else {'state':'NO_FORWARD_OBSERVATIONS'}
+    return ('PASSIVE PUBLIC FORWARD-COST OBSERVATIONS\n'
+        'Independent of ARM; no wallet quantities or modeled conversions.\n'+str(summary))
 
 
 def _v601_baseline_audit(app):
@@ -358,11 +412,7 @@ def _complete_sections(app,wall,clock):
         ('HEALTH & DATA FRESHNESS', lambda: _health_summary(app,wall,clock)),
         ('AI LAB', lambda: make_report(app,'AI_Lab',now=wall)),
         ('AUTO TRADER', lambda: make_report(app,'Auto_Trader',now=wall)),
-        ('SHADOW ROTATION & SIMULATED ROUTES', lambda: make_shadow_report(app,now=wall)+'\n\n'+snowball_report(getattr(app,'_snowball_summary',{}))+'\n\n'+experimental_shadow_report(app)+'\n\n'+strategy_research_report((getattr(app,'last_cycle',None) or {}).get('strategy_research'))+'\n\n'+v608_decision_diagnostics(
-            (getattr(app,'last_cycle',None) or {}).get('strategy_research'),
-            ((getattr(app,'last_cycle',None) or {}).get('shadow_rotation') if getattr(getattr(app,'shadow_pilot',None),'armed',False) else (getattr(app,'last_cycle',None) or {}).get('auto_rotation')),
-            (getattr(app,'last_cycle',None) or {}).get('strategy_horizons'),
-            __import__('coincat_storage').storage_health(app.ledger.path.parent))),
+        ('SHADOW ROTATION & SIMULATED ROUTES', lambda: _shadow_section(app,wall)),
         ('USD HOLD VS SWITCH FORWARD LEARNING', lambda: _relative_section(app,wall)),
         ('AI LAB HELD-OUT VALIDATION & BUDGET EVIDENCE', lambda: diagnostic_text(capture_app_lab(app,wall))),
         ('FEE EVIDENCE & AI COST LEARNING', lambda: app.fee_learning.report(getattr(app,'catalog',()),now=wall)),
