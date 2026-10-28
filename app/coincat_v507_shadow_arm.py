@@ -340,7 +340,9 @@ class ShadowArmedResearch:
             floor=Decimal(0) if self.experimental else _decimal(minimum_advantage)
             src=str(idea.get('source','')).upper()
             dst=str(idea.get('target','')).upper()
-            pair=str(idea.get('trigger_pair','')).upper()
+            steps=idea.get('shadow_fifo_steps') or ()
+            pair=str(steps[0]['pair'] if self.experimental and len(steps)==1
+                     else idea.get('trigger_pair','')).upper()
             book=books.get(pair)
             source_units=_decimal(idea.get('input_units_planned'))
             target_units=_decimal(idea.get('destination_units_estimate'))

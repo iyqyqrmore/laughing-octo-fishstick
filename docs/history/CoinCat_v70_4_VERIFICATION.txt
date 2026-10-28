@@ -1,0 +1,51 @@
+CoinCat v70.4 — verification evidence
+
+PASS: 358 offline tests; 0 failures, 0 errors, 0 skips, 0 expected failures.
+PASS: twelve new all-inventory/reuse regressions plus the full preceding suite.
+PASS: Python 3.11 syntax of all 145 shipped Python sources.
+PASS: GUI starts DISARMED as v70.4; one-button diagnostics complete 18/18 sections.
+PASS: CPython 3.11.17 / Linux with existing hash-locked core dependencies.
+PASS: HTTP Session requests forbidden during test discovery and execution.
+PASS: all 40 tiny positive native holdings remain eligible; no dollar cutoff.
+PASS: all 25 funding alternatives reached across bounded 16-book batches;
+      already-fresh routes reuse cached books without redundant requests.
+PASS: actual producer -> RAM FIFO -> next producer -> RAM FIFO synthetic replay:
+      a $1.25 wallet buys BTC, then received BTC funds ETH on the next decision.
+      Both positive after-cost experimental scores are below the old $0.10 floor.
+      Each conversion has exactly one listed order and stays within current fuel.
+PASS: validated wallet's acquired funding coin enters urgent quote discovery.
+PASS: changed-wallet/target fingerprint prevents stale unchanged-alert cooldown;
+      genuinely unchanged alerts/wallets still deduplicate.
+PASS: below-exchange-minimum, explicit turnover excess, excluded assets and
+      zero/negative experimental scores remain blocked; manual validated floor
+      remains enforced. Separate modeled wallets are never combined into a plan.
+PASS: existing Decimal fees, precision, FIFO parity, source residuals, missing-FX
+      refusals, mark-to-HOLD P&L, long-session research retention and portable
+      data/import/cleanup regressions still pass.
+PASS: a 22-source synthetic wallet with unrelated missing marks can research
+      and model a fully priced one-order conversion; whole-wallet P&L remains
+      explicitly NOT VERIFIED, then recovers exactly with synchronized marks.
+PASS: trade book and its own USD FX must be synchronized; asynchronous marks
+      cannot verify full P&L or mature a future outcome. Pair FX checks are shared
+      across size variants within a decision. Broad and urgent movement share
+      the same frozen-book consumer.
+PASS: release hashes, ZIP byte/hash consistency and extracted source verifier.
+PASS: production LiveBroker, production FIFO and private-data importer unchanged
+      from v70.3. LiveBroker.submit still unconditionally raises LiveBlocked first.
+
+NOT VERIFIED: Windows batch execution, actual Windows process locking, DPAPI,
+  CUDA, Coinbase's actual settlement/depth/fees/partial fills, connected timing,
+  current profitable opportunities, user-data cut-over or deletion of old folders.
+  All prices, balances and trade receipts used in tests are synthetic. No actual
+  account data, financial lots or credentials were opened, moved or changed.
+  No order API calls, real ARM or financial schema changes occurred.
+  Small-wallet eligibility is not a guarantee of profitable trading or frequency.
+  LIVE ORDER POST REMAINS UNCONDITIONALLY BLOCKED.
+
+Final suite output:
+----------------------------------------------------------------------
+Ran 358 tests in 2.374s
+
+OK
+PASS V70 GUI 1-button report 56576 bytes CoinCat v70.4 • CoinCat Auto Trader • DISARMED by default
+COUNTS 358 failures 0 errors 0 skipped 0 expected_failures 0

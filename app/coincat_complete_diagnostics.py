@@ -18,6 +18,7 @@ from coincat_v607_strategy_research import report as strategy_research_report
 from coincat_v608_outcomes import diagnostics as v608_decision_diagnostics
 from coincat_v40_1_safety import live_data_health
 from coincat_version import DISPLAY
+from coincat_v705_worker import worker_state
 from coincat_go_live_readiness import readiness_report
 from coincat_v50_final_verification import final_verification_report
 from coincat_v502_microstructure import microstructure_report
@@ -92,6 +93,7 @@ def diagnostic_led_ready(app, wall=None, mono=None):
 
 
 def _health_summary(app, wall, mono):
+    worker=worker_state(app,mono=mono,wall=wall)
     catalog_age = _age(wall, getattr(app, 'catalog_at', 0))
     portfolio_age = _age(mono, getattr(app, '_last_portfolio_sync_monotonic', 0))
     scan_age = _age(mono, getattr(app, '_last_scan_at', 0))
@@ -133,7 +135,13 @@ def _health_summary(app, wall, mono):
         'Research scan processing: ' + str(bool(getattr(app,'_scan_processing',False))),
         'History catch-up processing: ' + str(bool(getattr(app,'_history_in_progress',False))),
         'Portfolio refresh processing: ' + str(bool(getattr(app,'_portfolio_sync_running',False))),
-        'Current research scan elapsed: ' + _show_age(_age(mono, getattr(app,'_scan_started_at',0)) if getattr(app,'_scan_processing',False) else None),
+        'Current research scan elapsed: ' + _show_age(worker['elapsed_s'] if worker['scan_active'] else None),
+        'Actual serial worker operation: '+str(worker['operation'] or 'IDLE')+
+            '; elapsed='+_show_age(worker['elapsed_s'] if worker['busy'] else None),
+        'Actual broad-scan phase: '+str(worker['phase'] or 'NOT RUNNING')+
+            '; phase elapsed='+_show_age(worker['phase_elapsed_s'] if worker['scan_active'] else None),
+        'Broad phase timings (seconds, completed phases): '+str(dict(getattr(app,'_scan_phase_timings',{}))),
+        'Latest bounded broad quote pass: '+str((getattr(app,'last_cycle',{}) or {}).get('scan_network',{})),
         'Current history job elapsed: ' + _show_age(_age(mono, getattr(app,'_history_started_at',0)) if getattr(app,'_history_in_progress',False) else None),
         'Last UI callback error type: ' + (str(getattr(app,'_last_ui_callback_error_type','none') or 'none')),
         'UI callback origin (no paths): ' + str(getattr(app,'_last_ui_callback_error_origin','unavailable')),

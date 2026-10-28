@@ -1,4 +1,4 @@
-# v70.4 decision-chain review
+# v70.5 decision-chain review
 
 All replay prices, quantities, funding and fees in automated tests and benchmarks
 are synthetic. No account keys, Coinbase calls or production ledger writes occur.
@@ -47,6 +47,31 @@ two-leg route. A changed wallet invalidates the unchanged-alert cooldown, while
 an idle wallet/alert remains deduplicated. Forty tiny native holdings remain in
 the funding set; bounded quote batches reach all 25 funding alternatives in a
 separate test. These tests do not establish real settlement or profitability.
+
+## Stream and scan scheduling
+
+The stream observes the full approved product catalog. Metadata checks consider
+all ranked alerts with a real direct route from current funding before selecting
+up to three urgent targets and at most 16 request books. A rotating target slot
+prevents a fixed prefix from monopolizing verification. Recently wide products
+are deprioritized but remain eligible for later repricing. A discovery event's
+quote product need not be the actual conversion product; actual funded books and
+synchronized USD FX remain mandatory, with no fabricated bridge or reverse ID.
+
+Broad public quote work is collected in bounded batches rather than waiting for
+an executor to finish every queued GET. Deep/catalog passes have 12s/6s budgets,
+with at most 16 pairs and a 4s wait per batch; checkpoint time counts against the
+pass. Outstanding background work is guarded separately from urgent requests,
+using the same HTTP rate limit. Deferred source cohorts rotate across passes.
+Urgent checkpoints also run between CPU/DB research phases. A due broad job gets
+a scheduler turn after 30s of deferral, and continues to service checkpoints.
+A completed checkpoint leaves five seconds for background progress. Account
+verification and unresolved-order checks continue to precede market research.
+These are cooperative budgets, not forcible cancellation of SQL, CPU or account
+SDK calls. Diagnostics report the actual worker/phase/phase duration. Real slow
+work remains visible. A previous full-scan start can no longer age a later urgent
+job or produce the old misleading connectivity warning. Neither this scheduling
+nor the public feed can guarantee catching every transient opportunity.
 
 ## Receipt and P&L math
 

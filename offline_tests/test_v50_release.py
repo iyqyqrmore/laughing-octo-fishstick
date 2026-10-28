@@ -14,8 +14,8 @@ from coincat_live import LiveLedger
 
 class V50Smoke(unittest.TestCase):
     def test_identity(self):
-        self.assertEqual(VERSION,'70.4')
-        self.assertEqual(DISPLAY,'CoinCat v70.4')
+        self.assertEqual(VERSION,'70.5')
+        self.assertEqual(DISPLAY,'CoinCat v70.5')
     def test_readonly_two_split_fills(self):
         self.assertIn('PASS',_settlement_probe())
     def test_fake_crash_rollback(self):

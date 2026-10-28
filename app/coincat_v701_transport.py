@@ -140,6 +140,36 @@ class ScoutCollector:
 
 
 SCOUT = ScoutCollector()
+BACKGROUND = ScoutCollector()  # Independent unfinished-GET guard; same HTTP budget.
+
+
+def collect_background(pairs,*,cursor=0,seconds=12,checkpoint=None,collector=None,
+                       fetch=None,clock=time.monotonic):
+    """Bound broad quote work and rotate deferred pairs across later scans.
+
+    Only completed on-time snapshots return to the journal. A slow batch cannot
+    join/wait on all queued requests. Urgent work may run between bounded batches
+    on the same serial planner worker; its elapsed time counts against this pass.
+    """
+    collector=BACKGROUND if collector is None else collector
+    fetch=fetch_snapshot if fetch is None else fetch
+    pairs=list(dict.fromkeys(pairs));start=clock();deadline=start+max(0,seconds)
+    offset=max(0,int(cursor))%len(pairs) if pairs else 0
+    ordered=pairs[offset:]+pairs[:offset]
+    snapshots={};errors={};attempted=0
+    while attempted<len(ordered) and clock()<deadline:
+        if checkpoint:checkpoint()
+        if clock()>=deadline:break
+        batch=ordered[attempted:attempted+16]
+        got,failed,_=collector.collect(batch,fetch=fetch,seconds=min(4,deadline-clock()),clock=clock)
+        for reason,n in failed.items():errors[reason]=errors.get(reason,0)+n
+        if 'PREVIOUS_GETS_IN_FLIGHT' in failed:break
+        attempted+=len(batch)
+        snapshots.update(got)
+    return snapshots,{'requested':attempted,'received':len(snapshots),
+        'unrequested':len(ordered)-attempted,'errors':errors,
+        'next_cursor':(offset+attempted)%len(pairs) if pairs else 0,
+        'elapsed_s':round(clock()-start,3)}
 
 
 def percentiles(values):

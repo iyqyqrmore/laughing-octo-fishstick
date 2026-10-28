@@ -10,16 +10,34 @@ MAX_FAST_BOOKS=16
 MAX_TARGETS=3
 
 
+def fundable_alerts(alerts,catalog,funding,snapshot,*,limit=12):
+    """Discovery may use another quote; the actual conversion must be direct."""
+    if limit<=0:return []
+    listed=set(catalog);funding=set(funding);out=[]
+    rows={r.get('pair'):r for r in (snapshot or {}).get('rows',())}
+    for pair in alerts:
+        if pair not in listed:continue
+        base,quote=pair.split('-')
+        try:falling=Decimal(str(rows.get(pair,{}).get('change_30s_pct') or 0))<0
+        except (InvalidOperation,ValueError,TypeError):falling=False
+        target=quote if falling else base
+        if any(source!=target and (f'{target}-{source}' in listed or f'{source}-{target}' in listed)
+               for source in funding):
+            if pair not in out:out.append(pair)
+        if len(out)>=limit:break
+    return out
+
+
 def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
                       required_assets=(), quotes=None, now=None,target_assets=None,valuation_catalog=None,
-                      route_cursor=0):
+                      route_cursor=0,target_cursor=0):
     """Price a complete funded route, then refresh remaining wallet marks fairly.
 
     Cached <=12s marks need not consume a request. A small budget refreshes marks
     in stages; it never invents coverage or an unlisted bridge. No research gate.
     """
     import time
-    from coincat_v701_quotes import mark_paths, mark_coverage, newest_books
+    from coincat_v701_quotes import mark_paths, mark_coverage, newest_books, valid_book
     from coincat_portfolio_prices import DISPLAY_MAX_SPREAD
     now = time.time() if now is None else now
     budget = min(MAX_FAST_BOOKS, max(0, int(limit)))
@@ -29,6 +47,16 @@ def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
     funding = {str(a).upper() for a in funding_assets or () if a}
     required = funding | set(required_assets or ())
     chosen, missing_paths, targets = [], [], []
+    target_routes={}
+    def priority(pair):
+        raw=valid_book((quotes or {}).get(pair),now,12)
+        return 1 if raw is not None and pair not in fresh_routes else 0
+    alerts=sorted(dict.fromkeys(alerts or ()),key=priority)
+    # Keep the leading alerts responsive and give the remaining candidate pool
+    # a rotating slot, so three persistent wide products cannot own every pass.
+    if len(alerts)>2:
+        rest=alerts[2:];offset=max(0,int(target_cursor))%len(rest)
+        alerts=alerts[:2]+rest[offset:]+rest[:offset]
 
     def dependencies(assets, *, valuation=False):
         needed = []
@@ -67,12 +95,13 @@ def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
         # Known-price funding first; all alternatives still enter the rotation.
         route = next((p for p in direct if source_for(p)=='USD'),
                      next((p for p in direct if p in fresh_routes),direct[0]))
-        extra = list(dict.fromkeys([pair]+([] if route in fresh_routes else [route])+
+        extra = list(dict.fromkeys(([] if route in fresh_routes else [route])+
                                   dependencies({asset,source_for(route)})))
         extra = [p for p in extra if p not in chosen]
         if len(chosen)+len(extra) > budget: continue
         chosen.extend(extra)
         targets.append((asset, pair))
+        target_routes[asset]=list(direct)
         routes.extend(p for p in direct if p not in routes)
     # Missing/unrelated holdings must not consume every slot before a funded
     # target. Refresh their marks next, oldest first, without fabricating prices.
@@ -92,26 +121,29 @@ def select_fast_books(alerts, catalog, funding_assets, *, limit=MAX_FAST_BOOKS,
             'required_assets': sorted(required | {a for a, _ in targets}),
             'unlisted_mark_assets': missing_paths, 'mark_refresh_deferred': deferred,
             'funding_routes_deferred':sum(p not in chosen and p not in fresh_routes for p in routes),
-            'next_route_cursor':cursor+max(1,sum(p in routes for p in chosen))}
+            'next_route_cursor':cursor+max(1,sum(p in routes for p in chosen)),
+            'target_routes':target_routes,'next_target_cursor':max(0,int(target_cursor))+1}
 
 
-def fast_candidates(targets, quotes, stream_snapshot, *, now, max_age=25):
+def fast_candidates(targets, quotes, stream_snapshot, *, now, max_age=25,target_routes=None):
     """Explicitly unvalidated short-horizon research ideas, no BUY qualification."""
     snapshot={r.get('pair'):r for r in (stream_snapshot or {}).get('rows',())}
     out=[]; rejected=0
     for asset,pair in targets or ():
-        book=(quotes or {}).get(pair)
         try:
-            bid,ask,ts=book[:3];bid=Decimal(str(bid));ask=Decimal(str(ask))
-            if not 0<=float(now)-float(ts)<=max_age or bid<=0 or ask<bid:raise ValueError()
+            from coincat_v701_quotes import valid_book
+            routes=[pair] if target_routes is None else target_routes.get(asset,())
+            verified=[(p,b) for p in routes if (b:=valid_book((quotes or {}).get(p),now,max_age,Decimal('.0025'))) is not None]
+            if not verified:raise ValueError()
+            verified_pair,(bid,ask,ts)=min(verified,key=lambda v:(v[1][1]-v[1][0])/v[1][1])
             spread=(ask-bid)/ask*Decimal(10000)
-            if spread>25:raise ValueError()
             row=snapshot.get(pair) or {}
             trend=row.get('change_30s_pct')
             momentum=Decimal(str(trend)) if trend is not None else Decimal(0)
             if not momentum.is_finite():raise ValueError()
             out.append({'pair':pair,'momentum_pct':momentum,'spread_bps':spread,
                         'action':'EXPLORE_ONLY','strategy':'FAST_STREAM_REST_RESEARCH',
+                        'verified_funding_pair':verified_pair,
                         'time_window':'30s if available','validated':False})
         except (ValueError,TypeError,InvalidOperation,IndexError,KeyError):rejected+=1
     return out,rejected

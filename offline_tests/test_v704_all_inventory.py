@@ -59,7 +59,7 @@ class AllInventory(unittest.TestCase):
         # Fresh books are reused without repeatedly consuming all 16 slots.
         quotes.update({p:(D(1),D('1.0001'),NOW) for p in trade_pairs})
         cached=select_fast_books(['BTC-USD'],catalog,funding,quotes=quotes,now=NOW+1,route_cursor=cursor)
-        self.assertEqual(cached['books'],['BTC-USD'])
+        self.assertEqual(cached['books'],[])
         self.assertEqual(cached['funding_routes_deferred'],0)
 
     def test_excluded_balance_cannot_reappear_as_bridge_destination(self):

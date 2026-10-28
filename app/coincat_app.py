@@ -26,9 +26,10 @@ from coincat_complete_diagnostics import make_complete_report, diagnostic_led_re
 from coincat_v6016_sell_research import verified_full_sell_quantity, research_preview_slice_cap
 from coincat_break_even import one_order_reference
 from coincat_snowball import screen as snowball_screen, report as snowball_report
-from coincat_v6018_fast_path import select_fast_books, fast_candidates, fast_funnel
+from coincat_v6018_fast_path import select_fast_books, fast_candidates, fast_funnel, fundable_alerts
 from coincat_v701_quotes import newest_books, required_shadow_assets, mark_coverage
-from coincat_v701_transport import SCOUT, fetch_snapshot, percentiles
+from coincat_v701_transport import SCOUT, fetch_snapshot, percentiles, collect_background
+from coincat_v705_worker import worker_state
 from coincat_portfolio_budget import portfolio_ceiling, validate_manual_budget
 from coincat_shadow_diagnostics import shadow_snapshot
 from coincat_trade_frequency import frequency_report
@@ -1209,10 +1210,13 @@ class CoinCatApp:
     def _async(self,fn,operation='background'):
         if self.worker_busy:return False
         self.worker_busy=True
+        self._worker_operation=operation;self._worker_started_at=time.monotonic()
         def work():
             try:self.jobs.put(('ok',fn()))
             except Exception as ex:self.jobs.put(('error',{'operation':operation,'message':str(ex)}))
-            finally:self.worker_busy=False
+            finally:
+                self._worker_operation=None;self._worker_started_at=0
+                self.worker_busy=False
         threading.Thread(target=work,daemon=True).start()
         return True
     def _client(self):
@@ -2689,7 +2693,14 @@ class CoinCatApp:
             and not self._connection_requested and not self._connection_in_progress
             and not self._fill_sync_faulted and not self.broker.ledger.pending()
             and 0<=time.monotonic()-self._last_portfolio_sync_monotonic<=120
-            and self.stream_research.rank_for_rest_scout(self._research_catalog(fundable=True),now=time.time(),limit=1))
+            and self._urgent_alerts(limit=1))
+
+    def _urgent_alerts(self,*,limit=12,catalog=None,sources=None,snapshot=None):
+        catalog=self._research_catalog() if catalog is None else catalog
+        sources=self._funding_sources()[0] if sources is None else sources
+        snapshot=self.stream_research.snapshot(now=time.time()) if snapshot is None else snapshot
+        ranked=self.stream_research.rank_for_rest_scout(catalog,now=time.time(),limit=max(limit,len(catalog)))
+        return fundable_alerts(ranked,catalog,sources,snapshot,limit=limit)
 
     def _service_fast_checkpoint(self):
         # Called ONLY on the existing serial market/history worker, between
@@ -2698,7 +2709,49 @@ class CoinCatApp:
         self._fast_next_at=time.monotonic()+self._fast_interval_s
         self._fast_queued_at=time.monotonic()
         self.jobs.put(('ok',self._fast_cycle()))
+        # A slow urgent check must not immediately monopolize every remaining
+        # background completion. Leave room for the broad/history job to advance.
+        self._fast_next_at=max(self._fast_next_at,time.monotonic()+self._fast_interval_s)
         return True
+
+    def _scan_stage(self,name,*,checkpoint=True):
+        now=time.monotonic();previous=getattr(self,'_scan_phase',{}) or {}
+        timings={} if name=='RECONCILIATION' else dict(getattr(self,'_scan_phase_timings',{}))
+        if name!='RECONCILIATION' and previous.get('started_at'):
+            key=previous['name'];timings[key]=round(timings.get(key,0)+max(0,now-previous['started_at']),3)
+        self._scan_phase_timings=timings
+        self._scan_phase={'name':name,'started_at':now}
+        self.jobs.put(('scan_progress',name.replace('_',' ').title()))
+        if checkpoint:self._service_fast_checkpoint()
+
+    def _finish_scan(self,result):
+        self._scan_stage('COMPLETE',checkpoint=False)
+        result['scan_phase_timings_s']=dict(self._scan_phase_timings)
+        result['scan_duration_s']=round(sum(self._scan_phase_timings.values()),3)
+        return result
+
+    def _refresh_research_heartbeat(self):
+        state=worker_state(self,mono=time.monotonic(),wall=time.time())
+        age=state['last_urgent_age_s']
+        urgent=f'last completed urgent decision {int(age)}s ago' if age is not None else 'urgent decision not yet observed'
+        if state['scan_active']:
+            text=(f'Broad scan {int(state["elapsed_s"])}s • {state["phase"]} '
+                  f'{int(state["phase_elapsed_s"])}s • {urgent}')
+        elif state['busy']:
+            text=f'{state["operation"] or "Background result"} active {int(state["elapsed_s"])}s • {urgent}'
+        else:
+            age=state['last_scan_age_s']
+            text=(f'Last completed broad scan {int(age)}s ago • ' if age is not None else 'Waiting for first broad scan • ')+urgent
+        self.lab_heartbeat.set(text)
+        if state['slow_scan']:
+            self._scan_timeout_warning_active=True
+            self.lab_activity.set('SLOW BROAD SCAN • '+text+' • cause not yet verified')
+        elif getattr(self,'_scan_timeout_warning_active',False):
+            self._scan_timeout_warning_active=False
+            self.lab_activity.set(text)
+        stale=state['last_scan_age_s'] is not None and state['last_scan_age_s']>300
+        if (state['slow_scan'] or stale) and self.broker and self.broker.armed:
+            self.broker.disarm();self.status.set('DISARMED • broad research slow or stale')
 
     def _tick_impl(self):
         if self.shutdown:return
@@ -2711,9 +2764,15 @@ class CoinCatApp:
         needs_sync=bool(self.broker and
                     now-self._last_portfolio_sync_monotonic>=min(120,self.portfolio_sync_secs))
         needs_fills=bool(self.broker and self.broker.ledger.pending())
+        broad_due=bool(now>=self._next_scan_at and self.broker and self.catalog
+                       and not self._history_in_progress)
+        if broad_due:
+            if not getattr(self,'_broad_wait_since',0):self._broad_wait_since=now
+        else:self._broad_wait_since=0
+        broad_priority=bool(broad_due and now-self._broad_wait_since>=30)
         # Account verification/reconciliation always precede market research.
         # Urgent opportunities precede full scans and automatic history/GPU work.
-        if not busy and not needs_sync and not needs_fills and self._fast_due():
+        if not busy and not needs_sync and not needs_fills and not broad_priority and self._fast_due():
             self._fast_next_at=now+self._fast_interval_s
             self._fast_queued_at=now
             self._async(self._fast_cycle,operation='fast Snowball research')
@@ -2721,6 +2780,7 @@ class CoinCatApp:
                 and not self._history_in_progress and self.broker and self.catalog):
             self._scan_started_at=now
             self._scan_processing=True
+            self._broad_wait_since=0
             self._scan_epoch+=1
             self.lab_activity.set('Scanning live Coinbase bid/ask quotes…')
             self.lab_progress.start(16)
@@ -2773,17 +2833,17 @@ class CoinCatApp:
         catalog=self._research_catalog()
         fundable_catalog=self._research_catalog(fundable=True)
         excluded=tuple(str(r.get('asset','')).upper() for r in self.ledger.assets() if not r.get('enabled',1))
-        alerts=self.stream_research.rank_for_rest_scout(fundable_catalog,now=time.time(),limit=12)
+        sources,funding_signature=self._funding_sources()
+        stream=self.stream_research.snapshot(now=time.time())
+        alerts=self._urgent_alerts(limit=len(catalog),catalog=catalog,sources=sources,snapshot=stream)
         result['scope']={'authenticated_products':len(self.catalog),'approved_products':len(catalog),
                          'fundable_products':len(fundable_catalog),'excluded_products':len(self.catalog)-len(catalog)}
         result['alerts']=len(alerts)
-        sources,funding_signature=self._funding_sources()
         result['scope']['funding_assets_considered']=len(sources)
         cached_assets=set(sources)
         if self.shadow_pilot.armed: cached_assets.update(getattr(self,'_shadow_model_balances',{}))
         if self.experimental_shadow.armed: cached_assets.update(getattr(self,'_experimental_model_balances',{}))
         required=required_shadow_assets(self.experimental_shadow,self.shadow_pilot,funding=cached_assets)
-        stream=self.stream_research.snapshot(now=time.time())
         stream_rows=stream.get('rows',())
         target_assets={r['pair']:(r['pair'].split('-')[1] if r.get('change_30s_pct') is not None
             and Decimal(str(r['change_30s_pct']))<0 else r['pair'].split('-')[0]) for r in stream_rows}
@@ -2792,7 +2852,9 @@ class CoinCatApp:
         valuation_catalog=approved_pairs(self.catalog,getattr(self.broker,'catalog_product_rules',{}))
         plan=select_fast_books(alerts,catalog,sources,required_assets=required,
                               quotes=before_quotes,now=time.time(),target_assets=target_assets,
-                              valuation_catalog=valuation_catalog,route_cursor=getattr(self,'_fast_route_cursor',0))
+                              valuation_catalog=valuation_catalog,route_cursor=getattr(self,'_fast_route_cursor',0),
+                              target_cursor=getattr(self,'_fast_target_cursor',0))
+        self._fast_target_cursor=plan['next_target_cursor']
         result['required_mark_assets']=required
         result['unlisted_mark_assets']=plan['unlisted_mark_assets']
         result['queue_delay_ms']=round(max(0,started-getattr(self,'_fast_queued_at',started))*1000,2)
@@ -2829,12 +2891,14 @@ class CoinCatApp:
         result['mark_coverage']={k:v for k,v in coverage.items() if k not in ('rates','problems')}
         result['mark_coverage']['problem_counts']={reason:list(coverage['problems'].values()).count(reason)
             for reason in sorted(set(coverage['problems'].values()))}
-        result['fresh_books']=len(newest_books(
+        result['fresh_books_fetched']=len(newest_books(
             {p:q.book() for p,q in snapshots.items()},now=time.time(),max_age=25,max_spread=Decimal('.0025')))
+        result['fresh_books']=len(set(quotes)&set(catalog))
         # Whole-wallet marking is reported independently. The canonical planner
         # still requires fresh source, destination and actual route FX.
         stream=self.stream_research.snapshot(now=time.time())
-        candidates,rejected=fast_candidates(plan['targets'],quotes,stream,now=time.time())
+        candidates,rejected=fast_candidates(plan['targets'],quotes,stream,now=time.time(),
+                                            target_routes=plan['target_routes'])
         result['targets']=len(candidates);result['candidate_quote_rejects']=rejected
         if not candidates:
             result['reason']='NO_FRESH_NARROW_SPREAD_TARGET_BOOKS';return self._finish_fast(result,started)
@@ -2908,13 +2972,14 @@ class CoinCatApp:
 
     def _cycle(self,allow_orders=True):
         result={'kind':'cycle','strategy_horizons':{'state':'NOT_RUN'},'strategy_research':{'state':'NOT_RUN'},'gpu_advisory':{},'quotes':0,'failures':0,'signals':[],'reviews':[],'handoffs':[],'sell_reviews':[],'full_exit_reviews':[],'trade':None,'reconcile':None,'message':'','storage':None,'two_way':None,'rotation':[],'auto_rotation':{'state':'WAIT','reason':'Not yet evaluated','ideas':[]},'broker_pair_reviews':[],'cross_spot_previews':[],'discovery':{'sampled':0,'failed':0,'coverage':0,'total':0,'progress':0}}
+        self._scan_stage('RECONCILIATION',checkpoint=False)
         decision_catalog=self._research_catalog()
         if self.broker:
             try:
                 result['reconcile']=self.broker.reconcile()
             except Exception as ex:
                 self.broker.disarm();result['message']='Order reconciliation stopped live trading: '+str(ex)
-                return result
+                return self._finish_scan(result)
         # Realtime quotes are separate from the prior 10-day OHLCV context.
         watch=self._watchlist(advance=True)
         self._last_research_watch=list(watch)
@@ -2960,20 +3025,14 @@ class CoinCatApp:
         result['stream_telemetry']=self.stream_research.snapshot()
         result['adaptive_focus']=self.focus_capacity.snapshot()
         self.stream.set_pairs(self._research_catalog())  # ALL authenticated eligible spot pairs; public trade tickers ONLY
-        self.jobs.put(('scan_progress',f'Scanning {len(watch)} eligible pairs for fresh bid/ask…'))
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            futures={pool.submit(fetch_snapshot,p):p for p in watch}
-            for future in as_completed(futures):
-                self._service_fast_checkpoint()
-                pair=futures[future]
-                try:
-                    quote=future.result()
-                    self.forward.record_quote(pair,quote.observed_at,quote.bid,quote.ask,source=quote.source)
-                    result['quotes']+=1
-                    self.jobs.put(('scan_progress',f'Quote {result["quotes"]+result["failures"]}/{len(watch)} • {pair} bid/ask verified'))
-                except Exception as ex:
-                    result['failures']+=1
-                    self.jobs.put(('scan_progress',f'Quote {result["quotes"]+result["failures"]}/{len(watch)} • {pair}: {type(ex).__name__}'))
+        self._scan_stage('QUOTE_FETCH')
+        books,network=collect_background(watch,cursor=getattr(self,'_deep_quote_cursor',0),seconds=12,
+            checkpoint=self._service_fast_checkpoint,fetch=fetch_snapshot,clock=time.monotonic)
+        self._deep_quote_cursor=network['next_cursor']
+        self.forward.record_quotes([(p,q.observed_at,q.bid,q.ask,q.source) for p,q in books.items()])
+        result['quotes']=len(books);result['failures']=sum(network['errors'].values())
+        result['scan_network']={'deep':network}
+        self.jobs.put(('scan_progress',f'Broad quotes {len(books)}/{len(watch)} • {network["unrequested"]} deferred to later passes'))
         # Explore the wider catalog with one-off public ticker snapshots. These
         # are stored in a SEPARATE latest-only table so they cannot mature a
         # BUY signal or become a forward trade label. Live order policy unchanged.
@@ -2989,19 +3048,16 @@ class CoinCatApp:
                 decision_catalog,exclude=set(watch)|set(rotation),now=time.time(),limit=stream_scout_budget)
             scouts=rotation+[p for p in extra if p not in rotation]
             sampled=failed=0
-            self.jobs.put(('scan_progress',f'Deep study {len(watch)} done; sampling {len(rotation)} rotating + {len(extra)} stream-alert catalog pairs (REST verification; research only)…'))
-            with ThreadPoolExecutor(max_workers=3) as pool:
-                futures={pool.submit(fetch_snapshot,p):p for p in scouts}
-                for future in as_completed(futures):
-                    self._service_fast_checkpoint()
-                    pair=futures[future]
-                    try:
-                        quote=future.result()
-                        self.forward.record_discovery(pair,quote.observed_at,quote.bid,quote.ask)
-                        sampled+=1
-                    except Exception:
-                        failed+=1
-            self.forward.set_state_int('universe_discovery_cursor',next_cursor)
+            self._scan_stage('CATALOG_QUOTES')
+            books,network=collect_background(scouts,seconds=6,
+                checkpoint=self._service_fast_checkpoint,fetch=fetch_snapshot,clock=time.monotonic)
+            for pair,quote in books.items():
+                self.forward.record_discovery(pair,quote.observed_at,quote.bid,quote.ask)
+            sampled=len(books);failed=sum(network['errors'].values())
+            result['scan_network']['catalog']=network
+            if network['requested']:
+                _,next_cursor=choose_discovery(decision_catalog,watch,cursor,min(len(rotation),network['requested']))
+                self.forward.set_state_int('universe_discovery_cursor',next_cursor)
             coverage=self.forward.universe_coverage(decision_catalog)
             result['discovery']={'sampled':sampled,'failed':failed,'coverage':coverage,
                                  'total':len(set(decision_catalog)),
@@ -3011,6 +3067,7 @@ class CoinCatApp:
                                  'focused_capacity':len(watch)}
         # Bid/ask market observations supply counterfactual results for BOTH
         # sides; history candles and hypothetical labels are NEVER fills.
+        self._scan_stage('FORWARD_LABELS')
         direct_watch=[p for p in watch if p in set(one_order_catalog(decision_catalog,
             getattr(self.broker,'catalog_product_rules',{}))) ]
         for pair in direct_watch:
@@ -3021,6 +3078,7 @@ class CoinCatApp:
         # Keep daily/pressure-driven retention and weekly SQLite compaction.
         # Prune the additional public USD relative-mark research cache without
         # ever touching financial fills, cost basis or tax documents.
+        self._scan_stage('RESEARCH_MAINTENANCE')
         self.relative_lab.maintenance(now=int(time.time()))
         maintenance=self.forward.maintenance()
         if time.time()-self._last_trials_cleanup>=86400:
@@ -3035,6 +3093,7 @@ class CoinCatApp:
         result['fee_evidence_state']=fee_snapshot['state']
         result['fee_cost_screened']=0
         result['fee_below_cost']=0
+        self._scan_stage('PAIR_SIGNALS')
         for pair in direct_watch:
             s=self.lab.signal(pair)
             if s.get('action')=='BUY':
@@ -3071,6 +3130,7 @@ class CoinCatApp:
         # One canonical bid/ask database also supports short-horizon, independent
         # observational feedback; NEVER a broker BUY signal or portfolio alpha.
         try:
+            self._scan_stage('SHORT_HORIZON_RESEARCH')
             tier_for_windows=self.fee_learning.latest_tier()
             result['forward_windows']=research_summary(
                 self.forward,[r['pair'] for r in result['reviews']],
@@ -3086,6 +3146,7 @@ class CoinCatApp:
         # source. Every result is EXPLORE_ONLY until independent positive portfolio
         # HOLD-vs-SWITCH out-of-sample evidence passes the UNCHANGED planner.
         try:
+            self._scan_stage('STRATEGY_PATTERNS')
             verified_tier=self.fee_learning.latest_tier()
             result['strategy_research']=self.strategy_lab.scan(
                 [r['pair'] for r in result['reviews'] if r['pair'] in direct_watch],now=int(time.time()),
@@ -3100,6 +3161,7 @@ class CoinCatApp:
         # SAME canonical market DB. Only genuine later Coinbase REST bids are
         # outcomes; no filled orders, shadow finance or GPU predictions inferred.
         try:
+            self._scan_stage('HORIZON_OUTCOMES')
             current_tier=self.fee_learning.latest_tier()
             result['strategy_horizons']=self.horizon_lab.record_and_mature(
                 result['strategy_research'].get('candidates') or (),
@@ -3108,6 +3170,7 @@ class CoinCatApp:
             result['strategy_horizons']={'state':'WAIT_'+type(exc).__name__,
                 'matured':0,'eligible_for_shadow':False,'eligible_for_live':False}
         # Compute and display SELL/HOLD even when DISARMED; decisions alone never submit orders.
+        self._scan_stage('PORTFOLIO_RESEARCH')
         result['sell_reviews']=self._review_sell_inventory()
         result['full_exit_reviews']=self._full_exit_research()
         # ROTATE comparisons are intentionally RESEARCH-ONLY. A two-leg
@@ -3118,6 +3181,7 @@ class CoinCatApp:
         # Research-market-only USD marks: persisted, synchronized, independent
         # of account enrollment. No ledger writes, execution requests or orders.
         try:
+            self._scan_stage('RELATIVE_USD_MARKS')
             result['relative_mark_count']=self.relative_lab.observe(
                 catalog=decision_catalog,quotes=self._shadow_valuation_books(),
                 now=time.time(),fee_verified=self.fee_learning.latest_tier()['fresh'])
@@ -3126,6 +3190,7 @@ class CoinCatApp:
         # Existing single GPU model is evaluated ONCE per scan. It prioritizes
         # already-qualified BUY research candidates but never makes or authorizes
         # a signal, and SHADOW/LIVE consume the same candidate ordering.
+        self._scan_stage('GPU_ADVISORY')
         for candidate in result['signals'][:8]:
             try:
                 result['gpu_advisory'][candidate['pair']]=gpu_research_advisory(
@@ -3138,6 +3203,7 @@ class CoinCatApp:
         # every cycle. This is continuous SHADOW research, never an order
         # permission or a second brokerage execution path.
         try:
+            self._scan_stage('ROTATION_PLANNER')
             # V60 RESEARCH ONLY: the old $10 capacity stage and manual live-order
             # dollar caps must not suppress a valid $100 or whole-enrolled-holding
             # counterfactual. Every route uses only its independently verified
@@ -3276,6 +3342,7 @@ class CoinCatApp:
         # AI-to-BROKER research gateway accepts *all* exchange-listed spot
         # candidates, regardless of quote currency. It has NO submit action.
         try:
+            self._scan_stage('BROKER_REVIEW')
             shared_books=self._shadow_valuation_books()
             for sig in result['signals']:
                 if not self.broker:continue
@@ -3348,12 +3415,12 @@ class CoinCatApp:
             else: reason='financial/research storage capacity reached; no new orders'
             for s in result['signals']:
                 result['handoffs'].append({'pair':s['pair'],'state':'SKIPPED','reason':reason})
-            return result
+            return self._finish_scan(result)
         if not decision_catalog or time.time()-self.catalog_at>7200:
             self.broker.disarm();result['message']='Coinbase authenticated catalog expired; trading disarmed'
             for s in result['signals']:
                 result['handoffs'].append({'pair':s['pair'],'state':'SKIPPED','reason':'Coinbase catalog stale; trading disarmed'})
-            return result
+            return self._finish_scan(result)
         # Unified all-spot execution Handoff. Trading is held DISARMED until
         # authenticated fills, fees, production FIFO and crash recovery are
         # integrated. No dollar-only fast lane or synthetic trade shortcut.
@@ -3369,7 +3436,7 @@ class CoinCatApp:
             elif not any(x.get('pair')==sig['pair'] for x in result['handoffs']):
                 result['handoffs'].append({'pair':sig['pair'],'state':'ALL_SPOT_REVIEW_ONLY',
                     'reason':'Unified product/fee review; production posting and recovery not certified'})
-        return result
+        return self._finish_scan(result)
     def _pulse(self):
         if self.shutdown:return
         self._pulse_phase=(self._pulse_phase+1)%60
@@ -3454,6 +3521,7 @@ class CoinCatApp:
                     self.fast_research_status.set('FAST SNOWBALL • data worker paused; regular scan continues • LIVE blocked')
                 elif operation in ('market scan','manual research scan'):
                     self._scan_processing=False
+                    self._scan_timeout_warning_active=False
                     # A failed whole scan receives the same backoff as a severe
                     # REST/API error; never spin rapidly on a network outage.
                     spent=max(0.,time.monotonic()-self._scan_started_at)
@@ -3730,10 +3798,12 @@ class CoinCatApp:
                 self._refresh_trees()
             elif payload.get('kind')=='cycle':
                 self._scan_processing=False
+                self._scan_timeout_warning_active=False
                 # Deliberately adjust ONLY the next scan due-time. Never change ARM,
                 # per-order hard limits, or Coinbase order reconciliation behavior.
                 now_scan=time.monotonic()
-                elapsed=max(0.0,now_scan-self._scan_started_at) if self._scan_started_at else 0.0
+                elapsed=payload.get('scan_duration_s',
+                    max(0.0,now_scan-self._scan_started_at) if self._scan_started_at else 0.0)
                 try:
                     stream_health=self.stream.status()
                     self.loop_secs=self.cadence.update(elapsed=elapsed,
@@ -4104,20 +4174,8 @@ class CoinCatApp:
         if self._history_in_progress:
             elapsed=int(time.monotonic()-self._history_started_at)
             self.lab_heartbeat.set(f'Historical import active for {elapsed//60:02d}:{elapsed%60:02d}; pair completion count shown above • ETA varies')
-        elif self._scan_started_at and self.worker_busy and not self._connection_in_progress:
-            elapsed=int(time.monotonic()-self._scan_started_at)
-            self.lab_heartbeat.set(f'Live research worker active for {elapsed}s • '+self._scan_progress_text)
-            if elapsed>90:
-                self.lab_activity.set('WARNING: Scan has exceeded 90s; check connectivity. No new automatic scan can start while busy.')
-                if self.broker and self.broker.armed:
-                    self.broker.disarm();self.status.set('DISARMED • research scan timeout warning')
-        elif self._last_scan_at:
-            seconds=int(time.monotonic()-self._last_scan_at)
-            upcoming=max(0,int(self._next_scan_at-time.monotonic()))
-            self.lab_heartbeat.set(f'Last successful live scan {seconds}s ago • next scheduled scan in ~{upcoming}s • real orders only when independently armed')
-            if seconds>300:
-                self.lab_activity.set('WARNING: No completed live scan for more than five minutes')
-                if self.broker and self.broker.armed:self.broker.disarm();self.status.set('DISARMED • live research stale')
+        elif not self._connection_in_progress:
+            self._refresh_research_heartbeat()
         if time.monotonic()-self._last_stream_render>1.5:
             try:
                 frep=frequency_report(self.ledger,time.time())

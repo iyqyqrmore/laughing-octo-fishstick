@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[1]
 class V70CodexBaseline(unittest.TestCase):
  def test_version_and_handoff(self):
   from coincat_version import DISPLAY
-  self.assertEqual(DISPLAY, 'CoinCat v70.4')
+  self.assertEqual(DISPLAY, 'CoinCat v70.5')
   self.assertTrue((ROOT/'AGENTS.md').is_file())
   self.assertTrue((ROOT/'docs/history/CODEX_HANDOFF_V70.md').is_file())
  def test_portable_private_root_and_explicit_copy_only(self):

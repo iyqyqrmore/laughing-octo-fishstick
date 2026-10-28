@@ -57,7 +57,7 @@ class QuoteSelection(unittest.TestCase):
         self.assertEqual(first['books'][0],'SOL-USD')
         cache={p:('1','1.001',1000) for p in first['books']}
         second=select_fast_books(['SOL-USD'],catalog,['USD'],required_assets=assets,quotes=cache,now=1005)
-        self.assertEqual(len(second['books']),6)
+        self.assertEqual(len(second['books']),5)  # Fresh target book is reused.
         self.assertEqual(second['targets'],[('SOL','SOL-USD')])
 
     def test_sold_hold_and_fee_asset_dependencies_survive_without_sqlite_worker_access(self):
@@ -200,6 +200,7 @@ class UrgentScheduling(unittest.TestCase):
         app._fill_sync_faulted=False
         app.stream_research=NS(rank_for_rest_scout=lambda *args,**kw:['SOL-USD'])
         app._research_catalog=lambda **kw:app.catalog
+        app._urgent_alerts=lambda **kw:['SOL-USD']
         app.jobs=queue.Queue();app._fast_cycle=Mock(return_value={'kind':'fast_snowball'})
         return app
 
