@@ -10,12 +10,14 @@ installation, its copied data and its independent backup have been verified.
    research. Core dependencies are hash-pinned. Windows Python 3.11 is required.
 3. Run `03_VERIFY_COINCAT.bat`. Require release hashes and the complete offline
    suite to pass. Tests use disposable synthetic data, not your private records.
-4. Run `04_IMPORT_PRIVATE_DATA.bat` **once**. The preferred source is your current
-   `%APPDATA%\CoinCatV70` dataset, not the older Desktop source folder. You may
-   select another complete private backup, including an earlier self-contained
-   installation's `private_data`. Do not mix versions or combine separate datasets.
-   The importer copies all private SQLite databases, encrypted credentials,
-   research, settings and tax files into `CoinCat\private_data`.
+4. Run `04_IMPORT_PRIVATE_DATA.bat` **once** and select the complete dataset
+   used by your **currently active** installation. For a self-contained v70.2+
+   installation, select its `private_data` folder. Use `%APPDATA%\CoinCatV70`
+   only if that is still the active dataset; do not choose an older AppData copy
+   just because it exists or appears as a suggested path. A complete verified
+   backup is also valid. Do not combine separate datasets. The importer copies
+   databases, encrypted credentials, research, settings and tax files into the
+   new `CoinCat\private_data`.
 5. The importer checks SQLite integrity, logical DB contents, file fingerprints,
    and a separate copy in `CoinCat\private_backups`. Only a fully verified copy
    becomes active. It never deletes, overwrites or merges the original dataset.
