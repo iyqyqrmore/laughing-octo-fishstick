@@ -11,10 +11,10 @@ from coincat_rotation_autopilot import auto_rotation_screen
 ROOT=Path(__file__).resolve().parents[1]
 class V60Release(unittest.TestCase):
     def test_version_launchers_and_removal(self):
-        self.assertEqual(DISPLAY,'CoinCat v70.1.1')
+        self.assertEqual(DISPLAY,'CoinCat v70.2')
         self.assertFalse((ROOT/'build_windows').exists())
-        self.assertTrue((ROOT/'01_START_COINCAT_V60.bat').is_file())
-        self.assertIn('CoinCat50.ico', (ROOT/'tools/CREATE_SHORTCUTS_V60.ps1').read_text())
+        self.assertTrue((ROOT/'01_START_COINCAT.bat').is_file())
+        self.assertIn('CoinCat50.ico', (ROOT/'tools/CREATE_SHORTCUTS.ps1').read_text())
         self.assertNotIn('coincat_network_tokens', (ROOT/'app/coincat_app.py').read_text())
     def test_live_broker_unconditionally_blocked(self):
         tree=ast.parse((ROOT/'app/coincat_live.py').read_text())

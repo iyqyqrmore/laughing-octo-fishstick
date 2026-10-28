@@ -5,17 +5,16 @@ ROOT=Path(__file__).resolve().parents[1]
 class V70CodexBaseline(unittest.TestCase):
  def test_version_and_handoff(self):
   from coincat_version import DISPLAY
-  self.assertEqual(DISPLAY, 'CoinCat v70.1.1')
+  self.assertEqual(DISPLAY, 'CoinCat v70.2')
   self.assertTrue((ROOT/'AGENTS.md').is_file())
-  self.assertTrue((ROOT/'CODEX_HANDOFF_V70.md').is_file())
- def test_v70_private_root_and_legacy_copy_only(self):
-  launch=(ROOT/'app/coincat_v60_launcher.py').read_text()
-  self.assertIn("/'CoinCatV70'",launch)
-  self.assertIn("/'CoinCatV60'",launch)
-  self.assertIn('migrate(source,data_root())',launch)
-  state=(ROOT/'app/coincat_state_v50.py').read_text()
-  self.assertIn("NEW_NAME = 'CoinCatV70'",state)
-  self.assertIn("MARKER = '.coincat_v60_state_ready.json'",state)
+  self.assertTrue((ROOT/'docs/history/CODEX_HANDOFF_V70.md').is_file())
+ def test_portable_private_root_and_explicit_copy_only(self):
+  from unittest.mock import patch
+  from coincat_state_v50 import data_root
+  with patch.dict('os.environ',{},clear=True):
+   self.assertEqual(data_root(),ROOT/'private_data')
+  self.assertIn('import_wizard()', (ROOT/'app/coincat_launcher.py').read_text())
+  self.assertIn("MARKER = '.coincat_v60_state_ready.json'",(ROOT/'app/coincat_state_v50.py').read_text())
  def test_snowball_label_valid_utf8_and_no_double_encoded_bullet(self):
   src=(ROOT/'app/coincat_app.py').read_text(encoding='utf8')
   self.assertIn('SNOWBALL • COST & USD ADVANTAGE',src)

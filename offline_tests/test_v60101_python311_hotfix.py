@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def shipped_python_sources(root=ROOT):
-    manifest = json.loads((root / 'SHA256_MANIFEST_V60.json').read_text(encoding='utf-8'))
+    manifest = json.loads((root / 'SHA256_MANIFEST.json').read_text(encoding='utf-8'))
     file_names = manifest['files']
     assert isinstance(file_names, dict) and file_names, 'Empty or invalid release manifest'
     return [root / name for name in sorted(file_names)
@@ -47,7 +47,7 @@ class Python311Hotfix(unittest.TestCase):
             dependency = root / '.venv' / 'Lib' / 'site-packages' / 'torch' / 'py312_intrinsics.py'
             dependency.parent.mkdir(parents=True)
             dependency.write_text('def f[T](a: int): return a\n', encoding='utf-8')
-            (root / 'SHA256_MANIFEST_V60.json').write_text(
+            (root / 'SHA256_MANIFEST.json').write_text(
                 json.dumps({'files': {'app/x.py': 'fixture-sha'}}), encoding='utf-8')
             sources = shipped_python_sources(root)
             self.assertEqual(sources, [app])

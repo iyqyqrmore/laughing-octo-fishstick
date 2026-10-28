@@ -38,8 +38,8 @@ class Audit:
         self.lines.append(line);print(line,flush=True)
     def save(self,gate):
         REPORTS.mkdir(parents=True,exist_ok=True)
-        dest=REPORTS/f'CoinCat_v601_{gate}_verification.txt'
-        body=['CoinCat v60.3 VERIFICATION — '+gate.upper(),
+        dest=REPORTS/f'CoinCat_{gate}_verification.txt'
+        body=['CoinCat VERIFICATION — '+gate.upper(),
               'Captured UTC: '+datetime.now(timezone.utc).isoformat(timespec='seconds'),
               'No order POST, no ARM, no transfer, no canonical ledger mutations.',
               'PASS on synthetic/local checks does NOT authorize production trading.',
@@ -68,7 +68,7 @@ def tests(a,names):
 def offline(a):
     a.section('RELEASE INTEGRITY AND COMPLETE OFFLINE SUITE')
     # Pack-level hashes; Python subprocess cannot arm or contact Coinbase.
-    p=subprocess.run([sys.executable,'-B',str(ROOT/'VERIFY_SOURCE_V60.py')],cwd=str(ROOT))
+    p=subprocess.run([sys.executable,'-B',str(ROOT/'VERIFY_SOURCE.py')],cwd=str(ROOT))
     a.add('PASS / LOCAL' if p.returncode==0 else 'FAIL','SHA256 release guard')
     if p.returncode:return
     if sys.version_info[:2]!=(3,11) and os.environ.get('COINCAT_VERIFY_ALLOW_OTHER_PYTHON')!='1':
@@ -88,7 +88,7 @@ def offline(a):
 
 def gpu(a):
     a.section('WINDOWS CUDA / PACKAGED EXE')
-    exe=APP/'coincat_v60_launcher.py'
+    exe=APP/'coincat_launcher.py'
     if os.name!='nt':
         a.add('NOT VERIFIED','GPU runtime must be verified on the user Windows RTX 4060 machine')
         return
@@ -101,10 +101,9 @@ def gpu(a):
 
 def db_readonly(a):
     a.section('PRODUCTION LEDGER READ ONLY — NEVER CREATE OR REPAIR')
-    if not os.environ.get('APPDATA'):
-        a.add('NOT VERIFIED','Windows APPDATA not available; no production ledger opened')
-        return
-    path=Path(os.environ['APPDATA'])/'CoinCatV70'/'CoinCat_Live_Orders.sqlite3'
+    sys.path.insert(0,str(APP))
+    from coincat_state_v50 import data_root
+    path=data_root()/'CoinCat_Live_Orders.sqlite3'
     if not path.is_file() or path.is_symlink():
         a.add('NOT VERIFIED','Canonical ledger unavailable; no zero balances/orders inferred')
         return
@@ -127,7 +126,7 @@ def coinbase(a,allow_network=False):
     a.section('EXCHANGE GET HISTORY / PRODUCT EVIDENCE')
     tests(a,['test_v506_capital_integrated'])
     if not allow_network:
-        a.add('NOT VERIFIED','Authenticated Coinbase GET not run; use VERIFY_03_COINBASE_READONLY.bat for explicit opt-in')
+        a.add('NOT VERIFIED','Authenticated Coinbase GET not run; use VERIFY_03_COINBASE.bat for explicit opt-in')
         return
     if os.name!='nt':
         a.add('NOT VERIFIED','DPAPI credential access works only on user Windows system')
@@ -136,7 +135,9 @@ def coinbase(a,allow_network=False):
         a.add('NOT VERIFIED','Authenticated SDK GET requires Python 3.11')
         return
     # Verify existence of existing official app vault before calling load_encrypted.
-    directory=Path(os.environ.get('APPDATA',''))/'CoinCatV70'
+    sys.path.insert(0,str(APP))
+    from coincat_state_v50 import data_root
+    directory=data_root()
     if not (directory/'coinbase_key.dpapi').is_file():
         a.add('NOT VERIFIED','Existing DPAPI vault missing; no secrets requested or created')
         return
@@ -243,10 +244,10 @@ def main(argv=None):
     ns=p.parse_args(argv)
     if ns.authorize_readonly_network and ns.gate!='coinbase':
         p.error('Network opt-in is allowed ONLY for the dedicated Coinbase read-only gate')
-    if ROOT.name.lower()!='coincat_v70' or not (ROOT/'SHA256_MANIFEST_V60.json').is_file():
+    if not (ROOT/'SHA256_MANIFEST.json').is_file() or not (APP/'coincat_launcher.py').is_file():
         print('BLOCKED: invalid source root',flush=True);return 2
     a=Audit()
-    a.add('INFO','v70 Codex baseline source verification; ALL trading order POST remains blocked')
+    a.add('INFO','Self-contained source verification; ALL trading order POST remains blocked')
     if ns.gate=='all':
         offline(a)
         gpu(a)

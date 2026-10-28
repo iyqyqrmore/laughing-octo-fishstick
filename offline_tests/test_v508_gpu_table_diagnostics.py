@@ -52,7 +52,7 @@ class DiagnosticsTests(unittest.TestCase):
     def test_source_launcher_verifies_before_private_data_access(self):
         from pathlib import Path
         root=Path(__file__).resolve().parents[1]
-        launch=(root/'app/coincat_v60_launcher.py').read_text()
+        launch=(root/'app/coincat_launcher.py').read_text()
         self.assertLess(launch.index("if len(sys.argv)==2"), launch.index("if not ensure_private_data():return 2"))
         self.assertFalse((root/'build_windows').exists())
 

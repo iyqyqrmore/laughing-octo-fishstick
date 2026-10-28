@@ -6,7 +6,7 @@ Moving legacy records is unsafe without a full copy and SQLite validation.
 from __future__ import annotations
 
 import argparse
-from contextlib import contextmanager, closing
+from contextlib import contextmanager, closing, ExitStack
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -16,11 +16,11 @@ import shutil
 import sqlite3
 import tempfile
 
-NEW_NAME = 'CoinCatV70'
+NEW_NAME = 'private_data'
 LEGACY_NAME = 'CoinCatV40'
 MARKER = '.coincat_v60_state_ready.json'
 LEDGER = 'CoinCat_Live_Orders.sqlite3'
-SKIP_NAMES = {'coincat_v30_instance.lock', 'coincat_v40_instance.lock', 'coincat_v50_instance.lock', 'coincat_v60_instance.lock'}
+SKIP_NAMES = {'coincat_instance.lock', 'coincat_v30_instance.lock', 'coincat_v40_instance.lock', 'coincat_v50_instance.lock', 'coincat_v60_instance.lock', 'coincat_v70_instance.lock', '.coincat_import_receipt.json'}
 SKIP_SUFFIXES = ('-wal', '-shm', '-journal')
 SQLITE_SUFFIXES = ('.sqlite', '.sqlite3', '.db')
 
@@ -33,7 +33,7 @@ def appdata() -> Path:
 
 
 def data_root() -> Path:
-    return Path(os.environ.get('COINCAT_DATA_DIR') or appdata() / NEW_NAME)
+    return Path(os.environ.get('COINCAT_DATA_DIR') or Path(__file__).resolve().parents[1] / NEW_NAME).expanduser().absolute()
 
 
 def state_status(root=None):
@@ -41,11 +41,11 @@ def state_status(root=None):
     root = Path(root) if root is not None else data_root()
     marker = root / MARKER
     if not marker.is_file() or marker.is_symlink():
-        raise StateError(f'CoinCat v70 verified state missing at {root}. Use the first-start migration screen to copy verified PRIVATE data or choose a complete backup. No ledger was created.')
+        raise StateError(f'CoinCat verified state missing at {root}. Use 04_IMPORT_PRIVATE_DATA.bat to copy verified PRIVATE data or a complete backup. No ledger was created.')
     try:
         m = json.loads(marker.read_text(encoding='utf-8'))
     except (OSError, ValueError) as exc:
-        raise StateError('CoinCat v70 legacy-compatible state marker is invalid; stop and verify your separate PRIVATE backup.') from exc
+        raise StateError('CoinCat legacy-compatible state marker is invalid; stop and verify your separate PRIVATE backup.') from exc
     if m.get('format') != 'coincat-v60-state-v1' or m.get('source') not in ('legacy-copy', 'private-backup-copy', 'explicit-fresh', 'verified-existing'):
         raise StateError('Unknown CoinCat state migration marker; live startup blocked.')
     if not (root / LEDGER).is_file() or (root / LEDGER).is_symlink():
@@ -71,6 +71,20 @@ def _file_sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def _is_sqlite_database(path):
+    if path.suffix.lower() in SQLITE_SUFFIXES:return True
+    with path.open('rb') as stream:return stream.read(16)==b'SQLite format 3\x00'
+
+
+def _is_sqlite_sidecar(path):
+    for suffix in SKIP_SUFFIXES:
+        if path.name.lower().endswith(suffix):
+            database=path.with_name(path.name[:-len(suffix)])
+            _reject_link(database)
+            return database.is_file() and _is_sqlite_database(database)
+    return False
+
+
 def _sqlite_snapshot(src: Path, dst: Path):
     """SQLite online backup for coherent copies; source remains read-only."""
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -81,42 +95,42 @@ def _sqlite_snapshot(src: Path, dst: Path):
                 raise StateError(f'Copied SQLite database failed integrity_check: {src.name}')
 
 
+def _reject_link(path):
+    """Reject symlinks and Windows junction/reparse entries, including parents."""
+    path=Path(path).absolute()
+    for item in (path,)+tuple(path.parents):
+        if item.is_symlink() or (item.exists() and getattr(item.lstat(),'st_file_attributes',0)&0x400):
+            raise StateError('Symlink/junction path is not a supported private-data location.')
+
+
+def _walk_error(error):
+    raise StateError('Cannot read the complete private-data tree; no partial copy allowed.') from error
+
+
 @contextmanager
 def _source_guard(root: Path):
-    """Non-mutating cooperative lock probe if an old CoinCat lock exists.
-
-    If the lock does not exist, the user MUST still close all programs; the
-    migration itself does not create/modify files under its source directory.
-    """
-    lock = next((root / n for n in ('coincat_v50_instance.lock','coincat_v40_instance.lock','coincat_v30_instance.lock') if (root/n).exists()), root/'coincat_v60_instance.lock')
-    if not lock.exists():
+    """Probe EVERY existing historical/current lock without changing its bytes."""
+    with ExitStack() as stack:
+        for name in sorted(n for n in SKIP_NAMES if n.endswith('.lock')):
+            lock=root/name
+            if not lock.exists() and not lock.is_symlink():continue
+            _reject_link(lock)
+            if not lock.is_file():raise StateError('Invalid source lock entry.')
+            try:
+                handle=stack.enter_context(lock.open('r+b'))
+                if os.name=='nt':
+                    import msvcrt
+                    handle.seek(0);msvcrt.locking(handle.fileno(),msvcrt.LK_NBLCK,1)
+                    def unlock(h=handle):
+                        h.seek(0);msvcrt.locking(h.fileno(),msvcrt.LK_UNLCK,1)
+                else:
+                    import fcntl
+                    fcntl.flock(handle.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
+                    def unlock(h=handle):fcntl.flock(h.fileno(),fcntl.LOCK_UN)
+                stack.callback(unlock)
+            except (OSError,BlockingIOError) as exc:
+                raise StateError('Close every CoinCat version before copying or retiring a data folder.') from exc
         yield
-        return
-    if lock.is_symlink() or not lock.is_file():
-        raise StateError('Unexpected or symlinked CoinCat source lock; blocked.')
-    try:
-        handle = lock.open('r+b')
-    except OSError as exc:
-        raise StateError('Unable to check CoinCat source lock; close all CoinCat windows.') from exc
-    with handle:
-        try:
-            if os.name == 'nt':
-                import msvcrt
-                handle.seek(0)
-                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except (OSError, BlockingIOError) as exc:
-            raise StateError('Another CoinCat process may hold the source ledger lock; close all CoinCat windows.') from exc
-        try:
-            yield
-        finally:
-            if os.name == 'nt':
-                handle.seek(0)
-                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def migrate(source: Path, destination: Path | None = None):
@@ -125,11 +139,13 @@ def migrate(source: Path, destination: Path | None = None):
     Source and destination are not deleted or overwritten on any failure.
     """
     raw_src = Path(source).expanduser()
+    _reject_link(raw_src)
     if raw_src.is_symlink():
         raise StateError('Source directory is a symlink; refusing migration.')
     src = raw_src.resolve()
     dst = Path(destination) if destination is not None else data_root()
     dst = dst.expanduser().absolute()
+    _reject_link(dst)
     if not src.is_dir() or src.is_symlink():
         raise StateError('Source folder not found or is a symlink. Provide a COMPLETE private CoinCat data backup; no old program installation is required.')
     if src == dst or src in dst.parents or dst in src.parents:
@@ -148,28 +164,30 @@ def migrate(source: Path, destination: Path | None = None):
         raise StateError(f'Financial ledger {LEDGER} not found in source. No partial/empty migration allowed.')
     if dst.exists():
         if dst.is_symlink() or any(dst.iterdir()):
-            raise StateError('Destination CoinCatV70 already contains data. REFUSING overwrite or merge; inspect existing v40 state before proceeding.')
+            raise StateError('Destination already contains data. REFUSING overwrite or merge; preserve and review it first.')
     dst.parent.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix='CoinCatV70_Migration_', dir=str(dst.parent)))
+    staging = Path(tempfile.mkdtemp(prefix='CoinCat_Data_Copy_', dir=str(dst.parent)))
     published = False
     count = 0
     try:
         with _source_guard(src):
-            for base, dirs, files in os.walk(src, followlinks=False):
+            for base, dirs, files in os.walk(src, followlinks=False, onerror=_walk_error):
                 here = Path(base)
                 for dirname in dirs:
+                    _reject_link(here / dirname)
                     if (here / dirname).is_symlink():
                         raise StateError('Symlink directory in source; migration blocked.')
                 rel = here.relative_to(src)
                 (staging / rel).mkdir(parents=True, exist_ok=True)
                 for filename in files:
                     srcfile = here / filename
+                    _reject_link(srcfile)
                     if srcfile.is_symlink():
                         raise StateError('Symlink file in source; migration blocked.')
-                    if filename in SKIP_NAMES or filename.lower().endswith(SKIP_SUFFIXES) or filename in (MARKER, '.coincat_v40_state_ready.json', '.coincat_v50_state_ready.json'):
+                    if filename in SKIP_NAMES or _is_sqlite_sidecar(srcfile) or filename in (MARKER, '.coincat_v40_state_ready.json', '.coincat_v50_state_ready.json'):
                         continue
                     target = staging / rel / filename
-                    if srcfile.suffix.lower() in SQLITE_SUFFIXES:
+                    if _is_sqlite_database(srcfile):
                         _sqlite_snapshot(srcfile, target)
                     elif srcfile.is_file():
                         shutil.copy2(srcfile, target)

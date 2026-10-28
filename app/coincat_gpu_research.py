@@ -119,5 +119,6 @@ def train_observe_only(db_path,output_folder,minimum=240,epochs=45):
     return result
 
 if __name__=='__main__':
-    base=Path(os.environ.get('COINCAT_DATA_DIR') or Path(os.environ.get('APPDATA') or Path.home())/'CoinCatV70')
+    from coincat_state_v50 import data_root
+    base=data_root()
     print(json.dumps(train_observe_only(base/'research_data'/'CoinCat_Forward_Market.sqlite3',base/'gpu_research'),indent=2))

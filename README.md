@@ -1,13 +1,42 @@
-# CoinCat v70.1.1 — Shadow Valuation Fix
+# CoinCat v70.2 — one self-contained folder
 
-**DO NOT ENABLE LIVE ORDER POST.** CoinCat's Coinbase all-spot broker is intentionally blocked because cross-currency financial settlement, fail-closed loss floor and crash recovery are not production certified. The project remains a source-only Windows Python 3.11 application.
+Read [START_HERE.md](START_HERE.md). Use one permanent main folder named `CoinCat`.
+The app, databases, encrypted credential vault, tax files and verified private
+backups no longer depend on older program or AppData folders after import.
 
-- Optional CPU-only setup (no CUDA requirement): `02_SETUP_COINCAT_V70_CPU.bat`
-- Start: [`START_HERE_V70.md`](START_HERE_V70.md)
-- Full engineering history and observed results: [`CODEX_HANDOFF_V70.md`](CODEX_HANDOFF_V70.md)
-- Agent safeguards: [`AGENTS.md`](AGENTS.md)
-- Suggested first Codex prompt: [`CODEX_FIRST_TASK.md`](CODEX_FIRST_TASK.md)
-- Verify on Windows: `03_VERIFY_COINCAT_V70.bat`
-- User-private state: `%APPDATA%\CoinCatV70`, **separate from** pre-existing `%APPDATA%\CoinCatV60`; first copy requires user approval.
+```text
+CoinCat/
+  01_START_COINCAT.bat
+  02_SETUP_COINCAT.bat
+  02_SETUP_COINCAT_CPU.bat
+  03_VERIFY_COINCAT.bat
+  04_IMPORT_PRIVATE_DATA.bat
+  05_CHECK_CLEANUP.bat
+  app/
+  private_data/       active databases, settings, encrypted vault and tax files
+  private_backups/    verified independent snapshots — keep these
+  .venv/             this installation's Python environment
+  tools/             optional debugging, GPU and read-only verification tools
+  docs/history/      historical release notes, not current setup instructions
+```
 
-The v70.1.1 hotfix corrects shadow startup valuation and provides specific blocker messages; see [PATCH_NOTES_V70_1_1.md](PATCH_NOTES_V70_1_1.md). The v70.1 patch prioritizes urgent shadow checks over background research and corrects quote freshness and complete-wallet mark acquisition. See [PATCH_NOTES_V70_1.md](PATCH_NOTES_V70_1.md) for changes, offline results and remaining limits. Historical V60 module names and release-verifier filenames remain for compatibility. Never place or retrieve API credentials or live private ledger files in a Codex repository.
+`private_data` and `private_backups` are created on your PC. Neither is included in
+source ZIPs, Git commits or cloud tests. Source verification uses a disposable
+test directory and never migrates private data.
+
+Run setup and verification, then explicitly import your current complete private
+data once. Run the cleanup checker on each old folder before deleting it manually.
+An old source-only folder can be retired; an old private-data folder requires a
+verified copy and backup. Unknown/modified files block an eligibility result.
+Nothing in CoinCat deletes old folders.
+
+Financial schemas, lot IDs, original tax basis and unknown-basis flags remain
+unchanged. Internal compatibility module/database names remain intentionally;
+they do not require an older installation. All visible launchers are versionless.
+
+**LIVE order POST remains unconditionally BLOCKED.** This is a Windows Python
+3.11 shadow/research application. Offline tests and an import receipt do not
+authorize trading or establish profitability.
+
+See [PATCH_NOTES.md](PATCH_NOTES.md), [VERIFICATION.txt](VERIFICATION.txt) and
+[AGENTS.md](AGENTS.md) for current requirements and evidence.

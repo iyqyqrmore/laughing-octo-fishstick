@@ -107,7 +107,8 @@ def key_permission_text(permissions: dict) -> str:
 
 
 def encrypted_key_path() -> Path:
-    folder=Path(os.environ.get('COINCAT_DATA_DIR') or (Path(os.environ.get('APPDATA') or Path.home()) / 'CoinCatV70'))
+    from coincat_state_v50 import data_root
+    folder=data_root()
     folder.mkdir(parents=True, exist_ok=True)
     return folder / 'coinbase_key.dpapi'
 

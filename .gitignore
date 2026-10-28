@@ -24,3 +24,9 @@ tax_exports/
 *.zip
 .pytest_cache/
 .coverage
+
+private_data/
+private_backups/
+.coincat-import-*/
+verification_reports/
+*.lnk

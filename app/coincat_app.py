@@ -1027,13 +1027,10 @@ class CoinCatApp:
         self._refresh_trees()
 
     def _show_uninstall_options(self):
-        """Source distribution has no Windows installer or uninstaller."""
-        messagebox.showinfo('About CoinCat v60 source edition',
-            'CoinCat v60 runs from source and uses its private .venv.\n\n'
-            'Your private credentials, research and financial ledgers live separately at '
-            '%APPDATA%\\CoinCatV70.\n\n'
-            'Do NOT delete this private data when removing an old program folder. '
-            'Back it up and verify it first. No uninstall action is provided.')
+        messagebox.showinfo('CoinCat folders and data',
+            'This installation is self-contained. Active private data:\n'+str(ROOT)+
+            '\n\nKeep private_data and private_backups. Run 05_CHECK_CLEANUP.bat before '
+            'manually removing an old folder. No folder is deleted by this app.')
 
     def _show_hobby_notice(self):
         """Information only; no acknowledgment gate; never controls trading."""

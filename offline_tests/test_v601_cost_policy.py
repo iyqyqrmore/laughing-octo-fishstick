@@ -63,5 +63,5 @@ class TestV601CostPolicy(unittest.TestCase):
         self.assertIn('diagnostic_export_progress',app)
         self.assertNotIn('self.diagnostics_led=tk.Canvas',app)
         self.assertTrue((root/'app/coincat_v601_silent.py').is_file())
-        self.assertIn('pythonw.exe',(root/'tools/CREATE_SHORTCUTS_V60.ps1').read_text())
-        self.assertIn('POST remains BLOCKED', (root/'START_HERE_V60.md').read_text())
+        self.assertIn('pythonw.exe',(root/'tools/CREATE_SHORTCUTS.ps1').read_text())
+        self.assertIn('POST remains BLOCKED', (root/'START_HERE.md').read_text())
