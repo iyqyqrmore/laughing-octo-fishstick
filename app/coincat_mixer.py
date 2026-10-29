@@ -44,6 +44,7 @@ class Fader(ttk.Frame):
         self.text = tk.StringVar(value=str(self.value))
         self.marker = tk.StringVar()
         self.error = tk.StringVar()
+        self.error_label = None
         ttk.Label(self, text=spec.label, font=('Segoe UI', 9, 'bold')).pack()
         units=ttk.Frame(self,height=36,width=155)
         units.pack();units.pack_propagate(False)
@@ -63,7 +64,7 @@ class Fader(ttk.Frame):
         ttk.Label(self, textvariable=self.marker, wraplength=150).pack(pady=(3, 0))
         ttk.Label(self, text=f'Range {spec.minimum} to {spec.maximum}', wraplength=150).pack()
         ttk.Button(self, text='Reset', command=lambda: self.set(spec.default), takefocus=True).pack(pady=3)
-        ttk.Label(self, textvariable=self.error, foreground='#a34d00', wraplength=150).pack()
+        self.error_label = ttk.Label(self, textvariable=self.error, foreground='#a34d00', wraplength=150)
         self._tip = None
         for widget in (self.scale, self.entry):
             widget.bind('<Enter>', self._show_tip)
@@ -85,6 +86,8 @@ class Fader(ttk.Frame):
         self.text.set(str(value))
         self._syncing = False
         self.error.set('')
+        if self.error_label is not None:
+            self.error_label.pack_forget()
         self._mark()
         self.on_change()
 
@@ -100,6 +103,7 @@ class Fader(ttk.Frame):
             self.set(self.text.get())
         except (ValueError, ArithmeticError):
             self.error.set('Invalid: enter a finite value in range. Previous value retained.')
+            self.error_label.pack()
             return 'break'
 
     def _step(self, direction):

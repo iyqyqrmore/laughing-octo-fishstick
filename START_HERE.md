@@ -6,6 +6,9 @@ reserve/reference values are proposed and RAM-only; they do not earmark funds.
 No keys or production data are needed for its synthetic tests. The v91 test
 count below describes the original release; the development count is recorded
 in ETH_DESIGN_VERIFICATION.md. Keep your working Windows installation separate.
+For the subsequent quote-scheduling patch and its evidence limits, also read
+docs/QUOTE_COVERAGE.md. Current and historical coverage counts are distinct;
+the old release's test count below is not the current development-suite count.
 
 1. Extract into a separate new source folder. Preserve your working installation,
    private_data and private_backups. Do not overlay a running app or share one

@@ -256,9 +256,15 @@ class CoinCatApp:
             self.best_text.set(f'{best["source"]} -> {best["target"]} via {best["pair"]} {best["side"]}: modeled immediate advantage ${best["w"]:+.8f}')
             self.cost_text.set(f'Estimated fee ${best["estimated_fee_usd"]:.6f} | spread {best["spread_pct"]:.4f}% | modeled slippage reserve {best["slippage_reserve_pct"]}% | depth impact UNKNOWN | actual execution NOT MEASURED')
         else:
-            self.best_text.set('HOLD - no positive full-balance immediate estimate among currently priced routes.' if result['ranked'] else 'Waiting - '+result['reason'])
+            self.best_text.set(
+                f'HOLD - no positive estimate among {result["priced_directions"]}/{result["eligible_directions"]} currently priced directions. Unpriced directions remain UNKNOWN.'
+                if result['ranked'] else 'Waiting - '+result['reason']+'; unpriced directions remain UNKNOWN.')
             self.cost_text.set('Depth impact UNKNOWN | actual execution NOT MEASURED | prices and account fee tier are estimates, not fill evidence')
-        self.coverage_text.set(f'{result["priced_directions"]}/{result["eligible_directions"]} eligible directions priced; {result["positive_directions"]} positive. Best means best among these current estimates. Unpriced reasons: {result["blockers"]}')
+        history=result.get('coverage_history',{})
+        conditions='; '.join(f'{key.lower()} {value}' for key,value in sorted(result.get('book_conditions',{}).items()))
+        self.coverage_text.set(f'Now priced {result["priced_directions"]}/{result["eligible_directions"]}, {result["positive_directions"]} positive | '
+            f'5 min {history.get("last_5min_priced_directions","UNKNOWN")} | session {history.get("session_priced_directions","UNKNOWN")} '
+            f'(historical, not fresh coverage). Books: {conditions or "UNKNOWN"}. Frame/product rejections are detailed in diagnostics.')
         self.status.set(f'Scan {result["scan"]} | full available sizing | no portfolio spending cap | AI Lab passive | no orders')
 
     def _note(self,text):

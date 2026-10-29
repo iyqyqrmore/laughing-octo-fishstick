@@ -6,6 +6,10 @@ the proposed reserve mixer and passive settings advisor. USD ranking and
 trading blocks are preserved. No financial policy is applied, no funds are
 reserved and no earned ETH is inferred. This is not a numbered v92 release.
 
+The [quote coverage follow-up](docs/QUOTE_COVERAGE.md) fills the existing request
+budget, schedules due research endpoints and reports current versus historical
+coverage. Incomplete coverage never means the whole market has no opportunity.
+
 One policy: rank eligible direct swaps by their greatest positive immediate
 after-cost USD wallet advantage versus holding. Each proposal uses the full
 verified AVAILABLE source balance, with modeled fees and exchange rounding

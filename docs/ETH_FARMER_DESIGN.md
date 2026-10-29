@@ -119,3 +119,8 @@ auto-ARM or live qualification is authorized by this design or passing tests.
 
 See ETH_DESIGN_VERIFICATION.md for current commands/evidence. Historical v91 release
 verification remains in VERIFICATION.txt and is not relabeled as this increment.
+
+The subsequent scheduling/coverage update is documented in QUOTE_COVERAGE.md.
+It preserves this ETH measurement policy and proposed reserve semantics while
+using the existing GET budget more fully, scheduling due fixed-path observations
+and suppressing cadence advice when coverage evidence is incomplete.

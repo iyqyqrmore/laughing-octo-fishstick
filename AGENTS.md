@@ -15,6 +15,11 @@ mixer controls cannot relax hard guards; passive advisor text has no settings,
 decision or execution authority. Preserve all eight diagnostic coverage themes
 and redact ETH/native quantities. This is a development preview, not a v92
 release. Preserve v91 history; do not commit or push unless the user asks.
+Read docs/QUOTE_COVERAGE.md for the subsequent bounded scheduling update. Keep
+the 16-GET collection cap, 0.2s GET spacing, server backoff, 30s quote age and
+12s frame span. Research gets at most six of those slots; it has no strategy
+authority. Historical coverage is not fresh coverage. Fixed-path future
+observations need post-horizon quotes; missing endpoints never become losses.
 
 ## v91 policy and safeguards
 

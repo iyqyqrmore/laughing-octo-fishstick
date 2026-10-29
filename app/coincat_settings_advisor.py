@@ -13,6 +13,14 @@ def settings_advice(result, *, scan_interval_s=Decimal(5)):
     current = exact(scan_interval_s)
     if not Decimal(5) <= current <= Decimal(60):
         raise ValueError('SCAN_INTERVAL_OUT_OF_BOUNDS')
+    eligible=result.get('eligible_directions',0)
+    priced=result.get('priced_directions',0)
+    if isinstance(eligible,int) and isinstance(priced,int) and 0<=priced<eligible:
+        return (f'INSUFFICIENT | Measured latest coverage: {priced}/{eligible} directions priced. '
+                'Best/HOLD applies only to these estimates; unpriced directions remain unknown. '
+                f'Scan interval is {current} s. No faster cadence or looser freshness is justified by this count alone. '
+                +DEFAULT_NOTE+' Check quote scheduling, never-observed/stale/wide books and missed endpoints first. '
+                'Manual decision only / no setting changed.')
     elapsed = result.get('fetch_ms')
     try:
         latency = Decimal(str(elapsed)) / 1000

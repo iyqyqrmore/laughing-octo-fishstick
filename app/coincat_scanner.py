@@ -1,10 +1,13 @@
 """Read-only account/market scanner for the full-balance decision policy."""
 import time
 from copy import deepcopy
+from collections import Counter
 from decimal import Decimal
 from coincat_live import LiveBroker
 from coincat_full_balance import rank_full_balances
-from coincat_v80_discovery import select_books
+from coincat_v80_discovery import select_books, book_status
+from coincat_v701_quotes import valid_book
+from coincat_v703_chain import approved_pairs
 from coincat_v701_transport import SCOUT, fetch_snapshot
 from coincat_passive_lab import PassiveLab
 
@@ -19,6 +22,7 @@ class Scanner:
         self.catalog=[];self.rules={};self.balances={};self.books={}
         self.account_at=None;self.catalog_at=None;self.cursor=0
         self.lab=PassiveLab();self.last_result=None;self.sequence=0
+        self.observed_books={};self.priced_at={}
 
     def refresh(self, *, now=None):
         fixed_now=now
@@ -41,14 +45,22 @@ class Scanner:
         if cancel is not None and cancel.is_set():return {'state':'CANCELLED'}
         excluded={row['asset'] for row in self.ledger.assets() if not row.get('enabled',1)}
         funding={asset for asset,qty in self.balances.items() if qty>0 and asset not in excluded}
-        plan=select_books(self.catalog,self.rules,funding,quotes=self.books,now=now,cursor=self.cursor)
+        listed=approved_pairs(self.catalog,self.rules,excluded)
+        due=self.lab.quote_groups(now=now,listed=listed)
+        plan=select_books(self.catalog,self.rules,funding,quotes=self.books,now=now,
+            cursor=self.cursor,excluded=excluded,priority_groups=due)
         snapshots,errors,elapsed=(SCOUT.collect if collect is None else collect)(plan['books'],fetch=fetch_snapshot)
         if cancel is not None and cancel.is_set():return {'state':'CANCELLED'}
         now=time.time() if fixed_now is None else now
         self.cursor=plan['next_route_cursor']
         incoming={pair:item.book() for pair,item in snapshots.items()}
-        self.books.update(incoming)
-        self.books={pair:book for pair,book in self.books.items() if 0<=now-book[2]<=30}
+        self.observed_books.update(incoming)
+        catalog_set=set(self.catalog)
+        # Remember the last public observation for diagnosis, never for stale
+        # pricing. Both caches remain bounded by the current catalog.
+        self.observed_books={p:b for p,b in self.observed_books.items() if p in catalog_set}
+        self.books={p:b for p,raw in self.observed_books.items()
+                    if (b:=valid_book(raw,now,30)) is not None}
         recorded=self.market_store.record_quotes([(p,b[2],b[0],b[1],'COINBASE_PUBLIC_REST_BEST_BID_ASK') for p,b in incoming.items()])
         tier=self.fees.latest_tier(now=now)
         self.sequence+=1
@@ -59,13 +71,28 @@ class Scanner:
             fee_rate=tier.get('taker') if tier.get('fresh') else None,
             portfolio_limits='NONE_FULL_AVAILABLE',orders_submitted=0,
             execution='BLOCKED_PENDING_DURABLE_ORDER_FILL_RECOVERY')
+        eligible={(p,s) for p,s,source,target in plan['eligible_directions']}
+        self.priced_at={d:t for d,t in self.priced_at.items() if d in eligible and t<=now}
+        for row in result['ranked']:
+            self.priced_at[(row['pair'],row['side'])]=now
+        result['coverage_complete']=bool(eligible) and result['priced_directions']==len(eligible)
+        result['result_scope']='CURRENTLY_PRICED_DIRECTIONS_ONLY'
+        result['book_conditions']=dict(Counter(book_status(self.observed_books.get(p),now)
+            for p,s in eligible))
+        result['coverage_history']={'session_priced_directions':len(self.priced_at),
+            'last_5min_priced_directions':sum(0<=now-t<=300 for t in self.priced_at.values()),
+            'scope':'CURRENT_ELIGIBLE_UNIVERSE; HISTORICAL_COUNTS_ARE_NOT_FRESH_QUOTES'}
+        result['quote_scheduling']={'request_limit':16,'requested_books':len(plan['books']),
+            'selected_directions':plan['selected_directions'],
+            **{k:plan[k] for k in ('cached_reused_books','request_budget_deferred',
+                'missing_independent_paths','endpoint_requests','endpoint_groups_scheduled',
+                'endpoint_groups_deferred','endpoint_groups_unavailable')}}
         # Freeze read-only inputs so later GUI settings/STOP cannot combine
         # account quantities from one scan with books from a different scan.
         result['eth_observation'] = dict(balances=dict(self.balances),
             catalog=tuple(self.catalog), rules=deepcopy(self.rules),
             quotes=dict(self.books), now=now, balances_at=self.account_at,
             fee_rate=result['fee_rate'], excluded=tuple(sorted(excluded)))
-        from coincat_v80_immediate import _prepare
-        result['lab_note']=self.lab.observe(result,_prepare(self.books,self.rules,now)['books'],now=now)
+        result['lab_note']=self.lab.observe(result,self.observed_books,now=now)
         self.last_result=result
         return result
