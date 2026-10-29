@@ -1,3 +1,3 @@
-"""CoinCat source release identity; older module IDs preserve financial DB compatibility."""
-VERSION = "90.1"
+"""CoinCat full-balance immediate scanner release identity."""
+VERSION = "91.0"
 DISPLAY = "CoinCat v" + VERSION

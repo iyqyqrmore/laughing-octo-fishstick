@@ -247,13 +247,10 @@ class PortablePaths(unittest.TestCase):
         with patch.dict(os.environ,{},clear=True):self.assertEqual(data_root(),ROOT/'private_data')
         with TemporaryDirectory() as d,patch.dict(os.environ,{'COINCAT_DATA_DIR':d}):self.assertEqual(data_root(),Path(d))
 
-    def test_vault_and_gpu_use_shared_root_without_old_appdata(self):
+    def test_vault_uses_shared_root_without_old_appdata(self):
         from coinbase_account import encrypted_key_path
         with TemporaryDirectory() as d,patch.dict(os.environ,{'COINCAT_DATA_DIR':d}):
             self.assertEqual(encrypted_key_path(),Path(d)/'coinbase_key.dpapi')
-        gpu=(ROOT/'app/coincat_gpu_research.py').read_text()
-        self.assertIn('base=data_root()',gpu)
-        self.assertNotIn("/'CoinCatV70'",gpu)
 
     def test_no_versioned_launchers_or_old_data_targets(self):
         root_bats=list(ROOT.glob('*.bat'))

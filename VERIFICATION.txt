@@ -1,26 +1,27 @@
-CoinCat v90.1 — reporting patch, October 29, 2026
+CoinCat v91.0 — simplified full-balance scanner, October 29, 2026
 
-Baseline b32a539c29bb5b1b9e8ffb61e25c5cc7f5340597, including earlier queued-rejection audit.
-Python 3.11.17; unchanged hash-locked CPU dependencies; 25 compatible installed packages.
-Release checks: 449 distinct offline tests, HTTP forbidden during discovery/execution;
-actual Tk GUI with CoinCat v90.1 title and default DISARMED; complete 18/18 diagnostic
-sections; Python AST parsing; source hashes; ZIP CRC and byte equality; independent ZIP SHA-256.
-The final archive is tested from an extracted source folder.
+Base: daeff92135fba3d877cf74dcacb3eb6f6ce35ac8 (v90.1).
+Python 3.11.17, fresh isolated environment with 12 hash-locked runtime packages.
+All remaining package versions match the prior lock. No plotting/GPU libraries
+or external bot strategies are required.
 
-New regressions exercise repeated directions versus repeated events, no-receipt and
-unpriced distinctions, mixed-size route outcomes, selection/eligibility churn,
-window expiration/truncation, cycle linkage, cumulative reconciliation, STOP retention,
-re-arm reset, freshness snapshots and unchanged no-order behavior.
-A complete frame means modeled W/L pricing, not verified depth/fees or execution.
-Coverage is app-lifetime urgent research, independent of Experimental ARM. It is RAM-only;
-removing an eligible direction drops its row, and re-entry starts a new interval.
-No durable candidate history or retrospective reconstruction is claimed.
+Current validation: 72 distinct offline unittest cases with HTTP forbidden
+through discovery/execution; real Tk GUI exercises the complete synthetic
+account-to-pricing-to-display path, STOP/late-result handling and eight-section
+read-only diagnostics. Fresh-data/backup/no-overwrite and offline Ed25519/ECDSA
+SDK signing tests remain, alongside native quantity/replay/rollback, fee-once,
+full-size min/max/dust, tiny positive gain and consistent HOLD valuation cases.
+The final source archive is independently extracted and tested; source hashes,
+Python syntax, ZIP CRC/byte equality and an independent ZIP checksum are checked.
 
-Protected production broker/FIFO/state/importer and dependency lock bytes match baseline.
-LIVE submission remains unconditionally blocked. No private data, keys, account calls or
-real orders were used. Windows batch/DPAPI, connected account behavior, exchange fills,
-production settlement/recovery, profitability and optional GPU behavior remain untested.
+The prior release's 449 cases included retired shadow/GPU/old-dashboard modes.
+They are not claimed as current v91 validation. See RETIRED_COMPONENTS.md for the
+explicit removal list and retained tests; old source remains in Git history.
+Protected production broker, FIFO, state, importer and lots match v90.1 bytes.
+Dependency declarations/lock intentionally changed to remove unused libraries.
 
-Use a separate extracted folder and preserve current private_data/private_backups.
-Run 02_SETUP_COINCAT.bat then 03_VERIFY_COINCAT.bat on Windows. Fresh permanent data
-still requires explicit confirmation and an empty destination. Do not overlay a running app.
+Limits: no native Windows/DPAPI validation, real private keys, connected account
+calls, exchange fills, live-order settlement/recovery or profitability claims.
+Actual automatic swaps are not implemented. The unconditional production broker
+block remains and the new app has no order/preview adapter or mock ARM button.
+Current private_data/private_backups, tax basis and financial schemas remain.

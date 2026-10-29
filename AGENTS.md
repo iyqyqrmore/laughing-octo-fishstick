@@ -1,20 +1,44 @@
-# Codex instructions — CoinCat v90.1
+# Codex instructions — CoinCat v91.0
 
-Read START_HERE.md, DECISION_CHAIN_REVIEW.md and docs/STRATEGY_AND_EVIDENCE.md. Current source is self-contained; historical module names are compatibility identifiers, not older-folder dependencies. Use the existing checkout, not worktrees unless the user asks.
+Read START_HERE.md, DECISION_CHAIN_REVIEW.md and docs/BUILD_V91.md. Use the
+existing isolated checkout; create no worktree unless the user requests one.
 
-## Nonnegotiable boundaries
+The owner selected ranking #2: greatest positive immediate after-cost USD wallet
+advantage versus HOLD. Evaluate one FULL verified available source amount per
+eligible listed direction. No portfolio spending cap, fractional fit search,
+absolute dollar profit floor, forecast gate, shadow wallet or experiment mode.
+The comparable hypothetical liquidation calculation is not this policy's gate.
 
-- LiveBroker.submit must begin with unconditional LiveBlocked. Never enable LIVE, auto-ARM, order creation/edit/cancel, transfers or new authenticated preview traffic under Milestone A.
-- Preserve app/coincat_live.py, app/coincat_unified_fifo_v501.py, app/coincat_state_v50.py and app/coincat_data_transfer.py unless explicitly authorized otherwise. No private record, credential, schema, lot ID, risk-setting or tax-basis mutation for a source patch.
-- One canonical market store, planner and native receipt calculation. Exact Decimal amounts, source availability, exclusions, product rules, fee-once accounting, deadlines/backoff and synchronization remain binding.
-- Primary v90 uses StrictImmediateShadow. W>0 AND L>0, no Experimental dollar floor, no momentum/history prerequisite and no forward appreciation as immediate profit. Archived v70 advisory models must never authorize primary movement.
-- Positive unverified estimates remain visible. Missing depth, fee currency, preview evidence or pricing is not an economic loss. No live-observation strict qualification until separately scoped connected adapters are completed and verified.
-- Synthetic strict evidence is only for explicit offline harnesses. Normal UI cannot accept it. Qualified model does not mean fill or profit. Preserve manual ARM/STOP and the separate Validated track.
-- Partial opening marks are Experimental-only; preserve all native quantities and unknown marks. Full-wallet P&L remains unverified until complete synchronized prices. Never impute a missing price as zero.
-- Fresh v90 setup requires an empty destination and explicit confirmation; never overwrite, reset or silently import an old dataset/vault. Default data is current-installation/private_data. Keep private_backups. Do not delete old folders automatically.
+Use the existing canonical Decimal receipt and frame. Choose consistent wallet
+mark paths before profitability checks; preserve availability, native units,
+product increments/minima/maxima, exclusions, source residuals, fees once and
+freshness/synchronization. A maximum-size failure skips the whole route; never
+silently fit a smaller order or enlarge a tiny holding to an exchange minimum.
+AI Lab is a passive observer reporting every 180 seconds and has no decision,
+sizing, execution or settings authority. Correlated hypothetical observations
+are not fills or realized profit. Missing evidence remains UNKNOWN.
 
-## Validation and delivery
+LiveBroker.submit must retain its unconditional first-statement LiveBlocked.
+This build lacks a verified execution adapter and durable order/fill recovery;
+never claim the scanner places real swaps or bypass the block elsewhere.
+No cloud-side orders, new authenticated previews, transfers, key requests in
+chat, auto-ARM or running-installation changes. Preserve protected production
+broker/FIFO, state router, importer, lots and financial schemas unless separately
+authorized. Never mutate private financial data, tax basis or enrolled quantities
+for a source patch. Fresh data requires an empty destination and explicit
+confirmation; keep private_backups and preserve old records.
 
-Use Python 3.11, hash-locked dependencies and disposable synthetic data. Forbid HTTP during offline test discovery/execution. Run focused tests then the required full suite and GUI/18-section diagnostics. Report actual counts and limits; do not weaken assertions to pass. Preserve the Snowball UTF-8 label regression.
+Use Python 3.11 and hash-locked dependencies. Forbid HTTP during offline test
+discovery/execution. Validate full-balance policy, passive timing, actual Tk GUI,
+STOP/queued-result behavior, all eight current diagnostic sections, production
+FIFO/quantity/replay/rollback, backup integrity and SDK offline key signing.
+Report real test counts and limitations; do not weaken assertions to pass.
+The retired shadow/GPU/old-dashboard suites are recoverable at v90.1 in Git;
+they are not current v91 validation. Keep UTF-8 exports and renderer-safe readouts tested.
 
-Package source only, with a regenerated SHA256_MANIFEST.json and independent ZIP checksum. Exclude private_data, private_backups, raw user diagnostics, keys, virtual environments, logs and bytecode. Keep current instructions at the root; old source versions remain recoverable in Git history. Never claim connected Windows/DPAPI, exchange execution, fee reconciliation or profit from offline tests.
+Package source only with a regenerated SHA256_MANIFEST.json and independent ZIP
+checksum. Exclude private data/backups, uploaded reports, keys, environments,
+logs and bytecode. Do not claim Windows/DPAPI, connected account behavior,
+exchange execution, fee reconciliation, recovery readiness or profit from
+Linux offline tests. Current required sources and cleanup rationale are in
+docs/BUILD_V91.md and docs/RETIRED_COMPONENTS.md.

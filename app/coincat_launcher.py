@@ -26,12 +26,6 @@ def ensure_private_data():
 
 
 def main():
-    if len(sys.argv)==2 and sys.argv[1]=='--verify-cuda-runtime':
-        try:
-            import torch
-            if not torch.cuda.is_available():return 14
-            return 0 if float(torch.ones(1,device='cuda').cpu()[0])==1.0 else 15
-        except Exception:return 16
     if not ensure_private_data():return 2
     from coincat_app import main as run
     try:

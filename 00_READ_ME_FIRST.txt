@@ -1,18 +1,11 @@
-CoinCat v90.1 — fresh installation
+CoinCat v91.0 — simplified full-balance immediate scanner
 
-1. Extract this complete source build into a NEW folder named CoinCat.
-2. Run 02_SETUP_COINCAT.bat (core CPU research; optional GPU is under tools).
-3. Run 03_VERIFY_COINCAT.bat and require all checks to pass.
-4. Run 04_FIRST_TIME_SETUP.bat, then 01_START_COINCAT.bat.
-5. In the app, choose Import CDP Key JSON and select your new Coinbase key locally.
-   Required permissions: View and Trade; Transfer OFF. Ed25519 and ECDSA
-   signing are covered by offline tests with the pinned Python SDK.
+Read START_HERE.md. Install into a separate source folder and preserve your
+working installation, private_data and private_backups. Use Windows Python 3.11.
+Run 02_SETUP_COINCAT.bat, then 03_VERIFY_COINCAT.bat, then follow the explicit
+fresh-data or verified-copy recovery path before 01_START_COINCAT.bat.
 
-No older folders, credentials or databases are required. No automatic import.
-A new key does not recover old local financial or tax records. Keep a separate
-private backup of old private_data before deleting an older installation.
-The initial v90 backup contains NEW data, not those old records.
-
-Positive modeled estimates remain visible with missing-evidence reasons.
-Connected strict qualification is not available yet. LIVE POST remains blocked.
-Read START_HERE.md for setup, recovery and evidence limits.
+One policy: greatest positive immediate after-cost USD advantage at full
+available source size. No portfolio cap, size fitting or profit floor.
+AI Lab is passive and reports every three minutes. Real swaps are unavailable
+until durable execution/accounting/recovery is integrated. LIVE stays blocked.

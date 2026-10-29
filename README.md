@@ -1,38 +1,22 @@
-# CoinCat v90.1
+# CoinCat v91.0 — full-balance immediate scanner
 
-Includes cycle-linked reporting, cumulative candidate reconciliation and per-direction pricing coverage. See [patch details](docs/V90_1_REPORTING_PATCH.md).
+One policy: rank eligible direct swaps by their greatest positive immediate
+after-cost USD wallet advantage versus holding. Each proposal uses the full
+verified AVAILABLE source balance, with modeled fees and exchange rounding
+inside that balance. There are no portfolio budget controls, fractional size
+trials or $0.10 profit floor. Nonpositive routes remain HOLD.
 
-A clean, self-contained Windows Python 3.11 source build for **Strict Immediate Snowball** research on Coinbase spot markets. LIVE order creation remains unconditionally blocked.
+AI Lab is a passive observer. It reports findings in plain text every three
+minutes and never chooses trades or changes sizing. One screen provides key
+import, connection/refresh, start scanning, STOP and diagnostics, with views
+for available balances, ranked swaps and passive notes.
 
-The portfolio supplies approved available native funding. Fair bounded discovery considers actual directly fundable products without a momentum or eight-quote-history prerequisite. The existing canonical planner computes one-order receipts and residuals, compares immediate wallet value and comparable USD liquidation value, and returns explicit pricing/evidence states.
+**This build does not execute real swaps.** It displays positive estimates as
+unverified and makes no order calls. The production broker remains blocked
+pending durable order/fill accounting, reconciliation and restart recovery.
+The UI says this explicitly and does not offer a mock trading or ARM button.
 
-Both immediate comparisons must be strictly positive. Future-growth studies remain advisory; there is no Experimental dollar minimum. A positive estimate with incomplete depth, fee-currency or preview evidence remains **MODELED_POSITIVE_UNVERIFIED**, visible in AI Lab and the immediate-opportunity details. It cannot post a strict RAM conversion. Missing evidence is not an economic loss.
-
-> Immediate discrepancy discovery, modeled positive-opportunity reporting and strict evidence gating. Live-observation strict qualification is unavailable until candidate-sized depth and candidate-specific fee/preview evidence integrations are completed and verified.
-
-Read [START_HERE.md](START_HERE.md). This release defaults to first-time setup with a new local dataset and a newly selected API key. It does not scan older installation folders or automatically import a vault. Verified data lives inside the current main folder:
-
-```text
-CoinCat/
-  01_START_COINCAT.bat
-  02_SETUP_COINCAT.bat
-  03_VERIFY_COINCAT.bat
-  04_FIRST_TIME_SETUP.bat
-  app/
-  private_data/       created locally; never shipped
-  private_backups/    created locally; keep separately backed up
-  .venv/             created by setup
-  docs/              current v90 requirements and follow-up scope
-  offline_tests/     synthetic tests; no user data or network
-  tools/             optional GPU, debugging and explicit recovery
-```
-
-Keep a private offline backup of old financial, tax and research records before deleting old folders. Fresh v90 does not recreate local history from a new API key. Optional recovery uses the unchanged verified-copy importer under tools; it requires an empty destination and explicit selection and can include the old vault. Normal fresh use needs no old folders.
-
-Current setup needs View and Trade permissions with Transfer disabled. The pinned SDK supports Ed25519 and ECDSA signing in offline tests; actual account authentication remains a PC-side check. Import the key JSON locally, never into chat or GitHub.
-
-Experimental startup preserves unrelated unpriced native holdings with unknown opening marks. A fully priced affected route can be researched while whole-wallet P&L stays NOT VERIFIED. Validated SHADOW retains its independent complete-valuation and held-out requirements.
-
-One canonical market store/planner and the existing segregated RAM FIFO remain. Historical module names and financial filenames are compatibility identifiers, not dependencies on old folders. Older release documents are retained in Git history rather than duplicated in this source tree.
-
-See [PATCH_NOTES.md](PATCH_NOTES.md), [DECISION_CHAIN_REVIEW.md](DECISION_CHAIN_REVIEW.md), [VERIFICATION.txt](VERIFICATION.txt), and [docs/STRATEGY_AND_EVIDENCE.md](docs/STRATEGY_AND_EVIDENCE.md).
+Read [START_HERE.md](START_HERE.md), [build details](docs/BUILD_V91.md) and
+[cleanup record](docs/RETIRED_COMPONENTS.md). Existing financial records,
+backup/import compatibility, tax basis and private data are preserved.
+Historical releases, shadow modes and GPU experiments remain in Git history.
