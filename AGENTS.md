@@ -3,6 +3,21 @@
 Read START_HERE.md, DECISION_CHAIN_REVIEW.md and docs/BUILD_V91.md. Use the
 existing isolated checkout; create no worktree unless the user requests one.
 
+## ETH Farmer development overlay
+
+Read docs/ETH_FARMER_DESIGN.md for the authorized read-only successor increment.
+Keep v91's USD-W ranking and all protected production modules unchanged. ETH
+re-denomination and return models follow ranking, never authorize movement.
+Reserve defaults/reference are RAM-only proposals with no earmarking or earned
+balance inference. Manual/protected allocation and cashflow-adjusted earnings
+stay UNKNOWN pending a separately authorized reconciliation design. The six
+mixer controls cannot relax hard guards; passive advisor text has no settings,
+decision or execution authority. Preserve all eight diagnostic coverage themes
+and redact ETH/native quantities. This is a development preview, not a v92
+release. Preserve v91 history; do not commit or push unless the user asks.
+
+## v91 policy and safeguards
+
 The owner selected ranking #2: greatest positive immediate after-cost USD wallet
 advantage versus HOLD. Evaluate one FULL verified available source amount per
 eligible listed direction. No portfolio spending cap, fractional fit search,

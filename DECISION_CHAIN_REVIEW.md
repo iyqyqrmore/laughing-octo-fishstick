@@ -1,5 +1,10 @@
 # v91.0 decision chain
 
+Development overlay: read-only ETH measurements follow USD ranking, and passive
+settings advice follows observation. Neither changes selection or funding. The
+reserve mixer is a proposed calculator; actual earned/protected/working ETH
+allocation remains UNKNOWN. See docs/ETH_FARMER_DESIGN.md for precise scope.
+
 Verified available balances → authenticated eligible direct products → bounded
 fair public quote requests → one canonical full-native receipt per direction →
 one consistent source/destination USD mark policy → rank W descending → show

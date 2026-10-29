@@ -102,7 +102,7 @@ class SimpleGUI(unittest.TestCase):
         from coincat_app import CoinCatApp
         self.root=tk.Tk();self.app=CoinCatApp(self.root);self.addCleanup(self.app._close)
 
-    def test_single_set_of_controls_no_shadow_modes_budget_editors_or_training(self):
+    def test_five_actions_and_research_mixer_without_shadow_budgets_or_training(self):
         buttons=[];entries=[];labels=[]
         def visit(w):
             if w.winfo_class()=='TButton':buttons.append(w.cget('text'))
@@ -110,8 +110,9 @@ class SimpleGUI(unittest.TestCase):
             if w.winfo_class()=='TLabel':labels.append(w.cget('text'))
             for child in w.winfo_children():visit(child)
         visit(self.root)
-        self.assertEqual(buttons,['Import key JSON','Connect / refresh','Start scanning','STOP','Export diagnostics'])
-        self.assertEqual(entries,[])
+        self.assertEqual(buttons[:5],['Import key JSON','Connect / refresh','Start scanning','STOP','Export diagnostics'])
+        self.assertEqual(buttons[5:],['Reset']*6)
+        self.assertEqual(len(entries),6)
         self.assertFalse(hasattr(self.app,'shadow_pilot'))
         self.assertFalse(hasattr(self.app,'experimental_shadow'))
         self.assertFalse(self.app.running)

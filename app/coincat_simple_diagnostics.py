@@ -12,6 +12,10 @@ def make_report(app, *, now=None):
     scanner=app.scanner
     result=app.last_result or {}
     best=result.get('best')
+    eth=getattr(app,'eth_measurement',None) or {}
+    reserve=getattr(app,'reserve_calculation',None) or {}
+    mixer=getattr(app,'mixer',None)
+    proposed={} if mixer is None else {k:str(v) for k,v in mixer.values().items()}
     ledger_state='UNAVAILABLE';pending='UNVERIFIED'
     try:
         with closing(sqlite3.connect(app.ledger.path.resolve().as_uri()+'?mode=ro',uri=True)) as db:
@@ -26,13 +30,22 @@ def make_report(app, *, now=None):
         ('POLICY','Greatest positive immediate after-cost USD wallet advantage. Full verified AVAILABLE source; no portfolio caps, no fractional fit search, no dollar profit floor. Exchange product rules, exclusions, freshness and exact receipts apply.'),
         ('COVERAGE',{key:result.get(key,'UNOBSERVED') for key in ('scan','at','eligible_directions','priced_directions','positive_directions','blockers','quote_errors')}),
         ('IMMEDIATE RESULT',{'state':result.get('state','UNOBSERVED'),'reason':result.get('reason','UNOBSERVED'),
-            'best_advantage_usd':str(best['w']) if best else 'NONE_OBSERVED','live_order_permission':False}),
+            'best_advantage_usd':str(best['w']) if best else 'NONE_OBSERVED','live_order_permission':False,
+            'eth_measurement':{k:eth.get(k,'UNKNOWN') for k in ('state','reason','scope','at','balances_at',
+                'reference_product','quote_span_s','oldest_quote_age_s','allocation_state','evidence')},
+            'reference_eth_usd':str(eth['reference_eth_usd']) if eth.get('reference_eth_usd') is not None else 'UNKNOWN',
+            'realized_earned_eth':'UNKNOWN_NOT_INFERRED_FROM_BALANCES',
+            'unconverted_asset_count':len((eth.get('hold') or {}).get('unconverted_native',{})),
+            'reserve_preview_state':reserve.get('state','UNOBSERVED'),
+            'actual_reserved_eth':'UNKNOWN_NO_EARMARKING',
+            'manual_mixer_proposal':proposed,'preference_storage':'RAM_ONLY'}),
         ('COST EVIDENCE',{'account_taker_estimate':str(result['fee_rate']) if result.get('fee_rate') is not None else 'UNKNOWN',
             'slippage_reserve_pct':'0.15 ASSUMED','sized_depth_impact':'UNKNOWN',
             'exchange_event_time':'UNVERIFIED','actual_fees_and_execution_slippage':'NOT_MEASURED'}),
         ('PASSIVE AI LAB',{'counts':dict(scanner.lab.counts) if scanner else {},
+            'eth_redenominated_comparisons':dict(scanner.lab.eth_counts) if scanner else {},
             'pending':len(scanner.lab.pending) if scanner else 'UNOBSERVED',
-            'report_interval_s':180,'scope':'RAM proposal comparisons; correlated hypothetical outcomes, never fills; no decision or size authority'}),
+            'report_interval_s':180,'scope':'RAM proposal comparisons; correlated hypothetical outcomes, never fills; no decision, size or settings authority. ETH re-denomination does not create an edge. Passive recommendations are manual decisions only.'}),
         ('LOCAL RECORDS',{'sqlite_integrity':ledger_state,'local_unresolved_orders':pending,
             'note':'No private ledger, lot, tax basis or authorization quantities were modified by the scanner.'}),
         ('EXECUTION','UNAVAILABLE. LiveBroker.submit remains unconditionally blocked. No submitted orders or synthetic wallet posts. Durable order intents, exact fill/fee settlement and ambiguous-outcome restart recovery remain required for actual trading.')]

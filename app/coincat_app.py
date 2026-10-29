@@ -17,13 +17,16 @@ from coincat_v502_fee_learning import FeeLearning
 from coincat_scanner import Scanner
 from coincat_version import DISPLAY
 from coincat_simple_diagnostics import make_report
+from coincat_eth_farmer import measure_eth, reserve_preview, ReservePolicy
+from coincat_mixer import ResearchMixer
+from coincat_settings_advisor import settings_advice
 
 
 class CoinCatApp:
     def __init__(self, root):
         self.root=root
-        root.title(DISPLAY+' | Full-balance immediate scanner | LIVE blocked')
-        root.geometry('1120x820');root.minsize(900,650)
+        root.title(DISPLAY+' | ETH Farmer design preview | LIVE blocked')
+        root.geometry('1120x900');root.minsize(1040,780)
         self.data=data_root()
         self.ledger=LiveLedger(self.data/'CoinCat_Live_Orders.sqlite3')
         self.fees=FeeLearning(self.data/'research_data'/'CoinCat_Fee_Evidence_v502.sqlite3')
@@ -32,6 +35,12 @@ class CoinCatApp:
         self.running=False;self.closed=False;self.busy=False;self.generation=0
         self.cancel=threading.Event();self.jobs=Queue();self._after={}
         self.connected=False;self.last_error=None
+        self.eth_measurement=None
+        self.reserve_calculation=None
+        self.eth_text=tk.StringVar(value='ETH: awaiting a fresh account/market snapshot. Settled / protected / earned ETH UNKNOWN.')
+        self.reserve_text=tk.StringVar()
+        self.eth_details=tk.StringVar(value='ETH measurement details await a fresh snapshot. No working/reserve allocation has been approved.')
+        self.eth_details_open=tk.BooleanVar(value=False)
         self.status=tk.StringVar(value='Connect to read available balances and spot products.')
         self.policy=tk.StringVar(value='Full verified available balance | greatest positive immediate USD advantage | no portfolio budget or profit floor. No automatic profit reserve or extra 10% BUY holdback; fees and exchange rounding stay inside the available balance.')
         self.best_text=tk.StringVar(value='Best swap: awaiting fresh prices.')
@@ -44,7 +53,7 @@ class CoinCatApp:
 
     def _ui(self):
         shell=ttk.Frame(self.root,padding=14);shell.pack(fill='both',expand=True)
-        ttk.Label(shell,text=DISPLAY+' - immediate full-balance swaps',font=('Segoe UI',17,'bold')).pack(anchor='w')
+        ttk.Label(shell,text=DISPLAY+' base - ETH Farmer design preview',font=('Segoe UI',17,'bold')).pack(anchor='w')
         ttk.Label(shell,textvariable=self.policy,wraplength=1040).pack(anchor='w',pady=(3,8))
         controls=ttk.Frame(shell);controls.pack(fill='x')
         for text,command in (('Import key JSON',self._import_key),('Connect / refresh',self._connect),
@@ -52,6 +61,11 @@ class CoinCatApp:
             ttk.Button(controls,text=text,command=command).pack(side='left',padx=(0,7))
         ttk.Label(shell,textvariable=self.status,wraplength=1040).pack(anchor='w',pady=(8,3))
         ttk.Label(shell,textvariable=self.execution_text,wraplength=1040,foreground='#a34d00').pack(anchor='w')
+        self.mixer=ResearchMixer(shell,self._mixer_changed)
+        self.mixer.pack(fill='x',pady=(6,0))
+        ttk.Label(shell,textvariable=self.reserve_text,wraplength=1040).pack(anchor='w',pady=(3,0))
+        ttk.Label(shell,textvariable=self.eth_text,wraplength=1040).pack(anchor='w',pady=(3,0))
+        self._mixer_changed()
         summary=ttk.LabelFrame(shell,text='Best currently priced full-balance swap',padding=10)
         summary.pack(fill='x',pady=10)
         ttk.Label(summary,textvariable=self.best_text,wraplength=1010,font=('Segoe UI',11,'bold')).pack(anchor='w')
@@ -60,12 +74,70 @@ class CoinCatApp:
         tabs=ttk.Notebook(shell);tabs.pack(fill='both',expand=True)
         wallet=ttk.Frame(tabs,padding=5);routes=ttk.Frame(tabs,padding=5);lab=ttk.Frame(tabs,padding=5)
         tabs.add(wallet,text='Available portfolio');tabs.add(routes,text='Ranked swaps');tabs.add(lab,text='AI Lab - passive notes')
+        self.eth_details_toggle=ttk.Checkbutton(wallet,text='ETH accounting details (read only)',
+            variable=self.eth_details_open,command=self._toggle_eth_details)
+        self.eth_details_toggle.pack(anchor='w')
+        self.eth_details_label=ttk.Label(wallet,textvariable=self.eth_details,wraplength=990)
         self.wallet_tree=self._table(wallet,('Asset','Available units','Policy'))
         self.route_tree=self._table(routes,('Product / side','Source -> destination','Full source','Spent / residue','Estimated W USD','State'))
         self.lab_text=tk.Text(lab,wrap='word',font=('Segoe UI',10),state='disabled')
         scroll=ttk.Scrollbar(lab,orient='vertical',command=self.lab_text.yview)
         self.lab_text.configure(yscrollcommand=scroll.set);scroll.pack(side='right',fill='y');self.lab_text.pack(fill='both',expand=True)
         self._note('AI Lab is a passive observer. It reports available findings about every three minutes. It never ranks trades, changes sizing or controls the scanner.')
+
+    def _toggle_eth_details(self):
+        if self.eth_details_open.get():
+            self.eth_details_label.pack(after=self.eth_details_toggle,anchor='w',pady=(2,6))
+        else:
+            self.eth_details_label.pack_forget()
+
+    def _mixer_changed(self):
+        settings=self.mixer.values()
+        self.reserve_calculation=reserve_preview(ReservePolicy(settings['initial_usd'],
+            settings['growth_step_usd'],settings['harvest_usd']),fixed_reference=settings['reference_usd'])
+        preview=self.reserve_calculation
+        if preview['fixed_reference'] is None:
+            text='Reserve proposal PENDING: enter a fixed reference rate to see ETH quantities.'
+        else:
+            text=(f"Proposed starting reserve {preview['initial_target_eth']:.8f} ETH; "
+                  f"growth step {preview['growth_step_eth']:.8f} ETH; "
+                  f"harvest/step {preview['harvest_per_step_eth']:.8f} ETH at fixed ${preview['fixed_reference']}/ETH.")
+        self.reserve_text.set(text+' Earned/settled allocation UNKNOWN; no funds earmarked. Preferences are RAM-only.')
+        if self.last_result is not None:
+            self._render_eth(self.last_result)
+
+    def _render_eth(self,result):
+        snapshot=result.get('eth_observation')
+        if snapshot is None:
+            return
+        self.eth_measurement=measure_eth(result=result,**snapshot,
+            slippage_bps=self.mixer.values()['slippage_bps'])
+        value=self.eth_measurement
+        available=value['actual_available_eth']
+        best=result.get('best')
+        w=None if best is None else value['w_eth_by_frame'].get(best['frame']['id'])
+        hold=value.get('hold') or {}
+        recoverable=hold.get('estimated_recoverable_eth')
+        self.eth_text.set(
+            'Account AVAILABLE ETH: '+('UNKNOWN' if available is None else str(available))+
+            ' | Complete modeled return to ETH: '+('UNKNOWN' if recoverable is None else f'{recoverable:.8f} ETH (unverified)')+
+            ' | Best USD W expressed in ETH: '+('UNKNOWN' if w is None else f'{w:+.10f} ETH (same ranking)')+
+            '\nWorking/manual/protected allocation and earned ETH UNKNOWN. '+value['reason']+
+            '. All return legs include costs; unconverted native dust is retained. No fill or profit claimed.')
+        switch=value.get('switch') or {}
+        def shown(raw):
+            return 'UNKNOWN' if raw is None else str(raw)
+        self.eth_details.set(
+            'ETH Farmer read-only design | account AVAILABLE scope, not reconciled unreserved working capital.\n'
+            'Settled / protected / actual earned ETH: UNKNOWN. Cashflow-adjusted improvement vs starting holdings: UNKNOWN; no baseline or manual-flow journal.\n'
+            f"HOLD complete modeled ETH return: {shown(hold.get('estimated_recoverable_eth'))}; "
+            f"SWITCH complete modeled ETH return: {shown(switch.get('estimated_recoverable_eth'))}; "
+            f"immediate modeled difference: {shown(value['return_advantage_eth'])} ETH.\n"
+            f"HOLD ETH proceeds subtotal: {shown(hold.get('modeled_eth_proceeds'))}; retained native quantities: {hold.get('unconverted_native',{})}. "
+            'A subtotal excludes these quantities and is not complete recoverable ETH.\n'
+            f"Secondary available-portfolio USD mark: {shown(value['portfolio_usd_mark'])}; "
+            f"ETH reference: {shown(value['reference_eth_usd'])} USD/ETH; snapshot {value['balances_at']}; "
+            f"quote span: {shown(value.get('quote_span_s'))} s. Depth / fee currency / exchange event timing unverified.")
 
     @staticmethod
     def _table(parent,columns):
@@ -158,8 +230,10 @@ class CoinCatApp:
                     self.status.set(f'Connected | {payload["catalog_count"]} spot products | full available sizing | trading unavailable')
                 elif kind=='scan' and payload.get('state')!='CANCELLED':
                     self.last_result=payload;self._render(payload)
-                    if payload.get('lab_note'):self._note(payload['lab_note'])
-                    self._schedule('scan',5000,self._scan)
+                    if payload.get('lab_note'):
+                        self._note(payload['lab_note']+'\n'+settings_advice(payload,
+                            scan_interval_s=self.mixer.values()['scan_interval_s']))
+                    self._schedule('scan',int(self.mixer.values()['scan_interval_s']*1000),self._scan)
         except Empty:pass
         self._schedule('poll',100,self._poll)
 
@@ -172,6 +246,7 @@ class CoinCatApp:
 
     def _render(self,result):
         self._render_wallet()
+        self._render_eth(result)
         for item in self.route_tree.get_children():self.route_tree.delete(item)
         for row in result['ranked']:
             self.route_tree.insert('', 'end',values=(row['pair']+' / '+row['side'],row['source']+' -> '+row['target'],
@@ -194,7 +269,7 @@ class CoinCatApp:
 
     def _export(self):
         path=filedialog.asksaveasfilename(title='Save CoinCat diagnostics',defaultextension='.txt',
-            initialfile='CoinCat_v91_0_Complete_Diagnostics.txt',filetypes=[('Text','*.txt')])
+            initialfile='CoinCat_ETH_Design_Complete_Diagnostics.txt',filetypes=[('Text','*.txt')])
         if not path:return
         try:Path(path).write_text(make_report(self),encoding='utf-8')
         except OSError as exc:messagebox.showerror('Diagnostics',f'Export failed ({type(exc).__name__}).')

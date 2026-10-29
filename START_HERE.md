@@ -1,5 +1,12 @@
 # CoinCat v91.0 setup and testing
 
+This branch includes an **ETH Farmer development preview** on the preserved v91
+base. Read docs/ETH_FARMER_DESIGN.md and docs/ETH_DESIGN_VERIFICATION.md. Mixer
+reserve/reference values are proposed and RAM-only; they do not earmark funds.
+No keys or production data are needed for its synthetic tests. The v91 test
+count below describes the original release; the development count is recorded
+in ETH_DESIGN_VERIFICATION.md. Keep your working Windows installation separate.
+
 1. Extract into a separate new source folder. Preserve your working installation,
    private_data and private_backups. Do not overlay a running app or share one
    dataset between running versions.

@@ -1,5 +1,6 @@
 """Read-only account/market scanner for the full-balance decision policy."""
 import time
+from copy import deepcopy
 from decimal import Decimal
 from coincat_live import LiveBroker
 from coincat_full_balance import rank_full_balances
@@ -58,6 +59,12 @@ class Scanner:
             fee_rate=tier.get('taker') if tier.get('fresh') else None,
             portfolio_limits='NONE_FULL_AVAILABLE',orders_submitted=0,
             execution='BLOCKED_PENDING_DURABLE_ORDER_FILL_RECOVERY')
+        # Freeze read-only inputs so later GUI settings/STOP cannot combine
+        # account quantities from one scan with books from a different scan.
+        result['eth_observation'] = dict(balances=dict(self.balances),
+            catalog=tuple(self.catalog), rules=deepcopy(self.rules),
+            quotes=dict(self.books), now=now, balances_at=self.account_at,
+            fee_rate=result['fee_rate'], excluded=tuple(sorted(excluded)))
         from coincat_v80_immediate import _prepare
         result['lab_note']=self.lab.observe(result,_prepare(self.books,self.rules,now)['books'],now=now)
         self.last_result=result

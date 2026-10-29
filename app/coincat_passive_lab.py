@@ -13,6 +13,7 @@ class PassiveLab:
         self.counts=Counter()
         self.last_report_at=None
         self.notes=[]
+        self.eth_counts=Counter()
 
     def observe(self, result, quotes, *, now):
         for key,row in list(self.pending.items()):
@@ -20,7 +21,8 @@ class PassiveLab:
             for horizon in (300,900,3600):
                 if horizon in row['done'] or elapsed<horizon:continue
                 if elapsed>horizon+120:
-                    self.counts[f'{horizon}_MISSED']+=1;row['done'].add(horizon);continue
+                    self.counts[f'{horizon}_MISSED']+=1
+                    self.eth_counts[f'{horizon}_MISSED']+=1;row['done'].add(horizon);continue
                 paths=[]
                 for asset in (row['source'],row['target']):
                     fx=usd_conversion(asset,quotes,now=now,max_age=30)
@@ -31,6 +33,12 @@ class PassiveLab:
                 if stamps and max(stamps)-min(stamps)>12:continue
                 advantage=row['received']*paths[1]['rate']-row['spent']*paths[0]['rate']
                 self.counts[f'{horizon}_'+('ABOVE_HOLD' if advantage>0 else 'NOT_ABOVE_HOLD')]+=1
+                from coincat_v701_quotes import valid_book
+                ref=valid_book(quotes.get('ETH-USD'),now,30,Decimal('.0025'))
+                if ref is None or (stamps and max(stamps+[ref[2]])-min(stamps+[ref[2]])>12):
+                    self.eth_counts[f'{horizon}_UNPRICED']+=1
+                else:
+                    self.eth_counts[f'{horizon}_'+('ABOVE_HOLD' if advantage/ref[0]>0 else 'NOT_ABOVE_HOLD')]+=1
                 row['done'].add(horizon)
             if len(row['done'])==3:del self.pending[key]
         # At most one observed proposal per direction in a five-minute bin.
@@ -59,6 +67,7 @@ class PassiveLab:
             f"{result.get('priced_directions',0)}/{result.get('eligible_directions',0)} directions priced in the latest pass.\n"
             f"Later comparisons with HOLD (5/15/60 min): {outcomes or 'waiting for future quotes'}. "
             f"Pending {len(self.pending)}; deferred {self.counts['CAPACITY_DEFERRED']}.\n"
+            f"Same comparisons expressed in ETH at each endpoint (not return-to-ETH proceeds): {dict(self.eth_counts)}.\n"
             'These are correlated, hypothetical price comparisons, not fills or realized profit. '
             'I do not select trades, change sizes or impose portfolio limits.')
         self.notes.append((now,text));self.notes=self.notes[-100:]

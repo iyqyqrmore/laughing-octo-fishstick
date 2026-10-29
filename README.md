@@ -1,5 +1,11 @@
 # CoinCat v91.0 — full-balance immediate scanner
 
+**Development overlay: ETH Farmer design preview.** See
+[ETH_FARMER_DESIGN.md](docs/ETH_FARMER_DESIGN.md) for read-only ETH measurements,
+the proposed reserve mixer and passive settings advisor. USD ranking and
+trading blocks are preserved. No financial policy is applied, no funds are
+reserved and no earned ETH is inferred. This is not a numbered v92 release.
+
 One policy: rank eligible direct swaps by their greatest positive immediate
 after-cost USD wallet advantage versus holding. Each proposal uses the full
 verified AVAILABLE source balance, with modeled fees and exchange rounding
