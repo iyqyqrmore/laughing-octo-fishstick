@@ -1,4 +1,4 @@
-# First-time CoinCat v90.0 setup
+# First-time CoinCat v90.1 setup
 
 **LIVE order POST remains BLOCKED.**
 
@@ -9,7 +9,7 @@ Use one new permanent main folder, for example Desktop\\CoinCat. This is complet
 3. Install normal 64-bit Windows Python 3.11 with its py launcher. Run **02_SETUP_COINCAT.bat**. It installs hash-pinned core dependencies into this folder's .venv. CPU research is the default; fast immediate discovery does not require CUDA or a trained GPU model.
 4. Run **03_VERIFY_COINCAT.bat**. Require source hashes, Python syntax and the complete offline suite to pass. Tests use disposable synthetic data, not your private records. Keep the complete result if a check fails.
 5. Run **04_FIRST_TIME_SETUP.bat** and confirm NEW data. It refuses any nonempty destination, creates the existing compatible ledger schema with no old records/key/settings, and verifies an independent initial backup inside private_backups. This is a backup of new data, not your old history.
-6. Run **01_START_COINCAT.bat**. Confirm **CoinCat v90.0**. On a fresh start no Coinbase key is loaded. Click **Import CDP Key JSON**, select the new downloaded Coinbase key JSON on your PC, then refresh/connect.
+6. Run **01_START_COINCAT.bat**. Confirm **CoinCat v90.1**. On a fresh start no Coinbase key is loaded. Click **Import CDP Key JSON**, select the new downloaded Coinbase key JSON on your PC, then refresh/connect.
 7. Key permissions must include **View + Trade**, with **Transfer OFF**, as required by the preserved permission checks. Both Ed25519 PEM/base64 and ECDSA signing are covered by offline tests of pinned coinbase-advanced-py 1.8.4. Windows DPAPI stores the selected vault locally for this Windows user/machine. No real key or account connection was tested in the cloud.
 8. Review newly verified available holdings and exclusions. Staked/locked/reserved amounts are not funding. External purchase tax basis remains unknown unless independently established. Separately ARM Experimental SHADOW if desired; LIVE stays blocked.
 9. Read AI Lab's immediate funnel and **Immediate opportunity details**. Five modeled-positive estimates can coexist with zero strict-qualified models and zero RAM conversions. Missing depth, fee units, preview inputs or prices have explicit reasons.

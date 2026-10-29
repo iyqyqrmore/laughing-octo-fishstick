@@ -386,7 +386,9 @@ def auto_rotation_screen(*, buy_signals, holdings, verified_balances,
             if primary_immediate:
                 from coincat_v80_immediate import rank as rank_immediate
                 outcome['all_primary_ideas']=list(outcome['ideas'])
-                outcome['ideas'],outcome['immediate_summary']=rank_immediate(outcome['ideas'],quotes,product_rules,now=now)
+                outcome['immediate_direction_evaluations']=[]
+                outcome['ideas'],outcome['immediate_summary']=rank_immediate(outcome['ideas'],quotes,product_rules,now=now,
+                    evaluations=outcome['immediate_direction_evaluations'])
             else:
                 from coincat_v703_chain import rank_experimental
                 outcome['ideas']=rank_experimental(outcome['ideas'],quotes,now,forward_evidence=forward_evidence)

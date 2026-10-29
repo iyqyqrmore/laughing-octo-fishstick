@@ -122,7 +122,7 @@ def make_shadow_report(app, now=None):
         'OFFLINE REPORT / READ ONLY / NO COINBASE ACCESS / NO ORDER SUBMISSIONS',
         'Privacy: no source funding assets, holding balances, quantities, cost basis, keys, account/order IDs or raw logs.',
         'RESEARCH ONLY: not live order clearance or evidence of trading profitability.',
-        *(['PRIMARY V80 IMMEDIATE FUNNEL: '+str((cycle.get('auto_rotation') or {}).get('immediate_summary')),
+        *(['PRIMARY V90 IMMEDIATE FUNNEL: '+str((cycle.get('auto_rotation') or {}).get('immediate_summary')),
            'Positive-unverified models remain visible; missing evidence is not an economic loss. Forward labels below are separate advisory/validated research.']
           if isinstance(cycle,dict) and (cycle.get('auto_rotation') or {}).get('primary_policy')=='STRICT_IMMEDIATE_V80' else []),
         '-'*72,
@@ -178,7 +178,7 @@ def make_shadow_report(app, now=None):
         'One-order authenticated spot products: '+str(shadow.get('one_order_eligible_spot_products',0))+
         ' authenticated products, '+str(shadow.get('one_order_routes_evaluated',0))+
         ' cost/size-feasible single-order route checks (not BUY approval)',
-        f'Qualified BUY research candidates: {snapshot["signals"]}',
+        f'Legacy advisory BUY signals (not strict immediate qualification): {snapshot["signals"]}',
         'SELL-FIRST EXIT SCREEN (evolving modeled SHADOW holdings when armed, otherwise current enrolled source inventory):',
         f'  Model wallet funding selected: {modeled_active}',
         f'  Eligible owned/simulated assets checked for independent exit: {_count(sell_observation.get("screened"))}',

@@ -1,6 +1,6 @@
-# v90.0 strategy and evidence contract
+# v90.1 strategy and evidence contract
 
-This release implements Milestone A of the controlled Strict Immediate Snowball handoff, renamed v90.0 by the owner. The user's explicit request authorizes a fresh source build, new-key first use and current-tree cleanup; it does not authorize LIVE or connected previews.
+This release implements Milestone A of the controlled Strict Immediate Snowball handoff, renamed v90.1 by the owner. The user's explicit request authorizes a fresh source build, new-key first use and current-tree cleanup; it does not authorize LIVE or connected previews.
 
 ## Primary decisions
 
@@ -24,7 +24,7 @@ Normal app operation cannot opt into synthetic evidence. Offline fixtures can pr
 2. Separately authorize a non-placing authenticated adapter for POST /api/v3/brokerage/orders/preview. This is an HTTP POST although it does not place an order. It must never reach create/edit/cancel or ARM endpoints. Match product, side, order type, rounded size, amount, fee currency and observation time. Numeric commission_total alone does not prove its debit currency; require verified response/contract semantics. Missing or unsupported units remain unqualified.
 3. Verify actual connected responses and supported fee/depth semantics without modifying financial records. Account fee tier, ticker BBO, infrequent aggregate depth advisory and optional fields alone are insufficient. Even complete observed books/previews do not prove a future fill or profit.
 
-No Milestone B network execution or new preview traffic is included in v90.0.
+No Milestone B network execution or new preview traffic is included in v90.1.
 
 ## Synthetic acceptance coverage
 

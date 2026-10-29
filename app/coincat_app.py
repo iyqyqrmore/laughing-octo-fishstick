@@ -3,6 +3,7 @@ Always disarmed on launch. Never place orders from a GUI event handler thread.
 """
 from __future__ import annotations
 from collections import Counter
+from coincat_v90_telemetry import ResearchCycles, DirectionCoverage, coverage_details
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from decimal import Decimal,InvalidOperation
 from pathlib import Path
@@ -419,7 +420,7 @@ class CoinCatApp:
                     f'{s.get("above_floor",0)} candidates meet ${s.get("threshold_usd","0.10")} target.')
         age=max(0,int(time.time()-s['observed_at'])) if s.get('observed_at') else None
         source=f'Last decision: {s.get("event_source","UNKNOWN")} • age {age if age is not None else "unknown"}s. '
-        self.break_even_preview.set(source+detail+'\n'+costs+'\n'
+        self.break_even_preview.set('Archived advisory comparison; primary Experimental requires W>0 and L>0, with no dollar floor.\n'+source+detail+'\n'+costs+'\n'
             'Estimated immediate values are research-only, not real fills. Independent Coinbase depth, pair preview and future performance NOT verified. LIVE BLOCKED.')
 
     def _size_lab_columns(self):
@@ -645,7 +646,7 @@ class CoinCatApp:
         for heading,var in (('Coinbase markets',self.ai_overview_pairs),
                             ('Available research funding',self.ai_overview_funding),
                             ('Exploratory routes',self.ai_overview_exploration),
-                            ('Qualified BUY',self.ai_overview_buy)):
+                            ('Legacy advisory BUY',self.ai_overview_buy)):
             tile=ttk.LabelFrame(overview,text=heading)
             tile.pack(side='left',fill='x',expand=True,padx=3)
             ttk.Label(tile,textvariable=var,foreground=GREEN,
@@ -2100,14 +2101,16 @@ class CoinCatApp:
             self.target_preview_status.set(f'LIVE ARMED • active ordinary SELL target ${target:.2f}; edits will NOT change live orders until separately rearmed')
         except Exception as ex:messagebox.showerror('Live blocked',str(ex))
     def _show_immediate_opportunities(self):
-        window=tk.Toplevel(self.root);window.title('CoinCat • modeled immediate opportunities')
+        window=tk.Toplevel(self.root);window.title('CoinCat • immediate opportunities and coverage')
         window.geometry('920x560')
         body=tk.Text(window,wrap='word',background=BG,foreground=FG,font=('Segoe UI',10))
         body.pack(fill='both',expand=True)
         rows=getattr(self,'_positive_opportunity_rows',())
         body.insert('end',RELEASE_LIMIT+'\n\n'+('\n\n'.join(rows) if rows else
             'No modeled-positive candidate is retained yet. See the discovery funnel for unpriced, deferred and negative routes.'))
+        body.insert('end','\n\n'+coverage_details(getattr(self,'_direction_coverage',None),now=time.time()))
         body.configure(state='disabled')
+        return window
 
     def _shadow_start_inputs(self,*,partial=False):
         """Read-only start gate shared by both RAM wallets; never authorizes LIVE."""
@@ -2251,7 +2254,8 @@ class CoinCatApp:
             strict_quotes=True,risk_budgets=caps,approved_catalog=self._research_catalog(),
             portfolio_marks_complete=complete,
             **({'current_product_rules':getattr(self.broker,'catalog_product_rules',{}),
-                 'upstream_rejections':dict(upstream)}
+                 'upstream_rejections':dict(upstream),
+                 'observation_cycle':payload.get('research_cycle')}
                if getattr(session,'primary_immediate',False) else {}))
         # Only the resulting wallet determines whole-wallet P&L completeness.
         rates,complete=self._shadow_mark_rates(session,books,now,allow_partial=True)
@@ -2862,6 +2866,17 @@ class CoinCatApp:
             hasattr(self,'_immediate_research') and 'immediate_outcomes' not in result):
             result['immediate_outcomes']=self._immediate_research.observe(
                 (),self._shadow_valuation_books(),now=time.time())
+        completed=time.time()
+        cycle=result.get('research_cycle')
+        if cycle:
+            cycle['completed_at']=completed
+            if 'immediate_funnel' in result:
+                result['immediate_funnel']['cycle']=dict(cycle)
+            tracker=getattr(self,'_direction_coverage',None)
+            if tracker is not None and 'immediate_coverage' in result:
+                tracker.record(result.pop('_direction_evaluations',()),result.pop('_selected_directions',()),
+                    now=completed,reason=result.get('reason','NOT_EVALUATED'))
+                result['direction_coverage']=tracker.summary(now=completed)
         result['research_duration_s']=round(now-started,3)
         self._fast_next_at=max(getattr(self,'_fast_next_at',0),now+1)
         return result
@@ -2874,7 +2889,9 @@ class CoinCatApp:
         independent controls are untouched. No independent trading engine.
         """
         started=time.monotonic()
-        result={'kind':'fast_snowball','state':'WAIT','reason':'NO_STREAM_ALERTS',
+        if not hasattr(self,'_research_cycles'):self._research_cycles=ResearchCycles()
+        cycle=self._research_cycles.begin(time.time())
+        result={'research_cycle':cycle,'kind':'fast_snowball','state':'WAIT','reason':'NO_STREAM_ALERTS',
                 'alerts':0,'selected':0,'fetched':0,'failed':0,'targets':0,
                 'plan':{},'snowball':{},'quote_pairs':[],'captured_at':time.time(),
                 'live_order_permission':False,'route_count':0}
@@ -2911,10 +2928,16 @@ class CoinCatApp:
             plan=select_immediate_books(catalog,getattr(self.broker,'catalog_product_rules',{}),sources,
                 quotes=before_quotes,now=time.time(),cursor=getattr(self,'_fast_route_cursor',0),
                 valuation_catalog=valuation_catalog)
+            if not hasattr(self,'_direction_coverage'):self._direction_coverage=DirectionCoverage()
+            self._direction_coverage.select(plan['eligible_directions'],plan['directions'],
+                now=time.time(),cycle_id=cycle['id'])
+            result['_selected_directions']=plan['directions']
             result['immediate_coverage']={k:plan[k] for k in ('candidate_routes','selected_directions',
                 'funding_routes_deferred','missing_independent_paths','request_budget_deferred')}
             result['immediate_funnel']=dict(result['immediate_coverage'],
-                unpriced_routes=plan['selected_directions'],negative_routes=0,zero_routes=0,
+                size_trials=0,distinct_routes=0,priced_sizes=0,unpriced_sizes=0,
+                unpriced_routes=0,negative_routes=0,zero_routes=0,
+                selected_without_costed_receipt=plan['selected_directions'],
                 positive_unverified_routes=0,strict_qualified=0,ram_conversions=0,
                 stage='DEPENDENCY_COLLECTION',connected_strict_qualification_available=False)
         else:
@@ -3042,8 +3065,11 @@ class CoinCatApp:
                 ranked=researched.get('ideas',());immediate_summary=researched['immediate_summary']
             else:
                 original=researched.get('all_primary_ideas',researched.get('ideas',()))
+                researched['immediate_direction_evaluations']=[]
                 ranked,immediate_summary=rank_immediate(original,quotes,
-                    getattr(self.broker,'catalog_product_rules',{}),now=time.time())
+                    getattr(self.broker,'catalog_product_rules',{}),now=time.time(),
+                    evaluations=researched['immediate_direction_evaluations'])
+            result['_direction_evaluations']=researched.get('immediate_direction_evaluations',())
             researched=dict(researched,ideas=ranked,immediate_summary=immediate_summary)
             result['immediate_funnel']=dict(immediate_summary,**result.get('immediate_coverage',{}))
             costed=set()
@@ -3052,7 +3078,7 @@ class CoinCatApp:
                     costed.add((step['pair'],step['side'],item.get('source'),item.get('target')))
             missing=len(set(plan['directions'])-costed)
             result['immediate_funnel']['selected_without_costed_receipt']=missing
-            result['immediate_funnel']['unpriced_routes']+=missing
+            result['immediate_funnel']['selected_with_costed_receipt']=plan['selected_directions']-missing
             result['immediate_funnel']['planner_blocker_size_counts']=researched.get('route_blockers',{})
             result['immediate_funnel']['quote_errors']=dict(errors)
             result['positive_economics']=[economics_text(i) for i in ranked if
@@ -3067,7 +3093,6 @@ class CoinCatApp:
         result['snowball']=stats
         result['planner_ms']=round((time.monotonic()-planner_started)*1000,2)
         result['state']='RESEARCHED'
-        from collections import Counter
         result['selection']={'eligible':sum(i.get('selection_state')=='ELIGIBLE' for i in ideas),
             'reasons':dict(Counter(i.get('selection_reason','UNASSESSED') for i in ideas))}
         result['reason']=('COST_EDGE_CANDIDATES' if result['selection']['eligible'] else
@@ -3768,9 +3793,15 @@ class CoinCatApp:
                     self.fast_research_status.set(
                         f'IMMEDIATE • fundable directions {immediate.get("candidate_routes",0)} • '
                         f'deferred {immediate.get("funding_routes_deferred",0)} • '
-                        f'unpriced {immediate.get("unpriced_routes",0)} • negative {immediate.get("negative_routes",0)} • '
+                        f'no receipt {immediate.get("selected_without_costed_receipt",0)} • '
+                        f'unpriced costed routes {immediate.get("unpriced_routes",0)} • negative {immediate.get("negative_routes",0)} • '
                         f'positive unverified {immediate.get("positive_unverified_routes",0)} • '
-                        f'strict qualified 0 • RAM conversions +{posted} • LIVE BLOCKED')
+                        f'strict qualified 0 • RAM conversions +{posted} • LIVE BLOCKED' +
+                        ('\nCoverage: '+str(payload['direction_coverage'].get('recent_complete',0))+
+                         '/'+str(payload['direction_coverage'].get('eligible_directions',0))+
+                         ' directions complete in last 60s; never complete '+
+                         str(payload['direction_coverage'].get('never_complete',0))
+                         if 'direction_coverage' in payload else ''))
                     self._positive_opportunity_rows=list(payload.get('positive_economics',()))
                     self.immediate_economics_status.set(
                         (self._positive_opportunity_rows[0] if self._positive_opportunity_rows else

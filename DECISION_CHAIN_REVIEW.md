@@ -1,4 +1,4 @@
-# v90.0 decision-chain review
+# v90.1 decision-chain review
 
 Portfolio funding → bounded static direct-route discovery → shared native receipt planner → consistent independent USD decision frame → visible modeled economics → explicit strict-evidence gate → manually armed segregated RAM FIFO → same-time HOLD P&L and diagnostics.
 

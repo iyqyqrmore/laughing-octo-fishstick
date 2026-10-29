@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 echo =======================================================
-echo CoinCat v90.0 - FIRST-TIME LOCAL SOURCE SETUP
+echo CoinCat v90.1 - FIRST-TIME LOCAL SOURCE SETUP
 echo No PyInstaller / no EXE compilation / no Coinbase orders
 echo =======================================================
 if exist ".venv\Scripts\python.exe" goto packages

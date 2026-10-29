@@ -232,7 +232,7 @@ def make_report(app,kind,now=None):
             lines.extend([
                 f'Last completed scan valid bid/ask pairs: {cycle.get("quotes", 0)}',
                 f'Last scan quote errors: {cycle.get("failures", 0)}',
-                f'Qualified BUY candidates: {len(cycle.get("signals", []))}',
+                f'Legacy advisory BUY candidates (not strict immediate qualification): {len(cycle.get("signals", []))}',
                 f'Live sell evaluations: {len(cycle.get("sell_reviews", []))}',
                 f'AI-to-trader handoffs: {len(cycle.get("handoffs", []))}',
                 'AI BUY candidate -> broker order requires independent arming, authenticated fresh bid/ask, fee/risk checks, and confirmed fills.',
@@ -287,11 +287,11 @@ def make_report(app,kind,now=None):
                 '; feasible cost-estimated research routes='+str(shadow.get('exploratory_viable_routes',0))+
                 '; non-actionable exploratory ideas='+str(shadow.get('exploratory_shortlist',0))+
                 '; modeled SHADOW FIFO requires separately qualified forward evidence')
-            lines.append('Research threshold sweep: '+str(floors.get('range_usd','0.10-100.00'))+
+            lines.append('Legacy validated-track threshold sweep (not Experimental immediate policy): '+str(floors.get('range_usd','0.10-100.00'))+
                 ' at $0.01 resolution; status='+str(floors.get('state','NOT VERIFIED'))+
                 '; genuinely held-out qualified predictions='+str(floors.get('qualified_predictions',0))+
                 '; no automatic action permission')
-            lines.append('Active SHADOW manual override mode: '+str(getattr(getattr(app,'switch_floor_mode',None),'get',lambda:'UNAVAILABLE')())+
+            lines.append('Validated-track manual floor (not Experimental immediate policy): '+str(getattr(getattr(app,'switch_floor_mode',None),'get',lambda:'UNAVAILABLE')())+
                 '; floor USD='+str(getattr(app,'switch_minimum_usd','UNAVAILABLE'))+
                 '; saved separately from financial ledger')
             funding=cycle.get('funding_size_observations') or {}

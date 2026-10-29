@@ -158,7 +158,9 @@ def report(summary):
     s=summary or {}
     import time
     age=max(0,int(time.time()-s['observed_at'])) if s.get('observed_at') else None
-    lines=['CoinCat v60.17 • SNOWBALL IMMEDIATE USD ADVANTAGE / READ ONLY',
+    lines=['ARCHIVED ADVISORY COMPARISON — does not authorize primary Strict Immediate SHADOW.',
+           'Its positive count and dollar target are not the primary W>0 AND L>0 policy.',
+           'CoinCat v60.17 • SNOWBALL IMMEDIATE USD ADVANTAGE / READ ONLY',
            'Decision source: '+str(s.get('event_source','UNKNOWN'))+'; age seconds: '+str(age if age is not None else 'UNAVAILABLE'),
            'All marks at conservative USD liquidation-side REST bid/ask with fee + 15bps slippage assumption per exit path.',
            'Proposed one-order entry receipt ALREADY pays its own fee; liquidation amounts are comparable HOLD vs SWITCH estimates, NOT additional executed legs.',

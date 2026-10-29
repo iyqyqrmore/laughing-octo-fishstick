@@ -1,3 +1,5 @@
+Historical v90.0 baseline record. Current reporting patch: [v90.1](V90_1_REPORTING_PATCH.md).
+
 # CoinCat v90.0 clean baseline — October 29, 2026
 
 Baseline: 014a5ad1a786ce9a01680e3b8daa63c0e6f6f4f1 (coincat-v80).

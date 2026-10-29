@@ -15,6 +15,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 import sqlite3
 import time
+from coincat_v90_telemetry import age_detail, utc
 
 
 _STATUSES = ('PASS', 'BLOCKED', 'NOT VERIFIED', 'INFO')
@@ -148,6 +149,12 @@ def gather_readiness(app, *, wall=None, mono=None):
     """Return sanitized, deterministic structured statuses; never fetch Coinbase."""
     wall = float(time.time() if wall is None else wall)
     mono = float(time.monotonic() if mono is None else mono)
+    freshness={'snapshot_utc':utc(wall),
+        'balances':age_detail(mono,getattr(app,'_last_portfolio_sync_monotonic',None),300),
+        'broad_scan':age_detail(mono,getattr(app,'_last_scan_at',None),180),
+        'portfolio_prices':age_detail(wall,getattr(app,'_portfolio_quote_at',None),300),
+        'ui_poll':age_detail(mono,getattr(app,'_last_poll_heartbeat',None),15),
+        'ui_tick':age_detail(mono,getattr(app,'_last_tick_heartbeat',None),15)}
     checks=[]
     def add(title,status,detail):
         if status not in _STATUSES:raise ValueError('Unknown status')
@@ -244,7 +251,7 @@ def gather_readiness(app, *, wall=None, mono=None):
     passed=sum(status=='PASS' for _,status,_ in checks)
     blocked=sum(status=='BLOCKED' for _,status,_ in checks)
     unverified=sum(status=='NOT VERIFIED' for _,status,_ in checks)
-    return dict(checks=checks,pass_count=passed,blocked_count=blocked,
+    return dict(checks=checks,freshness=freshness,pass_count=passed,blocked_count=blocked,
                 unverified_count=unverified,ledger=db,complete=len(checks)==len(_FINAL_REQUIRED),
                 overall='NOT APPROVED',audited_at=datetime.fromtimestamp(wall,timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'))
 
@@ -254,6 +261,8 @@ def readiness_report(app, *, wall=None, mono=None):
     snapshot=gather_readiness(app,wall=wall,mono=mono)
     out=[
         'GO-LIVE EVIDENCE AUDIT — v50.5',
+        'Freshness observation: '+str(snapshot['freshness']),
+        'Each section is a separate timed observation; stale heartbeats do not alone diagnose a persistent GUI freeze.',
         'Read-only LOCAL snapshot; NO NEW Coinbase requests, NO orders, NO ARM, NO ledger writes.',
         'This report cannot independently verify market eligibility, exchange fees or production live execution.',
         'OVERALL: NOT APPROVED — multi-currency live order submission remains BLOCKED',

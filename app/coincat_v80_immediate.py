@@ -13,6 +13,7 @@ import math
 from coincat_cross_quote import split_spot, usd_conversion
 from coincat_multicurrency import research_order, ResearchDepthError
 from coincat_v701_quotes import valid_book
+from coincat_v90_telemetry import direction
 
 D = Decimal
 RELEASE_LIMIT = ('Immediate discrepancy discovery, modeled positive-opportunity reporting and strict evidence gating. '
@@ -181,15 +182,27 @@ def evaluate(idea, quotes, rules, *, now, synthetic_evidence=None, allow_synthet
         return dict(result,blockers=[reason])
 
 
-def rank(ideas,quotes,rules,*,now,limit=12):
+def rank(ideas,quotes,rules,*,now,limit=12,evaluations=None):
     annotated=[];counts=Counter();unique={};blockers=Counter()
     prepared=_prepare(quotes,rules,now)
+    direction_rows={}
+    precedence={'NOT_PRICED':0,'ECONOMIC_NEGATIVE':1,'ECONOMIC_ZERO':2,'MODELED_POSITIVE_UNVERIFIED':3}
     for idea in ideas:
         r=evaluate(idea,quotes,rules,now=now,_prepared=prepared);frame=r['frame']
         counts['size_trials']+=1;counts[r['state']]+=1;blockers.update(r['blockers'])
         key=(idea.get('source'),idea.get('target'),str(idea.get('route')))
         previous=unique.get(key)
-        if previous is None or (r['positive_estimate'] and not previous['positive_estimate']):unique[key]=r
+        # Route outcomes are exclusive: any positive, else zero, else negative,
+        # else unpriced. Size outcomes remain separately visible below.
+        if previous is None or precedence[r['state']]>precedence[previous['state']]:unique[key]=r
+        route_direction=direction(idea)
+        if route_direction is not None:
+            row=direction_rows.setdefault(route_direction,{'direction':route_direction,
+                'evaluated_at':float(now),'size_trials':0,'priced_sizes':0,
+                'state':'NOT_PRICED','blockers':set()})
+            row['size_trials']+=1;row['priced_sizes']+=int(frame is not None)
+            if precedence[r['state']]>precedence[row['state']]:row['state']=r['state']
+            row['blockers'].update(r['blockers'])
         out=dict(frame['idea'] if frame else idea)
         out.update(immediate_assessment=r,model_product_rules=frame['rules'] if frame else rules,
                    selection_state=r['state'],selection_reason=','.join(r['blockers']) or r['state'],
@@ -197,7 +210,13 @@ def rank(ideas,quotes,rules,*,now,limit=12):
         annotated.append(out)
     annotated.sort(key=lambda i:(not i['immediate_assessment']['positive_estimate'],
         -(i['immediate_assessment']['score_usd'] or D('-1e99')),str(i.get('source')),str(i.get('target'))))
+    if evaluations is not None:
+        evaluations.extend(dict(row,blockers=sorted(row['blockers'])) for row in direction_rows.values())
     summary={'size_trials':counts['size_trials'],'distinct_routes':len(unique),
+        'priced_sizes':counts['size_trials']-counts['NOT_PRICED'],
+        'unpriced_sizes':counts['NOT_PRICED'],'size_state_counts':{k:v for k,v in counts.items() if k!='size_trials'},
+        'priced_routes':sum(r['frame'] is not None for r in unique.values()),
+        'route_outcomes_exclusive':True,
         'positive_unverified_routes':sum(r['positive_estimate'] for r in unique.values()),
         'negative_routes':sum(r['state']=='ECONOMIC_NEGATIVE' for r in unique.values()),
         'zero_routes':sum(r['state']=='ECONOMIC_ZERO' for r in unique.values()),
@@ -274,9 +293,30 @@ class ObservationLog:
 
 def diagnostic_report(app):
     """Aggregate export; candidate quantities/economics remain in local UI."""
+    import time
+    from coincat_v90_telemetry import utc
+    now=time.time()
     last=getattr(app,'_fast_last_result',{}) or {}
     model=getattr(app,'experimental_shadow',None)
+    consumer=getattr(model,'immediate_funnel',{})
+    discovery_cycle=last.get('research_cycle') or {}
+    consumer_cycle=consumer.get('cycle') or {}
+    link=('UNLINKED' if not discovery_cycle.get('id') or not consumer_cycle.get('id') else
+          'SAME_CYCLE_REEVALUATED_AT_CONSUMER' if discovery_cycle['id']==consumer_cycle['id'] else 'DIFFERENT_CYCLES')
+    tracker=getattr(app,'_direction_coverage',None)
+    coverage=tracker.summary(now=now) if tracker is not None else {'state':'NOT_OBSERVED'}
+    reconciliation=model.reconciliation() if hasattr(model,'reconciliation') else {'state':'NOT_OBSERVED'}
     return '\n'.join(('STRICT IMMEDIATE SNOWBALL • V90',RELEASE_LIMIT,
+        'Diagnostic snapshot UTC: '+utc(now),
+        'Experimental consumer: '+('ARMED' if getattr(model,'armed',False) else 'DISARMED; retained session results'),
+        'Consumer session start / stop: '+str((getattr(model,'started_at',None),getattr(model,'stop_at',None))),
+        'Discovery cycle: '+str(discovery_cycle),
+        'Consumer cycle relation: '+link,
+        'Discovery runs independently of ARM; compare cycle IDs and observation times before comparing economics.',
+        'Direction coverage (app urgent research, not the armed-session counter): '+str(coverage),
+        'Complete means a modeled W/L pricing frame; depth, fee units and execution remain unverified.',
+        'Route outcomes apply only to costed routes; selected_without_costed_receipt is a separate direction count.',
+        'Session candidate reconciliation (repeated sizes): '+str(reconciliation),
         'Latest discovery / pricing funnel: '+str(last.get('immediate_funnel',{'state':'NOT_OBSERVED'})),
         'Latest strict consumer funnel: '+str(getattr(model,'immediate_funnel',{})),
         'Consumer state counts (repeated size reviews): '+str(dict(getattr(model,'immediate_counts',{}))),

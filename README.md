@@ -1,4 +1,6 @@
-# CoinCat v90.0
+# CoinCat v90.1
+
+Includes cycle-linked reporting, cumulative candidate reconciliation and per-direction pricing coverage. See [patch details](docs/V90_1_REPORTING_PATCH.md).
 
 A clean, self-contained Windows Python 3.11 source build for **Strict Immediate Snowball** research on Coinbase spot markets. LIVE order creation remains unconditionally blocked.
 

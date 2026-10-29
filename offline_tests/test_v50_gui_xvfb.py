@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix='CoinCatV60_GUI_FAKE_') as d:
     top=tk.Tk()
     try:
         app=CoinCatApp(top)
-        assert 'v90.0' in top.title(), top.title()
+        assert 'v90.1' in top.title(), top.title()
         seen=[]
         def walk(w):
             try:
@@ -28,6 +28,13 @@ with tempfile.TemporaryDirectory(prefix='CoinCatV60_GUI_FAKE_') as d:
         assert not app._lab_technical_open.get() and not app._lab_outcomes_open.get()
         assert 'Advanced • research details' in ' '.join(seen) or app.ticker_tree.winfo_exists()
         assert 'PREFERRED' in app.ai_budget_preview.get() or 'Gathering' in app.ai_budget_preview.get()
+        from coincat_v90_telemetry import DirectionCoverage
+        app._direction_coverage=DirectionCoverage()
+        app._direction_coverage.select([('AAA-USD','SELL','AAA','USD')],[],now=100,cycle_id='GUI_OFFLINE')
+        details=app._show_immediate_opportunities()
+        displayed=' '.join(w.get('1.0','end') for w in details.winfo_children() if isinstance(w,tk.Text))
+        assert 'AAA-USD / SELL | never | never | never' in displayed
+        details.destroy()
         report=Path(d)/'fake_report.txt'
         with patch('coincat_app.filedialog.asksaveasfilename',return_value=str(report)),patch('coincat_app.messagebox.showinfo'),patch('coincat_app.messagebox.showwarning'):
             app._export_complete_diagnostics()
@@ -48,6 +55,11 @@ with tempfile.TemporaryDirectory(prefix='CoinCatV60_GUI_FAKE_') as d:
         assert 'GO-LIVE VERDICT: NOT APPROVED' in body
         assert 'CROSS-CRYPTO POST' in body
         assert 'SECTION COMPLETENESS: COMPLETE (18/18)' in body
+        assert 'Session candidate reconciliation (repeated sizes):' in body
+        assert 'Direction coverage (app urgent research, not the armed-session counter):' in body
+        assert 'Consumer cycle relation:' in body
+        assert 'Freshness observation:' in body
+        assert 'PRIMARY V80' not in body
         assert 'V50.7 ARM SHADOW + SEGREGATED FIFO ACCOUNTING' in body
         assert 'AI LAB RESEARCH DATABASE AND SINGLE-PLANNER AUDIT' in body
         assert 'DAILY REALIZED-LOSS PAUSE / AUTO-RESUME' in body

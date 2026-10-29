@@ -1,4 +1,4 @@
-CoinCat v90.0 — fresh installation
+CoinCat v90.1 — fresh installation
 
 1. Extract this complete source build into a NEW folder named CoinCat.
 2. Run 02_SETUP_COINCAT.bat (core CPU research; optional GPU is under tools).

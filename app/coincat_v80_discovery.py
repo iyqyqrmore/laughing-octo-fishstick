@@ -38,7 +38,7 @@ def select_books(catalog,rules,funding,*,quotes,now,cursor=0,limit=16,max_routes
     targets=list(dict.fromkeys((target,pair) for pair,side,source,target in selected))
     target_routes={}
     for pair,side,source,target in selected:target_routes.setdefault(target,[]).append(pair)
-    return {'books':chosen,'targets':targets,'target_routes':target_routes,'directions':selected,
+    return {'eligible_directions':routes,'books':chosen,'targets':targets,'target_routes':target_routes,'directions':selected,
         'candidate_routes':count,'funding_routes_deferred':max(0,count-len(selected)),
         'selected_directions':len(selected),'examined':examined,'missing_independent_paths':missing,
         'request_budget_deferred':deferred,'next_cursor':(offset+max(1,examined-1))%count if count else 0,

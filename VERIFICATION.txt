@@ -1,20 +1,26 @@
-CoinCat v90.0 — clean offline-development baseline, October 29, 2026
+CoinCat v90.1 — reporting patch, October 29, 2026
 
-Base source: 014a5ad1a786ce9a01680e3b8daa63c0e6f6f4f1 plus queued-candidate audit patch.
-Validation uses Python 3.11.17 and unchanged hash-locked CPU dependencies.
-Required release checks: 434 distinct offline tests with HTTP forbidden, actual Tk
-GUI default DISARMED, complete diagnostic export (18/18), Python source parsing,
-source manifest hashes, ZIP CRC/byte equality and independent ZIP SHA-256.
-The packaged release is validated from an extracted source archive.
-Protected broker, production FIFO, state router, importer and dependency lock bytes
-must match the base commit. LIVE submission remains blocked.
+Baseline b32a539c29bb5b1b9e8ffb61e25c5cc7f5340597, including earlier queued-rejection audit.
+Python 3.11.17; unchanged hash-locked CPU dependencies; 25 compatible installed packages.
+Release checks: 449 distinct offline tests, HTTP forbidden during discovery/execution;
+actual Tk GUI with CoinCat v90.1 title and default DISARMED; complete 18/18 diagnostic
+sections; Python AST parsing; source hashes; ZIP CRC and byte equality; independent ZIP SHA-256.
+The final archive is tested from an extracted source folder.
 
-Limits: no native Windows batch/DPAPI validation, no real API keys, connected account
-calls, exchange fills, production settlement/recovery certification or GPU validation.
-No guarantee of profit or connected strict qualification. Existing user installations
-and private_data/private_backups remain untouched. Fresh setup requires explicit
-confirmation and an empty destination; never overlay a running installation.
+New regressions exercise repeated directions versus repeated events, no-receipt and
+unpriced distinctions, mixed-size route outcomes, selection/eligibility churn,
+window expiration/truncation, cycle linkage, cumulative reconciliation, STOP retention,
+re-arm reset, freshness snapshots and unchanged no-order behavior.
+A complete frame means modeled W/L pricing, not verified depth/fees or execution.
+Coverage is app-lifetime urgent research, independent of Experimental ARM. It is RAM-only;
+removing an eligible direction drops its row, and re-entry starts a new interval.
+No durable candidate history or retrospective reconstruction is claimed.
 
-Run VERIFY_SOURCE.py and tools/RUN_OFFLINE_TESTS.py (a GUI display is required).
-On Windows use 02_SETUP_COINCAT.bat then 03_VERIFY_COINCAT.bat in a separate folder.
-Historical module names are compatibility identifiers; old releases remain in Git.
+Protected production broker/FIFO/state/importer and dependency lock bytes match baseline.
+LIVE submission remains unconditionally blocked. No private data, keys, account calls or
+real orders were used. Windows batch/DPAPI, connected account behavior, exchange fills,
+production settlement/recovery, profitability and optional GPU behavior remain untested.
+
+Use a separate extracted folder and preserve current private_data/private_backups.
+Run 02_SETUP_COINCAT.bat then 03_VERIFY_COINCAT.bat on Windows. Fresh permanent data
+still requires explicit confirmation and an empty destination. Do not overlay a running app.

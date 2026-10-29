@@ -1,4 +1,4 @@
-# Codex instructions — CoinCat v90.0
+# Codex instructions — CoinCat v90.1
 
 Read START_HERE.md, DECISION_CHAIN_REVIEW.md and docs/STRATEGY_AND_EVIDENCE.md. Current source is self-contained; historical module names are compatibility identifiers, not older-folder dependencies. Use the existing checkout, not worktrees unless the user asks.
 

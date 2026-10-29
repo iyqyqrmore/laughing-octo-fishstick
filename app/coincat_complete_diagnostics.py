@@ -18,6 +18,7 @@ from coincat_v607_strategy_research import report as strategy_research_report
 from coincat_v608_outcomes import diagnostics as v608_decision_diagnostics
 from coincat_v40_1_safety import live_data_health
 from coincat_version import DISPLAY
+from coincat_v90_telemetry import utc
 from coincat_v705_worker import worker_state
 from coincat_go_live_readiness import readiness_report
 from coincat_v50_final_verification import final_verification_report
@@ -111,6 +112,7 @@ def _health_summary(app, wall, mono):
     )
     lines = [
         'RUNTIME HEALTH / IMPORTANT BLOCKERS (independently computed)',
+        'Health snapshot UTC: '+utc(wall)+'; independent from earlier readiness sections.',
         'Broad authenticated-data health: ' + ('PASS (observation only)' if health['ready'] else 'BLOCKED / INCOMPLETE')+
             ' — independent of urgent public-REST research below',
         'Broker connection: ' + ('CONNECTED object present' if broker else 'NOT CONNECTED'),
@@ -440,7 +442,7 @@ def _finish_complete_report(wall, sections_count, fragments, failed, *,elapsed_s
         'This report is neither a profit forecast nor go-live authorization.',
         'SECTION COMPLETENESS: ' + (f'COMPLETE ({sections_count}/{sections_count})' if not failed else 'INCOMPLETE — '+', '.join(failed)),
         'All-spot LIVE submission DISABLED. Previous dollar-quoted fill journal retained only for historical reconciliation; no dollar-only live fast lane.',
-        'PRIMARY V80: Strict Immediate Snowball; W>0 AND L>0. Positive unverified estimates remain visible; connected strict qualification is unavailable pending depth/fee-evidence integration.',
+        'PRIMARY V90: Strict Immediate Snowball; W>0 AND L>0. Positive unverified estimates remain visible; connected strict qualification is unavailable pending depth/fee-evidence integration.',
         'ACTIVE SPOT RESEARCH: all authenticated eligible SPOT products, one exchange order per funded conversion; USD/USDC may be traded directly when held and eligible; USD value remains the profit measure.',
         'FULL-FUEL RESEARCH: no optional-profit or 10% BUY withholding; modeled taker fee/slippage remain inside actual input-coin spend, within verified enrolled available balance, product rules and order-size checks. LIVE protections unchanged.',
         'LEGACY v50-v60.9 sections below retain historical two-leg research/recovery evidence, NOT active route-selection policy.',

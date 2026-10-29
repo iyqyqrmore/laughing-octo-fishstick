@@ -21,6 +21,8 @@ class StrictImmediateShadow(AccountingShadow):
         self.immediate_blockers=Counter()
         self.immediate_latest=[]
         self.immediate_funnel={}
+        self.immediate_session_totals=Counter()
+        self.immediate_session_preconsumer=Counter()
 
     def arm(self,**kwargs):
         partial=bool(self.experimental and kwargs.get('enrolled_quantities') and kwargs.get('fresh_usd_rates'))
@@ -30,6 +32,7 @@ class StrictImmediateShadow(AccountingShadow):
         if result and not was_armed:
             self.immediate_counts.clear();self.immediate_blockers.clear();self.immediate_latest=[]
             self.immediate_funnel={};self.synthetic_evidence={}
+            self.immediate_session_totals.clear();self.immediate_session_preconsumer.clear()
             if self.experimental:
                 self.last_usd_rates=dict(kwargs.get('fresh_usd_rates') or {})
                 self.portfolio_marks_complete=set(self.model_balances())<=set(self.last_usd_rates)
@@ -42,6 +45,7 @@ class StrictImmediateShadow(AccountingShadow):
         if self.last_observation is not None and now<=self.last_observation:return False
         quotes=kwargs.get('quotes') or {};allowed=set(kwargs.get('approved_catalog') or ())
         current_rules=kwargs.pop('current_product_rules',None)
+        cycle=deepcopy(kwargs.pop('observation_cycle',None))
         upstream=Counter(kwargs.pop('upstream_rejections',{}))
         preconsumer=Counter()
         passed=[];results=[];funding=self.model_balances()
@@ -75,7 +79,7 @@ class StrictImmediateShadow(AccountingShadow):
         if passed and self.fifo_posted==before:
             self.immediate_blockers['BUDGET_REJECTED' if self.rejected_budget>before_budget else
                 'QUOTE_REJECTED' if self.rejected_quote>before_quote else 'RAM_POST_FAILED_OR_REPLAY']+=1
-        self.immediate_funnel={'submitted_sizes':len(kwargs.get('route_ideas') or ())+sum(upstream.values()),
+        self.immediate_funnel={'cycle':cycle,'consumer_observed_at':now,'submitted_sizes':len(kwargs.get('route_ideas') or ())+sum(upstream.values()),
             'preconsumer_rejected_sizes':sum(preconsumer.values()),
             'preconsumer_rejections':dict(preconsumer),
             'reviewed_sizes':len(results),
@@ -87,13 +91,31 @@ class StrictImmediateShadow(AccountingShadow):
             'strict_failures':dict(Counter(x for r in results for x in r['blockers'])),
             'synthetic_only':self.allow_synthetic_evidence,
             'connected_strict_qualification_available':False}
+        self.immediate_funnel['reconciliation_ok']=(self.immediate_funnel['submitted_sizes']==
+            self.immediate_funnel['preconsumer_rejected_sizes']+self.immediate_funnel['reviewed_sizes'])
+        self.immediate_session_totals['observations']+=1
+        for name in ('submitted_sizes','preconsumer_rejected_sizes','reviewed_sizes',
+                     'positive_estimates','negative_after_cost','unpriced','strict_qualified','ram_conversions'):
+            self.immediate_session_totals[name]+=self.immediate_funnel[name]
+        self.immediate_session_preconsumer.update(preconsumer)
         return result
+
+    def reconciliation(self):
+        names=('observations','submitted_sizes','preconsumer_rejected_sizes','reviewed_sizes',
+               'positive_estimates','negative_after_cost','unpriced','strict_qualified','ram_conversions')
+        totals={name:self.immediate_session_totals[name] for name in names}
+        totals['state']='OBSERVED' if totals['observations'] else 'NOT_OBSERVED'
+        totals['reconciliation_ok']=(totals.get('submitted_sizes',0)==
+            totals.get('preconsumer_rejected_sizes',0)+totals.get('reviewed_sizes',0))
+        totals['preconsumer_rejections']=dict(self.immediate_session_preconsumer)
+        return totals
 
     def snapshot(self,now=None):
         r=super().snapshot(now)
         if self.experimental:r.update(primary_strategy='STRICT_IMMEDIATE_V80',
             immediate_funnel=dict(self.immediate_funnel),
             immediate_session_states=dict(self.immediate_counts),
+            immediate_session_reconciliation=self.reconciliation(),
             immediate_blocker_counts=dict(self.immediate_blockers),
             connected_strict_qualification_available=False,evidence_limit=RELEASE_LIMIT)
         return r
