@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix='CoinCatV60_GUI_FAKE_') as d:
     top=tk.Tk()
     try:
         app=CoinCatApp(top)
-        assert 'v80.0' in top.title(), top.title()
+        assert 'v90.0' in top.title(), top.title()
         seen=[]
         def walk(w):
             try:
@@ -52,6 +52,6 @@ with tempfile.TemporaryDirectory(prefix='CoinCatV60_GUI_FAKE_') as d:
         assert 'AI LAB RESEARCH DATABASE AND SINGLE-PLANNER AUDIT' in body
         assert 'DAILY REALIZED-LOSS PAUSE / AUTO-RESUME' in body
         assert 'Synthetic pause -> later SELL -> eligible BUY: PASS' in body
-        print('PASS V80 GUI 1-button report',len(body),'bytes',top.title())
+        print('PASS V90 GUI 1-button report',len(body),'bytes',top.title())
     finally:
         app._close()

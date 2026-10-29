@@ -42,14 +42,16 @@ class StrictImmediateShadow(AccountingShadow):
         if self.last_observation is not None and now<=self.last_observation:return False
         quotes=kwargs.get('quotes') or {};allowed=set(kwargs.get('approved_catalog') or ())
         current_rules=kwargs.pop('current_product_rules',None)
+        upstream=Counter(kwargs.pop('upstream_rejections',{}))
+        preconsumer=Counter()
         passed=[];results=[];funding=self.model_balances()
         for old in kwargs.get('route_ideas') or ():
             idea=deepcopy(old)
             source=idea.get('source');available=funding.get(source,Decimal(0))
             if available<=0:
-                self.immediate_blockers['NO_CURRENT_RAM_FUNDING']+=1;continue
+                preconsumer['NO_CURRENT_RAM_FUNDING']+=1;continue
             if any(s.get('pair') not in allowed for s in idea.get('shadow_fifo_steps',())):
-                self.immediate_blockers['PRODUCT_NO_LONGER_APPROVED']+=1;continue
+                preconsumer['PRODUCT_NO_LONGER_APPROVED']+=1;continue
             idea['source_units']=min(Decimal(str(idea.get('source_units',available))),available)
             frame=(old.get('immediate_assessment') or {}).get('frame') or {}
             proof=self.synthetic_evidence.get(frame.get('id'))
@@ -63,6 +65,8 @@ class StrictImmediateShadow(AccountingShadow):
                 # immediate receipt; no forward evidence is handed to it.
                 candidate.pop('forward_edge_evidence',None)
                 passed.append(candidate)
+        preconsumer.update(upstream)
+        self.immediate_blockers.update(preconsumer)
         self.immediate_latest=results[:12]
         before=self.fifo_posted
         before_budget=self.rejected_budget;before_quote=self.rejected_quote
@@ -71,7 +75,10 @@ class StrictImmediateShadow(AccountingShadow):
         if passed and self.fifo_posted==before:
             self.immediate_blockers['BUDGET_REJECTED' if self.rejected_budget>before_budget else
                 'QUOTE_REJECTED' if self.rejected_quote>before_quote else 'RAM_POST_FAILED_OR_REPLAY']+=1
-        self.immediate_funnel={'reviewed_sizes':len(results),
+        self.immediate_funnel={'submitted_sizes':len(kwargs.get('route_ideas') or ())+sum(upstream.values()),
+            'preconsumer_rejected_sizes':sum(preconsumer.values()),
+            'preconsumer_rejections':dict(preconsumer),
+            'reviewed_sizes':len(results),
             'positive_estimates':sum(r['positive_estimate'] for r in results),
             'negative_after_cost':sum(r['state']=='ECONOMIC_NEGATIVE' for r in results),
             'unpriced':sum(r['state']=='NOT_PRICED' for r in results),

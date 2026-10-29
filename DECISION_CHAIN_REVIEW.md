@@ -1,8 +1,8 @@
-# v80.0 decision-chain review
+# v90.0 decision-chain review
 
 Portfolio funding → bounded static direct-route discovery → shared native receipt planner → consistent independent USD decision frame → visible modeled economics → explicit strict-evidence gate → manually armed segregated RAM FIFO → same-time HOLD P&L and diagnostics.
 
-The product constructs StrictImmediateShadow. The older ShadowArmedResearch component remains the validated/accounting and archived advisory compatibility engine. Its favorable-forward scenario is not primary v80 authority: the v80 wrapper passes only re-evaluated strict immediate-positive candidates, without forward evidence, to that accounting engine. Archived strategy/plumbing tests are retained separately; v80 tests exercise the actual new producer and consumer without mocking qualification.
+The product constructs StrictImmediateShadow. The older ShadowArmedResearch component remains the validated/accounting and archived advisory compatibility engine. Its favorable-forward scenario is not primary v90 authority: the v90 wrapper passes only re-evaluated strict immediate-positive candidates, without forward evidence, to that accounting engine. Archived strategy/plumbing tests are retained separately; v90 tests exercise the actual new producer and consumer without mocking qualification.
 
 BUY quote budget: rounded_base=floor(budget/(ask*(1+s)*(1+f)), base_increment). Spent=rounded_base*ask*(1+s)*(1+f). SELL: rounded source base, net quote=base*bid*(1-s)*(1-f). s=0.0015 is an assumption. One fee is embedded in native receipts; do not subtract the displayed fee again from P&L. Stablecoins use observed USD marks. Optional supplied depth walks reprice the same canonical receipt implementation; no alternative trader or receipt engine.
 

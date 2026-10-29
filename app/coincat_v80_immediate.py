@@ -276,7 +276,7 @@ def diagnostic_report(app):
     """Aggregate export; candidate quantities/economics remain in local UI."""
     last=getattr(app,'_fast_last_result',{}) or {}
     model=getattr(app,'experimental_shadow',None)
-    return '\n'.join(('STRICT IMMEDIATE SNOWBALL • V80',RELEASE_LIMIT,
+    return '\n'.join(('STRICT IMMEDIATE SNOWBALL • V90',RELEASE_LIMIT,
         'Latest discovery / pricing funnel: '+str(last.get('immediate_funnel',{'state':'NOT_OBSERVED'})),
         'Latest strict consumer funnel: '+str(getattr(model,'immediate_funnel',{})),
         'Consumer state counts (repeated size reviews): '+str(dict(getattr(model,'immediate_counts',{}))),

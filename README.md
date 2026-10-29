@@ -1,4 +1,4 @@
-# CoinCat v80.0
+# CoinCat v90.0
 
 A clean, self-contained Windows Python 3.11 source build for **Strict Immediate Snowball** research on Coinbase spot markets. LIVE order creation remains unconditionally blocked.
 
@@ -20,12 +20,12 @@ CoinCat/
   private_data/       created locally; never shipped
   private_backups/    created locally; keep separately backed up
   .venv/             created by setup
-  docs/              current v80 requirements and follow-up scope
+  docs/              current v90 requirements and follow-up scope
   offline_tests/     synthetic tests; no user data or network
   tools/             optional GPU, debugging and explicit recovery
 ```
 
-Keep a private offline backup of old financial, tax and research records before deleting old folders. Fresh v80 does not recreate local history from a new API key. Optional recovery uses the unchanged verified-copy importer under tools; it requires an empty destination and explicit selection and can include the old vault. Normal fresh use needs no old folders.
+Keep a private offline backup of old financial, tax and research records before deleting old folders. Fresh v90 does not recreate local history from a new API key. Optional recovery uses the unchanged verified-copy importer under tools; it requires an empty destination and explicit selection and can include the old vault. Normal fresh use needs no old folders.
 
 Current setup needs View and Trade permissions with Transfer disabled. The pinned SDK supports Ed25519 and ECDSA signing in offline tests; actual account authentication remains a PC-side check. Import the key JSON locally, never into chat or GitHub.
 

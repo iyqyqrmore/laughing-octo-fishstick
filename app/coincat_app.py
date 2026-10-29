@@ -2,6 +2,7 @@
 Always disarmed on launch. Never place orders from a GUI event handler thread.
 """
 from __future__ import annotations
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from decimal import Decimal,InvalidOperation
 from pathlib import Path
@@ -1414,13 +1415,21 @@ class CoinCatApp:
                     if fx is not None: rates[asset]=str(fx['rate'])
         return rates,coverage['complete']
 
-    def _current_shadow_ideas(self, payload, session, key, ideas):
+    def _current_shadow_ideas(self, payload, session, key, ideas, *, rejections=None):
         expected=payload.get(key)
         allowed=set(self._research_catalog())
-        ideas=[i for i in ideas if len(i.get('shadow_fifo_steps') or ())==1 and
-               all(step.get('pair') in allowed for step in i['shadow_fifo_steps'])]
+        kept=[]
+        for idea in ideas:
+            steps=idea.get('shadow_fifo_steps') or ()
+            reason=('NOT_SINGLE_RESEARCH_ORDER' if len(steps)!=1 else
+                    'PRODUCT_NO_LONGER_APPROVED' if any(step.get('pair') not in allowed for step in steps) else None)
+            if reason:
+                if rejections is not None:rejections[reason]+=1
+            else:kept.append(idea)
+        ideas=kept
         if expected is not None and ({a:Decimal(str(q)) for a,q in expected.items() if Decimal(str(q))>0}
                 != session.model_balances()):
+            if rejections is not None:rejections['QUEUED_MODEL_INVENTORY_CHANGED']+=len(ideas)
             return ()  # an earlier urgent conversion superseded this queued plan
         return ideas
 
@@ -2214,7 +2223,9 @@ class CoinCatApp:
         session=self.experimental_shadow
         if not session.armed or payload.get('state')!='RESEARCHED':return 0
         now=time.time();plan=payload.get('plan') or {}
-        ideas=self._current_shadow_ideas(payload,session,'experimental_model_snapshot',plan.get('ideas') or ())
+        upstream=Counter()
+        ideas=self._current_shadow_ideas(payload,session,'experimental_model_snapshot',
+            plan.get('ideas') or (),rejections=upstream)
         books=payload.get('decision_quotes') or {}
         rates,complete=self._shadow_mark_rates(session,books,now,ideas,allow_partial=True)
         # A missing unrelated mark does not make a fully priced conversion
@@ -2228,8 +2239,10 @@ class CoinCatApp:
                     max_legs=3,required_pairs=pairs)
             route_marks=route_mark_cache[pairs]
             if route_marks['complete']:eligible.append(idea)
+            else:upstream['ROUTE_MARK_COVERAGE_INCOMPLETE']+=1
         caps=effective_manual_budgets(self._manual_budget_saved,plan.get('funding_inventory_usd',0))
         if caps is None:
+            upstream['MANUAL_BUDGET_UNAVAILABLE']+=len(eligible)
             eligible=[]
             caps={'per_order_usd':'0','incremental_exposure_usd':'0','daily_buy_usd':'0','max_attempts':'0'}
         before=session.fifo_posted
@@ -2237,7 +2250,8 @@ class CoinCatApp:
             route_ideas=eligible,minimum_advantage=str(self.switch_minimum_usd),
             strict_quotes=True,risk_budgets=caps,approved_catalog=self._research_catalog(),
             portfolio_marks_complete=complete,
-            **({'current_product_rules':getattr(self.broker,'catalog_product_rules',{})}
+            **({'current_product_rules':getattr(self.broker,'catalog_product_rules',{}),
+                 'upstream_rejections':dict(upstream)}
                if getattr(session,'primary_immediate',False) else {}))
         # Only the resulting wallet determines whole-wallet P&L completeness.
         rates,complete=self._shadow_mark_rates(session,books,now,allow_partial=True)

@@ -1,4 +1,4 @@
-CoinCat v80.0 — fresh installation
+CoinCat v90.0 — fresh installation
 
 1. Extract this complete source build into a NEW folder named CoinCat.
 2. Run 02_SETUP_COINCAT.bat (core CPU research; optional GPU is under tools).
@@ -11,7 +11,7 @@ CoinCat v80.0 — fresh installation
 No older folders, credentials or databases are required. No automatic import.
 A new key does not recover old local financial or tax records. Keep a separate
 private backup of old private_data before deleting an older installation.
-The initial v80 backup contains NEW data, not those old records.
+The initial v90 backup contains NEW data, not those old records.
 
 Positive modeled estimates remain visible with missing-evidence reasons.
 Connected strict qualification is not available yet. LIVE POST remains blocked.
