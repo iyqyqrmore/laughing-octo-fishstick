@@ -10,6 +10,11 @@ The [quote coverage follow-up](docs/QUOTE_COVERAGE.md) fills the existing reques
 budget, schedules due research endpoints and reports current versus historical
 coverage. Incomplete coverage never means the whole market has no opportunity.
 
+The [Research Scheduler & ETH Synchronization Patch](docs/RESEARCH_SCHEDULER_ETH_SYNC.md)
+adds capacity-based admission, protected hourly service, coordinated ETH quote
+groups and distinct per-horizon diagnostic counts. Limits, economics and trading
+blocks remain unchanged; account-wide ETH totals can still be UNKNOWN.
+
 One policy: rank eligible direct swaps by their greatest positive immediate
 after-cost USD wallet advantage versus holding. Each proposal uses the full
 verified AVAILABLE source balance, with modeled fees and exchange rounding

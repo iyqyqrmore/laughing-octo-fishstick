@@ -9,6 +9,9 @@ in ETH_DESIGN_VERIFICATION.md. Keep your working Windows installation separate.
 For the subsequent quote-scheduling patch and its evidence limits, also read
 docs/QUOTE_COVERAGE.md. Current and historical coverage counts are distinct;
 the old release's test count below is not the current development-suite count.
+The latest admission, hourly-fairness and coordinated ETH observation changes
+are documented in docs/RESEARCH_SCHEDULER_ETH_SYNC.md. This remains a read-only
+v91-based development branch, not an ETH-profit execution release.
 
 1. Extract into a separate new source folder. Preserve your working installation,
    private_data and private_backups. Do not overlay a running app or share one

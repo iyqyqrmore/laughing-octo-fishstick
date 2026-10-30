@@ -1,0 +1,13 @@
+{
+  "commit": "4c3a4c0c459adb1a3cfc419924c2a1cca16d3ee7",
+  "fixture": "844 constant-price listed products, 9 fresh discovery books plus ETH-USD per 12-second turn, 180 minutes, six-book research share",
+  "recorded": 1541,
+  "capacity_deferral_attempts": 6568,
+  "max_pending": 512,
+  "max_unique_gets": 15,
+  "outcomes": {
+    "300": {"completed": 912, "missed": 624},
+    "900": {"completed": 905, "missed": 631},
+    "3600": {"completed": 464, "missed": 565}
+  }
+}

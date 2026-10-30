@@ -7,9 +7,10 @@ from dataclasses import dataclass
 from decimal import Decimal, localcontext, ROUND_DOWN
 
 from coincat_cross_quote import usd_conversion
-from coincat_multicurrency import available_routes, research_order
+from coincat_multicurrency import available_routes, research_order, _paths
 from coincat_v80_immediate import _prepare, exact
 from coincat_v703_chain import approved_pairs
+from coincat_v80_discovery import listed_usd_paths
 
 D = Decimal
 UNKNOWN_EVIDENCE = ('SIZED_DEPTH_UNKNOWN', 'FEE_CURRENCY_UNVERIFIED',
@@ -21,6 +22,58 @@ def _quantity(value):
     if n < 0:
         raise ValueError('NEGATIVE_QUANTITY')
     return n
+
+
+def eth_quote_plan(*, balances, catalog, rules, excluded=(), cursor=0):
+    """Price-independent listed dependencies; no invented prices or allocation.
+
+    Enumerate the canonical route topology without supplying synthetic books.
+    A large/incomplete account can receive coordinated per-asset observations,
+    but those groups are never summed into a purported account-wide total.
+    """
+    listed=set(approved_pairs(catalog,rules,excluded))
+    output={'groups':[],'account_required_books':None,'known_dependency_books':0,'missing_asset_count':0,
+            'all_paths_supported':False,'scope':'ACCOUNT_AVAILABLE_NOT_COINCAT_ALLOCATION'}
+    if 'ETH-USD' not in listed:
+        return output
+    marks=listed_usd_paths(listed)
+    account={'ETH-USD'};groups=[]
+    for asset,raw in sorted(balances.items()):
+        try:
+            quantity=_quantity(raw)
+        except (ValueError,TypeError,ArithmeticError):
+            output['missing_asset_count']+=1
+            continue
+        if not quantity or asset in excluded:
+            continue
+        books={'ETH-USD'}
+        if asset!='ETH':
+            routes=_paths(asset,'ETH',listed,listed,2)
+            if not routes or asset not in marks:
+                output['missing_asset_count']+=1
+                continue
+            books.update(marks[asset])
+            valid=True
+            for pair,side,source,target in routes[0]:
+                if source not in marks:
+                    valid=False;break
+                books.add(pair);books.update(marks[source])
+            if not valid:
+                output['missing_asset_count']+=1
+                continue
+        account.update(books)
+        groups.append({'kind':'asset','asset':asset,'books':tuple(sorted(books))})
+    output['known_dependency_books']=len(account)
+    output['all_paths_supported']=output['missing_asset_count']==0
+    if output['all_paths_supported']:
+        output['account_required_books']=len(account)
+        output['groups'].append({'kind':'account','books':tuple(sorted(account))})
+    if groups:
+        offset=int(cursor)%len(groups)
+        output['groups'].extend(groups[offset:]+groups[:offset])
+    else:
+        output['groups'].append({'kind':'reference','books':('ETH-USD',)})
+    return output
 
 
 def _return_to_eth(wallet, *, books, rules, catalog, now, fee, slip, excluded):
@@ -93,6 +146,7 @@ def measure_eth(*, result, balances, quotes, rules, catalog, now, balances_at,
         'w_eth_by_frame': {}, 'hold': None, 'switch': None,
         'return_advantage_eth': None, 'evidence': UNKNOWN_EVIDENCE,
         'portfolio_usd_mark': None,
+        'synchronization_state': 'UNKNOWN',
         'live_order_permission': False}
     if balances_at is None or not 0 <= now - balances_at <= 120:
         return dict(out, reason='AVAILABLE_BALANCES_STALE_OR_UNOBSERVED')
@@ -159,6 +213,8 @@ def measure_eth(*, result, balances, quotes, rules, catalog, now, balances_at,
                     value['estimated_recoverable_eth'] = None
                     value['modeled_eth_proceeds'] = None
             return dict(out, reason='ETH_RETURN_PRICE_SKEW')
+        out['synchronization_state']=('PARTIAL_OR_INCOMPLETE' if hold['missing'] or
+            (out['switch'] is not None and out['switch']['missing']) else 'SYNCHRONIZED')
         complete = hold['estimated_recoverable_eth'] is not None
         if out['switch'] is not None:
             complete = complete and out['switch']['estimated_recoverable_eth'] is not None

@@ -1,5 +1,9 @@
 # Quote coverage and research deadlines
 
+This records the preceding coverage patch. The subsequent admission/fairness and
+ETH synchronization changes are in RESEARCH_SCHEDULER_ETH_SYNC.md; historical
+validation counts and replay measurements below describe the earlier snapshot.
+
 Read-only follow-up to ETH Farmer commit `6bff164`. The owner requested this
 update and a commit after reviewing a v91 diagnostic with only 2 of 844 eligible
 directions priced, 833 missing/stale/wide conversion books and many missed

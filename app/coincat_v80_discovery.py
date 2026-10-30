@@ -53,7 +53,8 @@ def listed_usd_paths(catalog):
 
 
 def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
-                 max_routes=None, valuation_catalog=None, excluded=(), priority_groups=()):
+                 max_routes=None, valuation_catalog=None, excluded=(), priority_groups=(),
+                 valuation_groups=()):
     listed = approved_pairs(catalog, rules, excluded)
     valuation = set(approved_pairs(valuation_catalog if valuation_catalog is not None else catalog,
                                    rules, excluded))
@@ -71,6 +72,7 @@ def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
     chosen, selected = [], []
     dependencies = set()
     endpoint_groups = endpoint_deferred = endpoint_unavailable = 0
+    research_due=[];research_scheduled=[];research_deferred=[];research_unavailable=[]
 
     def needed(books, earliest=None):
         extra = []
@@ -81,24 +83,50 @@ def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
                 extra.append(product)
         return extra
 
-    # Earliest-expiring observations get at most six GETs. Shared paths are
-    # deduplicated; discovery always retains at least ten slots at full budget.
-    due = sorted(priority_groups, key=lambda g:(g['deadline'], tuple(g['books'])))
+    # EDF normally; after two unserved passes a horizon receives a protected
+    # turn. EDF still orders observations within that horizon's turn. A large
+    # hourly group need not fit into leftover scraps after short windows.
+    due = sorted(priority_groups, key=lambda g:(
+        0 if g.get('wait_passes',0)>=2 else 1,
+        -g.get('wait_passes',0) if g.get('wait_passes',0)>=2 else 0,
+        g['deadline'],tuple(g['books'])))
     for group in due:
         if not group['earliest'] <= now <= group['deadline']:
             continue
+        jobs=group.get('jobs',())
+        research_due.extend(jobs)
         books = tuple(dict.fromkeys(group['books']))
         if not set(books) <= valuation:
             endpoint_unavailable += 1
+            research_unavailable.extend(jobs)
             continue
         extra = needed(books, group['earliest'])
         if len(chosen)+len(extra) > min(MAX_ENDPOINT_REQUESTS, budget):
             endpoint_deferred += 1
+            research_deferred.extend(jobs)
             continue
         chosen.extend(extra)
         dependencies.update(books)
         endpoint_groups += 1
+        research_scheduled.extend(jobs)
     endpoint_requests = len(chosen)
+
+    # One atomic account-wide ETH group if it fits, otherwise a rotating
+    # per-asset group. Every dependency includes ETH-USD. Never combine partial
+    # groups into a claimed synchronized account total or exceed 16 GETs.
+    eth_group=None;eth_deferred=0
+    for group in valuation_groups:
+        books=tuple(dict.fromkeys(group['books']))
+        if not set(books)<=valuation:
+            continue
+        extra=needed(books)
+        if len(chosen)+len(extra)>budget:
+            eth_deferred+=1
+            continue
+        chosen.extend(extra);dependencies.update(books)
+        eth_group=group
+        break
+    valuation_requests=len(chosen)-endpoint_requests
 
     mark_cache = {}
     structural_paths=listed_usd_paths(valuation)
@@ -155,6 +183,10 @@ def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
         'endpoint_groups_deferred':endpoint_deferred,
         'endpoint_groups_unavailable':endpoint_unavailable,
         'endpoint_requests':endpoint_requests,
+        '_research_due':research_due,'_research_scheduled':research_scheduled,
+        '_research_deferred':research_deferred,'_research_unavailable':research_unavailable,
+        '_eth_group':eth_group,'eth_valuation_requests':valuation_requests,
+        'eth_groups_deferred':eth_deferred,
         'next_cursor':(offset+advance)%count if count else 0,
         'next_route_cursor':int(cursor)+advance, 'next_target_cursor':0,
         'mark_refresh_deferred':False, 'unlisted_mark_assets':[],

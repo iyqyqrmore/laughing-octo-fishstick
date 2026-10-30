@@ -20,6 +20,13 @@ the 16-GET collection cap, 0.2s GET spacing, server backoff, 30s quote age and
 12s frame span. Research gets at most six of those slots; it has no strategy
 authority. Historical coverage is not fresh coverage. Fixed-path future
 observations need post-horizon quotes; missing endpoints never become losses.
+Read docs/RESEARCH_SCHEDULER_ETH_SYNC.md for the current admission/fairness patch.
+All three future windows must fit the conservative quote-capacity forecast before
+admission; refusals are not missed observations. Keep distinct decisions separate
+from repeated review/service attempts. Aging EDF protects hourly service without
+increasing the six-book research share. ETH groups include ETH-USD; partial or
+unreconciled account-available measurements never establish a CoinCat-only total.
+Keep the mixer, reserve calculator, passive advisor and economic requirements intact.
 
 ## v91 policy and safeguards
 

@@ -209,7 +209,8 @@ class CoinCatApp:
         if self.closed or not self.running:return
         if self.busy:
             self._schedule('scan',250,self._scan);return
-        self._submit('scan',lambda:self.scanner.scan(cancel=self.cancel))
+        interval=self.mixer.values()['scan_interval_s']
+        self._submit('scan',lambda:self.scanner.scan(cancel=self.cancel,scan_interval_s=interval))
 
     def _poll(self):
         if self.closed:return

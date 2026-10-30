@@ -20,6 +20,17 @@ class QuoteDeferred(ValueError):
         super().__init__(reason)
 
 
+class QuoteErrors(dict):
+    """Aggregate public error classes plus internal per-product attribution.
+
+    dict(errors) preserves the existing redacted diagnostics schema. Never
+    retain response bodies, exception messages, credentials or account data.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.by_product={}
+
+
 class GetBudget:
     def __init__(self, interval=.2, clock=time.monotonic):
         self.interval, self.clock = interval, clock
@@ -117,13 +128,15 @@ class ScoutCollector:
         with self.lock:
             self.inflight = {f for f in self.inflight if not f.done()}
             if self.inflight:
-                return {}, {'PREVIOUS_GETS_IN_FLIGHT': len(self.inflight)}, 0
+                errors=QuoteErrors(PREVIOUS_GETS_IN_FLIGHT=len(self.inflight))
+                errors.by_product={p:'PREVIOUS_GETS_IN_FLIGHT' for p in pairs}
+                return {}, errors, 0
             pool = ThreadPoolExecutor(max_workers=4)
             jobs = {pool.submit(fetch, p, deadline=start+seconds): p for p in pairs}
             self.inflight = set(jobs)
         try:
             done, pending = wait(jobs, timeout=max(0, start+seconds-clock()))
-            snapshots, errors = {}, {}
+            snapshots, errors = {}, QuoteErrors()
             for future in done:
                 pair = jobs[future]
                 try:
@@ -131,8 +144,15 @@ class ScoutCollector:
                     snapshots[pair] = snapshot
                 except Exception as exc:
                     reason = getattr(exc, 'reason', type(exc).__name__)
+                    if isinstance(exc,requests.HTTPError) and exc.response is not None:
+                        status=exc.response.status_code
+                        if isinstance(status,int) and 400<=status<=599:
+                            reason='HTTP_'+str(status)
                     errors[reason] = errors.get(reason, 0)+1
-            if pending: errors['SCOUT_DEADLINE'] = len(pending)
+                    errors.by_product[pair]=reason
+            if pending:
+                errors['SCOUT_DEADLINE'] = len(pending)
+                errors.by_product.update({jobs[f]:'SCOUT_DEADLINE' for f in pending})
             for future in pending: future.cancel()
             return snapshots, errors, round((clock()-start)*1000, 2)
         finally:

@@ -10,6 +10,8 @@ from coincat_v701_quotes import valid_book
 from coincat_v703_chain import approved_pairs
 from coincat_v701_transport import SCOUT, fetch_snapshot
 from coincat_passive_lab import PassiveLab
+from coincat_eth_farmer import eth_quote_plan
+from coincat_research_admission import service_period
 
 
 class Scanner:
@@ -23,6 +25,7 @@ class Scanner:
         self.account_at=None;self.catalog_at=None;self.cursor=0
         self.lab=PassiveLab();self.last_result=None;self.sequence=0
         self.observed_books={};self.priced_at={}
+        self.eth_cursor=0
 
     def refresh(self, *, now=None):
         fixed_now=now
@@ -38,7 +41,8 @@ class Scanner:
         self.balances=balances;self.account_at=time.time() if fixed_now is None else now
         return {'balances':dict(balances),'catalog_count':len(self.catalog),'at':self.account_at}
 
-    def scan(self, *, now=None, collect=None, cancel=None):
+    def scan(self, *, now=None, collect=None, cancel=None, scan_interval_s=5):
+        service_period(scan_interval_s)  # Validate cadence before any read request.
         fixed_now=now
         now=time.time() if now is None else now
         if self.account_at is None or not 0<=now-self.account_at<60:self.refresh(now=fixed_now)
@@ -47,13 +51,18 @@ class Scanner:
         funding={asset for asset,qty in self.balances.items() if qty>0 and asset not in excluded}
         listed=approved_pairs(self.catalog,self.rules,excluded)
         due=self.lab.quote_groups(now=now,listed=listed)
+        eth_plan=eth_quote_plan(balances=self.balances,catalog=self.catalog,
+            rules=self.rules,excluded=excluded,cursor=self.eth_cursor)
         plan=select_books(self.catalog,self.rules,funding,quotes=self.books,now=now,
-            cursor=self.cursor,excluded=excluded,priority_groups=due)
+            cursor=self.cursor,excluded=excluded,priority_groups=due,valuation_groups=eth_plan['groups'])
         snapshots,errors,elapsed=(SCOUT.collect if collect is None else collect)(plan['books'],fetch=fetch_snapshot)
         if cancel is not None and cancel.is_set():return {'state':'CANCELLED'}
         now=time.time() if fixed_now is None else now
         self.cursor=plan['next_route_cursor']
         incoming={pair:item.book() for pair,item in snapshots.items()}
+        self.lab.record_service(plan,incoming,errors,now=now)
+        if plan['_eth_group'] is not None:
+            self.eth_cursor+=1
         self.observed_books.update(incoming)
         catalog_set=set(self.catalog)
         # Remember the last public observation for diagnosis, never for stale
@@ -76,6 +85,7 @@ class Scanner:
         for row in result['ranked']:
             self.priced_at[(row['pair'],row['side'])]=now
         result['coverage_complete']=bool(eligible) and result['priced_directions']==len(eligible)
+        result['observation_engine']='RESEARCH_ADMISSION_FAIR_DEADLINES_ETH_GROUPS'
         result['result_scope']='CURRENTLY_PRICED_DIRECTIONS_ONLY'
         result['book_conditions']=dict(Counter(book_status(self.observed_books.get(p),now)
             for p,s in eligible))
@@ -87,12 +97,34 @@ class Scanner:
             **{k:plan[k] for k in ('cached_reused_books','request_budget_deferred',
                 'missing_independent_paths','endpoint_requests','endpoint_groups_scheduled',
                 'endpoint_groups_deferred','endpoint_groups_unavailable')}}
+        result['eth_quote_scheduling']={'scope':eth_plan['scope'],
+            'account_required_books':eth_plan['account_required_books'],
+            'known_dependency_books':eth_plan['known_dependency_books'],
+            'structurally_unpriced_assets':eth_plan['missing_asset_count'],
+            'all_paths_supported':eth_plan['all_paths_supported'],
+            'selected_group_kind':None if plan['_eth_group'] is None else plan['_eth_group']['kind'],
+            'requested_books':plan['eth_valuation_requests'],
+            'groups_deferred':plan['eth_groups_deferred'],
+            'account_total_requires_complete_synchronized_quotes':True}
+        group=plan['_eth_group']
+        if group is not None:
+            conditions=Counter(book_status(self.observed_books.get(p),now) for p in group['books'])
+            coherent=set(conditions)=={'FRESH'}
+            span=None
+            if coherent:
+                stamps=[self.observed_books[p][2] for p in group['books']]
+                span=max(stamps)-min(stamps)
+                coherent=span<=12
+            result['eth_quote_scheduling'].update(selected_group_book_conditions=dict(conditions),
+                selected_group_quote_span_s=span,selected_group_synchronized=coherent)
         # Freeze read-only inputs so later GUI settings/STOP cannot combine
         # account quantities from one scan with books from a different scan.
         result['eth_observation'] = dict(balances=dict(self.balances),
             catalog=tuple(self.catalog), rules=deepcopy(self.rules),
             quotes=dict(self.books), now=now, balances_at=self.account_at,
             fee_rate=result['fee_rate'], excluded=tuple(sorted(excluded)))
-        result['lab_note']=self.lab.observe(result,self.observed_books,now=now)
+        result['lab_note']=self.lab.observe(result,self.observed_books,now=now,
+            scan_interval_s=scan_interval_s,listed=listed)
+        result['research_scheduler']=self.lab.diagnostics()
         self.last_result=result
         return result
