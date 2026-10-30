@@ -44,7 +44,7 @@ class CoinCatApp:
         self.eth_details=tk.StringVar(value='ETH measurement details await a fresh snapshot. No working/reserve allocation has been approved.')
         self.eth_details_open=tk.BooleanVar(value=False)
         self.status=tk.StringVar(value='Connect to read available balances and spot products.')
-        self.policy=tk.StringVar(value='Full verified available balance | greatest positive immediate USD advantage | no portfolio budget or profit floor. No automatic profit reserve or extra 10% BUY holdback; fees and exchange rounding stay inside the available balance.')
+        self.policy=tk.StringVar(value='USD research: full AVAILABLE; greatest positive immediate USD advantage. No automatic profit reserve or extra 10% BUY holdback. ETH farming: ETH -> coins -> ETH after all costs; ETH selection and execution remain blocked.')
         self.best_text=tk.StringVar(value='Best swap: awaiting fresh prices.')
         self.cost_text=tk.StringVar(value='Fees: unknown | spread: unknown | depth impact: unknown | execution slippage: not measured')
         self.coverage_text=tk.StringVar(value='Coverage: not observed')
@@ -68,14 +68,14 @@ class CoinCatApp:
         ttk.Label(shell,textvariable=self.reserve_text,wraplength=1040).pack(anchor='w',pady=(3,0))
         ttk.Label(shell,textvariable=self.eth_text,wraplength=1040).pack(anchor='w',pady=(3,0))
         self._mixer_changed()
-        summary=ttk.LabelFrame(shell,text='Best currently priced full-balance swap',padding=10)
+        summary=ttk.LabelFrame(shell,text='Best currently priced USD research swap',padding=10)
         summary.pack(fill='x',pady=10)
         ttk.Label(summary,textvariable=self.best_text,wraplength=1010,font=('Segoe UI',11,'bold')).pack(anchor='w')
         ttk.Label(summary,textvariable=self.cost_text,wraplength=1010).pack(anchor='w',pady=4)
         ttk.Label(summary,textvariable=self.coverage_text,wraplength=1010).pack(anchor='w')
         tabs=ttk.Notebook(shell);tabs.pack(fill='both',expand=True)
         wallet=ttk.Frame(tabs,padding=5);routes=ttk.Frame(tabs,padding=5);lab=ttk.Frame(tabs,padding=5)
-        tabs.add(wallet,text='Available portfolio');tabs.add(routes,text='Ranked swaps');tabs.add(lab,text='AI Lab - passive notes')
+        tabs.add(wallet,text='Available portfolio');tabs.add(routes,text='USD research swaps');tabs.add(lab,text='AI Lab - passive notes')
         self.eth_details_toggle=ttk.Checkbutton(wallet,text='ETH accounting details (read only)',
             variable=self.eth_details_open,command=self._toggle_eth_details)
         self.eth_details_toggle.pack(anchor='w')
@@ -148,6 +148,7 @@ class CoinCatApp:
         switch=value.get('switch') or {}
         def shown(raw):
             return 'UNKNOWN' if raw is None else str(raw)
+        cycles=result.get('eth_cycle_feasibility',{})
         self.eth_details.set(
             'ETH Farmer read-only design | account AVAILABLE scope, not reconciled unreserved working capital.\n'
             'Settled / protected / actual earned ETH: UNKNOWN. Cashflow-adjusted improvement vs starting holdings: UNKNOWN; no baseline or manual-flow journal.\n'
@@ -158,7 +159,10 @@ class CoinCatApp:
             'A subtotal excludes these quantities and is not complete recoverable ETH.\n'
             f"Secondary available-portfolio USD mark: {shown(value['portfolio_usd_mark'])}; "
             f"ETH reference: {shown(value['reference_eth_usd'])} USD/ETH; snapshot {value['balances_at']}; "
-            f"quote span: {shown(value.get('quote_span_s'))} s. Depth / fee currency / exchange event timing unverified.")
+            f"quote span: {shown(value.get('quote_span_s'))} s. Depth / fee currency / exchange event timing unverified.\n"
+            f"ETH-funded cycle topology: {cycles.get('bounded_eth_cycles','UNKNOWN')} / "
+            f"{cycles.get('directions_checked','UNKNOWN')} approved market directions fit the bounded bridge model. "
+            'Every cycle starts and ends in ETH. Connection alone verifies neither costs, native size, working-fund authorization nor profit; the USD list is direct-swap research.')
 
     @staticmethod
     def _table(parent,columns):

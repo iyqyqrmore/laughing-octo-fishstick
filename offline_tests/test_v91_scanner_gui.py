@@ -1,5 +1,6 @@
 """Read-only scanner, real Tk controls, stop behavior and current diagnostics."""
 from copy import deepcopy
+from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace as NS
@@ -12,6 +13,7 @@ from coincat_v502_fee_learning import FeeLearning
 from coincat_v701_transport import QuoteSnapshot
 from coincat_scanner import Scanner
 from offline_tests.test_v91_full_balance import market,NOW
+from offline_tests.sqlite_resources import held_sqlite_connections
 
 
 class FakeClient:
@@ -43,12 +45,12 @@ def collector(client,at=NOW):
 
 
 def ledger_dump(ledger):
-    with sqlite3.connect(ledger.path) as db:return '\n'.join(db.iterdump())
+    with closing(sqlite3.connect(ledger.path)) as db:return '\n'.join(db.iterdump())
 
 
 class ReadOnlyScanner(unittest.TestCase):
     def test_complete_fake_account_to_full_balance_policy_without_private_writes(self):
-        with TemporaryDirectory() as folder:
+        with held_sqlite_connections() as handles, TemporaryDirectory() as folder:
             ledger,client,s=setup(folder);before=ledger_dump(ledger)
             s.refresh(now=NOW)
             result=s.scan(now=NOW,collect=collector(client))
@@ -60,6 +62,8 @@ class ReadOnlyScanner(unittest.TestCase):
             self.assertEqual(result['orders_submitted'],0)
             self.assertFalse(result['live_order_permission'])
             self.assertGreater(result['quotes_recorded'],0)
+            self.assertTrue(handles)
+            self.assertTrue(all(db.closed for db in handles),'SQLite handles must close before temporary-folder deletion')
 
     def test_stop_before_or_during_quotes_does_not_publish_or_learn(self):
         with TemporaryDirectory() as folder:
@@ -100,7 +104,21 @@ class SimpleGUI(unittest.TestCase):
         self.temp=TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.env=patch.dict('os.environ',{'COINCAT_DATA_DIR':self.temp.name});self.env.start();self.addCleanup(self.env.stop)
         from coincat_app import CoinCatApp
-        self.root=tk.Tk();self.app=CoinCatApp(self.root);self.addCleanup(self.app._close)
+        self.root=tk.Tk();self.app=CoinCatApp(self.root)
+        background_errors=[]
+        self.root.report_callback_exception=lambda cls,value,trace:background_errors.append(f'{cls.__name__}: {value}')
+        self.root.tk.createcommand('bgerror',lambda message:background_errors.append(str(message)))
+        def close_gui():
+            try:
+                if not self.app.closed:self.root.update_idletasks()
+            finally:
+                self.app._close()
+            # Tcl's event queue survives destruction of the Tk window. Drain
+            # idle theme events while this interpreter and error collector live.
+            self.root.tk.call('update','idletasks')
+            self.assertFalse(background_errors,'Tk background errors: '+repr(background_errors))
+        self.addCleanup(close_gui)
+        self.root.update_idletasks()
 
     def test_five_actions_and_research_mixer_without_shadow_budgets_or_training(self):
         buttons=[];entries=[];labels=[]
@@ -111,7 +129,7 @@ class SimpleGUI(unittest.TestCase):
             for child in w.winfo_children():visit(child)
         visit(self.root)
         self.assertEqual(buttons[:5],['Import key JSON','Connect / refresh','Start scanning','STOP','Export diagnostics'])
-        self.assertEqual(buttons[5:],['Reset']*6+['Apply selected draft','Record draft authorization','Clear draft'])
+        self.assertEqual(buttons[5:],['Reset']*6+['Apply selected draft','Record draft authorization','Clear draft','Full AVAILABLE draft'])
         self.assertEqual(len(entries),9)  # Six unchanged mixer entries plus three local allocation amounts.
         self.assertFalse(hasattr(self.app,'shadow_pilot'))
         self.assertFalse(hasattr(self.app,'experimental_shadow'))

@@ -312,12 +312,55 @@ class AllocationGUI(unittest.TestCase):
         editor.confirmed.set(True);editor.authorize();before=deepcopy(editor.draft)
         editor.fields['working'].set('NaN');editor.apply_selected()
         self.assertEqual(editor.draft,before)
-        self.assertIsNotNone(editor.authorization)
+        self.assertIsNone(editor.authorization)  # An edit revokes authorization even if it is later rejected.
         editor.fields['working'].set('2');editor.apply_selected();self.assertIsNone(editor.authorization)
         editor.confirmed.set(True);editor.authorize()
         editor.snapshot({'ETH':D('3.1'),'BTC':D('.002')},NOW+1,NOW+1)
         self.assertIsNone(editor.authorization)
         editor.clear();self.assertEqual(editor.draft,{})
+
+    def test_full_available_defaults_are_proposals_and_manual_carveout_survives_live_refresh(self):
+        editor=self.prepare()
+        self.assertEqual(editor.draft['ETH'],AllocationRow('ETH',D(3)))
+        self.assertEqual(editor.draft['BTC'],AllocationRow('BTC',D('.002')))
+        self.assertEqual(editor.fields['working'].get(),'3')
+        self.assertFalse(editor.assessment()['owner_authorized'])
+        self.assertEqual(editor.assessment()['eligible_working_balances'],{})
+        editor.fields['manual'].set('1')
+        self.assertEqual(editor.fields['working'].get(),'2')
+        editor.clock=lambda:NOW+12
+        editor.snapshot({'ETH':D(3),'BTC':D('.002')},NOW+12,NOW+12)
+        self.root.update()  # Deliver queued selection/theme events, as in a real refresh.
+        self.assertEqual(editor.tree.selection(),('ETH',))
+        self.assertEqual(editor.fields['manual'].get(),'1')
+        self.assertEqual(editor.fields['working'].get(),'2')
+        editor.apply_selected()
+        self.assertEqual(editor.draft['ETH'],AllocationRow('ETH',D(2),D(1)))
+        editor.fields['working'].set('.5')
+        editor.clock=lambda:NOW+24
+        editor.snapshot({'ETH':D(3),'BTC':D('.002')},NOW+24,NOW+24);self.root.update()
+        self.assertEqual(editor.fields['working'].get(),'.5')
+        editor.apply_selected();self.assertEqual(editor.draft['ETH'].working,D('.5'))
+        self.assertEqual(editor.assessment()['rows'][1]['unassigned'],D('1.5'))
+        editor.clear();editor.snapshot({'ETH':D(3),'BTC':D('.002')},NOW+25,NOW+25)
+        self.assertEqual(editor.draft,{})  # Refresh cannot undo an explicit Clear.
+        editor.reset_full();self.assertEqual(editor.draft['ETH'].working,D(3))
+
+    def test_selected_asset_changes_load_correct_native_units_and_overallocation_remains_editable(self):
+        editor=self.prepare();editor.tree.selection_set('BTC');self.root.update()
+        self.assertEqual(editor.fields['working'].get(),'0.002')
+        editor.fields['working'].set('.001');editor.apply_selected()
+        editor.clock=lambda:NOW+1
+        editor.snapshot({'ETH':D(3),'BTC':D('.0005')},NOW+1,NOW+1);self.root.update()
+        self.assertEqual(editor.draft['BTC'].working,D('.001'))  # No silent resizing.
+        self.assertTrue(editor.tree.exists('BTC'))
+        self.assertIn('OVERALLOCATED',editor.tree.item('BTC')['values'])
+        editor.fields['working'].set('.0005');editor.apply_selected()
+        self.assertEqual(editor.assessment()['state'],'UNRECONCILED')
+        editor.confirmed.set(True);editor.authorize();self.assertIsNotNone(editor.authorization)
+        editor.fields['manual'].set('.0001')
+        self.assertIsNone(editor.authorization)
+        editor.confirmed.set(True);editor.authorize();self.assertIsNone(editor.authorization)
 
     def test_editor_fits_minimum_window_and_cannot_authorize_stale_snapshot_or_override_exclusion(self):
         editor=self.prepare();self.root.geometry('1040x780')

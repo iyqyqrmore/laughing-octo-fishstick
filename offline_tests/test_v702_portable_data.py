@@ -189,14 +189,14 @@ class PortableImport(unittest.TestCase):
 
 
 class PortableLocks(unittest.TestCase):
-    @unittest.skipIf(os.name=='nt','Linux subprocess lock fixture; Windows msvcrt path requires local run')
     def test_current_v70_lock_is_checked_even_when_an_old_lock_also_exists(self):
         with TemporaryDirectory() as d:
             root=Path(d)
             for name in ('coincat_v60_instance.lock','coincat_v70_instance.lock'):(root/name).write_bytes(b'0')
             child=subprocess.Popen([sys.executable,'-u','-c',
-                "import fcntl,sys;f=open(sys.argv[1],'r+b');fcntl.flock(f,fcntl.LOCK_EX);print('ready',flush=True);sys.stdin.read()",
-                str(root/'coincat_v70_instance.lock')],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True)
+                "import sys\nsys.path.insert(0,sys.argv[2])\nfrom coincat_single_instance import SingleInstance\n"
+                "with SingleInstance(sys.argv[1]):\n print('ready',flush=True)\n sys.stdin.read()\n",
+                str(root),str(ROOT/'app')],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True)
             try:
                 self.assertEqual(child.stdout.readline().strip(),'ready')
                 with self.assertRaises(StateError):

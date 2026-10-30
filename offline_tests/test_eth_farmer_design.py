@@ -36,7 +36,45 @@ class ETHMeasurement(unittest.TestCase):
         self.assertEqual(orders[1]['input_asset'],orders[0]['output_asset'])
         self.assertLessEqual(orders[1]['input_quantity'],orders[0]['output_quantity'])
         self.assertEqual(value['hold']['modeled_eth_proceeds'],orders[1]['output_quantity'])
+        self.assertEqual(orders[-1]['output_asset'],'ETH')
         self.assertTrue(all(o['fee_rate_used']==D('.009') for o in orders))
+
+    def test_vet_to_btc_entry_requires_costed_btc_to_eth_before_eth_proceeds(self):
+        # Synthetic listed topology, not a claim that Coinbase lists VET-BTC.
+        q,rules=market();q['VET-BTC']=(D('.00000042'),D('.0000004201'),NOW)
+        rules['VET-BTC']=dict(rules['BTC-USD'],product_id='VET-BTC')
+        with localcontext() as ctx:
+            ctx.prec=60
+            entry=research_order(pair='VET-BTC',side='SELL',available=D(1000),
+                cap=D(21),usd_rate=D('.021'),book=q['VET-BTC'],product_rules=rules,
+                fee=D('.009'),slip=D('.0015'))
+        best=dict(source='VET',target='BTC',spent=entry['input_quantity'],received=entry['output_quantity'],
+                  frame={'dependencies':('VET-BTC','BTC-USD')})
+        value=measurement(result={'ranked':[],'best':best},balances={'VET':D(1000)},
+            quotes=q,rules=rules,catalog=list(q))
+        hold=value['hold']['orders'];closed=value['switch']['orders']
+        self.assertEqual([(r['input_asset'],r['output_asset']) for r in hold],[('VET','BTC'),('BTC','ETH')])
+        self.assertEqual(hold[0],entry)
+        self.assertEqual([(r['input_asset'],r['output_asset']) for r in closed],[('BTC','ETH')])
+        self.assertLessEqual(closed[0]['input_quantity'],entry['output_quantity'])
+        self.assertEqual(value['switch']['modeled_eth_proceeds'],closed[0]['output_quantity'])
+        self.assertTrue(all(r['fee_rate_used']==D('.009') and r['modeled_slippage_fraction']==D('.0015') for r in hold+closed))
+        self.assertIsNone(value['return_advantage_eth'])  # Retained BTC dust is still unconverted.
+        self.assertFalse(value['live_order_permission'])
+
+    def test_intermediate_btc_without_bounded_eth_return_is_not_counted_as_eth(self):
+        # BTC -> VET -> USD -> ETH would require three return legs; the current
+        # model supports two. A USD mark alone cannot invent an ETH conversion.
+        _,template=market();q={'VET-BTC':(D('.00000042'),D('.0000004201'),NOW),
+            'VET-USD':(D('.02'),D('.02001'),NOW),'ETH-USD':(D(2600),D('2600.01'),NOW)}
+        rules={p:dict(template['BTC-USD'],product_id=p) for p in q}
+        value=measurement(result={'ranked':[]},balances={'BTC':D('.002')},quotes=q,rules=rules,catalog=list(q))
+        self.assertEqual(value['hold']['orders'],[])
+        self.assertEqual(value['hold']['unconverted_native'],{'BTC':D('.002')})
+        self.assertEqual(value['hold']['modeled_eth_proceeds'],0)
+        self.assertIsNone(value['hold']['estimated_recoverable_eth'])
+        self.assertIsNone(value['return_advantage_eth'])
+        self.assertEqual(value['state'],'UNKNOWN')
 
     def test_common_eth_divisor_preserves_every_usd_rank_without_input_mutation(self):
         result=scan(); before=deepcopy(result)

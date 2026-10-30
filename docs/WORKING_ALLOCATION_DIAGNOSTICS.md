@@ -1,5 +1,9 @@
 # Working allocation and ETH conversion diagnostics
 
+The subsequent [Windows/editor and ETH-cycle checks](WINDOWS_VERIFICATION_ALLOCATION_FIX.md)
+add full-AVAILABLE default proposals and preserve fields during refresh. The
+verification below describes this earlier increment.
+
 Focused read-only follow-up to `99e929e630d38a31850039fff644a25588311f5f` on
 `coincat-eth-farmer-design`. The original immediate USD-W ranking still models
 full AVAILABLE source balances. This patch does not enable ETH-profit selection,

@@ -15,6 +15,9 @@ v91-based development branch, not an ETH-profit execution release.
 The focused working-fund draft editor and individual conversion/deadline evidence
 are described in docs/WORKING_ALLOCATION_DIAGNOSTICS.md. Drafts are RAM-only; owner
 authorization alone does not establish reconciliation or enable trading.
+See docs/WINDOWS_VERIFICATION_ALLOCATION_FIX.md for current default proposals,
+live-refresh editing, Windows test cleanup and ETH-funded cycle inventory. The
+current suite has more cases than historical v91; use its actual output below.
 
 1. Extract into a separate new source folder. Preserve your working installation,
    private_data and private_backups. Do not overlay a running app or share one

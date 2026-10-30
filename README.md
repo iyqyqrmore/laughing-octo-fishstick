@@ -20,6 +20,12 @@ adds a local RAM-only draft worksheet, individual ETH conversion blockers and
 per-observation deadline evidence. Owner draft authorization requires separate
 verified reconciliation; no account funds are automatically assigned to CoinCat.
 
+The [Windows/editor and ETH-cycle checks](docs/WINDOWS_VERIFICATION_ALLOCATION_FIX.md)
+close disposable test database handles, preserve allocation edits through refresh,
+and check ETH-funded/ETH-ending topology for all approved market directions.
+Full-AVAILABLE working defaults remain unauthorized RAM proposals; cycle
+connectivity does not enable ETH-profit selection or establish executable profit.
+
 One policy: rank eligible direct swaps by their greatest positive immediate
 after-cost USD wallet advantage versus holding. Each proposal uses the full
 verified AVAILABLE source balance, with modeled fees and exchange rounding

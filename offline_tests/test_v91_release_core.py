@@ -1,11 +1,13 @@
 """Source integrity and retained production boundaries for the simplified build."""
 import ast,hashlib,json,sqlite3
+from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from coincat_live import LiveLedger,LiveBroker,LiveBlocked
 from coincat_live_forward_store import ForwardStore,Retention
 from coincat_full_balance import rank_full_balances
+from offline_tests.sqlite_resources import held_sqlite_connections
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -37,16 +39,18 @@ class ReleaseCore(unittest.TestCase):
             if p.suffix=='.py':compile(p.read_bytes(),name,'exec',dont_inherit=True)
 
     def test_canonical_public_quote_table_preserves_unrelated_research(self):
-        with TemporaryDirectory() as folder:
+        with held_sqlite_connections() as handles, TemporaryDirectory() as folder:
             path=Path(folder)/'CoinCat_Forward_Market.sqlite3'
-            with sqlite3.connect(path) as db:
+            with closing(sqlite3.connect(path)) as db, db:
                 db.execute('CREATE TABLE historical_context(value TEXT)')
                 db.execute("INSERT INTO historical_context VALUES('PRESERVE')")
             store=ForwardStore(path)
             self.assertEqual(store.record_quotes([('BTC-USD',1800000000,'100','100.01','FAKE')]),1)
             self.assertEqual(store.record_quotes([('BTC-USD',1800000001,'-1','2','FAKE')]),0)
-            with sqlite3.connect(path) as db:
+            with closing(sqlite3.connect(path)) as db:
                 self.assertEqual(db.execute('SELECT value FROM historical_context').fetchone()[0],'PRESERVE')
                 self.assertEqual(db.execute('SELECT bid,ask FROM market_quotes').fetchone(),('100','100.01'))
                 tables={r[0] for r in db.execute('SELECT name FROM sqlite_master WHERE type=\'table\'')}
                 self.assertFalse(any('shadow' in name.lower() or 'experiment' in name.lower() for name in tables))
+            self.assertTrue(handles)
+            self.assertTrue(all(db.closed for db in handles),'SQLite handles must close before temporary-folder deletion')

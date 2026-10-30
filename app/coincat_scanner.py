@@ -13,6 +13,7 @@ from coincat_passive_lab import PassiveLab
 from coincat_eth_farmer import eth_quote_plan
 from coincat_research_admission import service_period
 from coincat_working_allocation import assess_allocation
+from coincat_eth_cycles import eth_cycle_inventory
 
 
 class Scanner:
@@ -133,6 +134,7 @@ class Scanner:
             quotes=dict(self.books), observed_quotes=dict(self.observed_books), now=now, balances_at=self.account_at,
             fee_rate=result['fee_rate'], excluded=tuple(sorted(excluded)))
         result['working_allocation']=assess_allocation(now=now,**allocation_args)
+        result['eth_cycle_feasibility']=eth_cycle_inventory(catalog=self.catalog,rules=self.rules,excluded=excluded)
         result['lab_note']=self.lab.observe(result,self.observed_books,now=now,
             scan_interval_s=scan_interval_s,listed=listed)
         result['research_scheduler']=self.lab.diagnostics()

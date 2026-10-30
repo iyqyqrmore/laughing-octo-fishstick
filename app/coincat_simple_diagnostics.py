@@ -36,7 +36,7 @@ def make_report(app, *, now=None):
         ('COVERAGE',{key:result.get(key,'UNOBSERVED') for key in ('scan','at','eligible_directions',
             'priced_directions','positive_directions','blockers','quote_errors','fetch_ms',
             'coverage_complete','result_scope','book_conditions','coverage_history','quote_scheduling',
-            'eth_quote_scheduling','observation_engine')}),
+            'eth_quote_scheduling','eth_cycle_feasibility','observation_engine')}),
         ('IMMEDIATE RESULT',{'state':result.get('state','UNOBSERVED'),'reason':result.get('reason','UNOBSERVED'),
             'best_advantage_usd':str(best['w']) if best else 'NONE_OBSERVED','live_order_permission':False,
             'eth_measurement':{k:eth.get(k,'UNKNOWN') for k in ('state','reason','scope','at','balances_at',

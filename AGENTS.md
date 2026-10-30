@@ -36,6 +36,17 @@ ETH-profit selection and actual execution disabled. Individual conversion blocke
 may export public ticker symbols/reason codes, never native quantities or private
 evidence references. Last-turn deadline protection retains admission limits and
 aging EDF elsewhere; per-miss records omit observation IDs and have a bounded ring.
+Read docs/WINDOWS_VERIFICATION_ALLOCATION_FIX.md for the current fixes. Full
+AVAILABLE is a default working proposal only; manual/protected start at zero,
+exclusions prevail, and no authorization/reconciliation is inferred. Preserve
+unsaved fields and selection on refresh. Do not silently resize custom amounts.
+Clear stays unassigned until explicit full-draft reset. Close test SQLite handles
+deterministically; never ignore cleanup errors or hide failing cases with skips.
+Report platform skips and native Windows evidence separately from Linux tests.
+ETH-cycle inventory is passive topology for every approved market direction:
+ETH funds new coins and every reported cycle ends in ETH. It creates no quotes,
+costs, sizing, selection or execution authority. Keep active USD research labelled
+as such; do not claim every listed swap is executable or ETH-profitable.
 
 ## v91 policy and safeguards
 
