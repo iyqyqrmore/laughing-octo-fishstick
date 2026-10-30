@@ -12,6 +12,7 @@ from coincat_v701_transport import SCOUT, fetch_snapshot
 from coincat_passive_lab import PassiveLab
 from coincat_eth_farmer import eth_quote_plan
 from coincat_research_admission import service_period
+from coincat_working_allocation import assess_allocation
 
 
 class Scanner:
@@ -41,7 +42,8 @@ class Scanner:
         self.balances=balances;self.account_at=time.time() if fixed_now is None else now
         return {'balances':dict(balances),'catalog_count':len(self.catalog),'at':self.account_at}
 
-    def scan(self, *, now=None, collect=None, cancel=None, scan_interval_s=5):
+    def scan(self, *, now=None, collect=None, cancel=None, scan_interval_s=5,
+             allocation_draft=(),allocation_authorization=None,allocation_reconciliation=None):
         service_period(scan_interval_s)  # Validate cadence before any read request.
         fixed_now=now
         now=time.time() if now is None else now
@@ -51,10 +53,16 @@ class Scanner:
         funding={asset for asset,qty in self.balances.items() if qty>0 and asset not in excluded}
         listed=approved_pairs(self.catalog,self.rules,excluded)
         due=self.lab.quote_groups(now=now,listed=listed)
-        eth_plan=eth_quote_plan(balances=self.balances,catalog=self.catalog,
+        allocation_args=dict(balances=self.balances,balances_at=self.account_at,excluded=excluded,
+            draft=allocation_draft,authorization=allocation_authorization,reconciliation=allocation_reconciliation)
+        working=assess_allocation(now=now,**allocation_args)
+        eth_plan=eth_quote_plan(balances=working['eligible_working_balances'] or self.balances,catalog=self.catalog,
             rules=self.rules,excluded=excluded,cursor=self.eth_cursor)
+        if working['eligible_working_balances']:
+            eth_plan['scope']='AUTHORIZED_RECONCILED_WORKING_ONLY'
         plan=select_books(self.catalog,self.rules,funding,quotes=self.books,now=now,
-            cursor=self.cursor,excluded=excluded,priority_groups=due,valuation_groups=eth_plan['groups'])
+            cursor=self.cursor,excluded=excluded,priority_groups=due,valuation_groups=eth_plan['groups'],
+            service_period_s=service_period(scan_interval_s))
         snapshots,errors,elapsed=(SCOUT.collect if collect is None else collect)(plan['books'],fetch=fetch_snapshot)
         if cancel is not None and cancel.is_set():return {'state':'CANCELLED'}
         now=time.time() if fixed_now is None else now
@@ -106,6 +114,7 @@ class Scanner:
             'requested_books':plan['eth_valuation_requests'],
             'groups_deferred':plan['eth_groups_deferred'],
             'account_total_requires_complete_synchronized_quotes':True}
+        result['eth_quote_scheduling']['structural_blockers']=eth_plan['structural_blockers']
         group=plan['_eth_group']
         if group is not None:
             conditions=Counter(book_status(self.observed_books.get(p),now) for p in group['books'])
@@ -121,8 +130,9 @@ class Scanner:
         # account quantities from one scan with books from a different scan.
         result['eth_observation'] = dict(balances=dict(self.balances),
             catalog=tuple(self.catalog), rules=deepcopy(self.rules),
-            quotes=dict(self.books), now=now, balances_at=self.account_at,
+            quotes=dict(self.books), observed_quotes=dict(self.observed_books), now=now, balances_at=self.account_at,
             fee_rate=result['fee_rate'], excluded=tuple(sorted(excluded)))
+        result['working_allocation']=assess_allocation(now=now,**allocation_args)
         result['lab_note']=self.lab.observe(result,self.observed_books,now=now,
             scan_interval_s=scan_interval_s,listed=listed)
         result['research_scheduler']=self.lab.diagnostics()

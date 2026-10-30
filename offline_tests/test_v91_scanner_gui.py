@@ -111,8 +111,8 @@ class SimpleGUI(unittest.TestCase):
             for child in w.winfo_children():visit(child)
         visit(self.root)
         self.assertEqual(buttons[:5],['Import key JSON','Connect / refresh','Start scanning','STOP','Export diagnostics'])
-        self.assertEqual(buttons[5:],['Reset']*6)
-        self.assertEqual(len(entries),6)
+        self.assertEqual(buttons[5:],['Reset']*6+['Apply selected draft','Record draft authorization','Clear draft'])
+        self.assertEqual(len(entries),9)  # Six unchanged mixer entries plus three local allocation amounts.
         self.assertFalse(hasattr(self.app,'shadow_pilot'))
         self.assertFalse(hasattr(self.app,'experimental_shadow'))
         self.assertFalse(self.app.running)

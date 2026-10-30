@@ -27,6 +27,15 @@ from repeated review/service attempts. Aging EDF protects hourly service without
 increasing the six-book research share. ETH groups include ETH-USD; partial or
 unreconciled account-available measurements never establish a CoinCat-only total.
 Keep the mixer, reserve calculator, passive advisor and economic requirements intact.
+Read docs/WORKING_ALLOCATION_DIAGNOSTICS.md for the current focused patch. The local
+RAM-only allocation worksheet does not write authorizations/quantities to the ledger.
+Exact owner draft authorization is separate from verified snapshot-bound settlement
+and cashflow reconciliation; the GUI supplies no reconciliation provider. Unassigned,
+manual, protected and excluded funds never become eligible working amounts. Keep
+ETH-profit selection and actual execution disabled. Individual conversion blockers
+may export public ticker symbols/reason codes, never native quantities or private
+evidence references. Last-turn deadline protection retains admission limits and
+aging EDF elsewhere; per-miss records omit observation IDs and have a bounded ring.
 
 ## v91 policy and safeguards
 

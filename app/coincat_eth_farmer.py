@@ -11,6 +11,9 @@ from coincat_multicurrency import available_routes, research_order, _paths
 from coincat_v80_immediate import _prepare, exact
 from coincat_v703_chain import approved_pairs
 from coincat_v80_discovery import listed_usd_paths
+from coincat_v80_discovery import book_status
+from coincat_eth_diagnostics import (structural_details, missing_route_blockers,
+    receipt_blockers, conversion_diagnostics)
 
 D = Decimal
 UNKNOWN_EVIDENCE = ('SIZED_DEPTH_UNKNOWN', 'FEE_CURRENCY_UNVERIFIED',
@@ -34,7 +37,16 @@ def eth_quote_plan(*, balances, catalog, rules, excluded=(), cursor=0):
     listed=set(approved_pairs(catalog,rules,excluded))
     output={'groups':[],'account_required_books':None,'known_dependency_books':0,'missing_asset_count':0,
             'all_paths_supported':False,'scope':'ACCOUNT_AVAILABLE_NOT_COINCAT_ALLOCATION'}
+    output['structural_blockers']=[]
+    for asset,raw in sorted(balances.items()):
+        try:
+            if not _quantity(raw) or asset in excluded:continue
+        except (ValueError,TypeError,ArithmeticError):
+            continue
+        detail=structural_details(asset,catalog=catalog,rules=rules,excluded=excluded)
+        if not detail['supported']:output['structural_blockers'].append(detail)
     if 'ETH-USD' not in listed:
+        output['missing_asset_count']=len(output['structural_blockers'])
         return output
     marks=listed_usd_paths(listed)
     account={'ETH-USD'};groups=[]
@@ -76,7 +88,8 @@ def eth_quote_plan(*, balances, catalog, rules, excluded=(), cursor=0):
     return output
 
 
-def _return_to_eth(wallet, *, books, rules, catalog, now, fee, slip, excluded):
+def _return_to_eth(wallet, *, books, rules, catalog, now, fee, slip, excluded,
+                   observed=None, structural_catalog=None):
     """Fixed shortest/lexical paths, chosen before economics; every leg costs once.
 
     Unconverted native dust is retained explicitly. Proceeds are a subtotal,
@@ -87,11 +100,16 @@ def _return_to_eth(wallet, *, books, rules, catalog, now, fee, slip, excluded):
     orders = []
     dependencies = set()
     missing = {}
+    details=[]
+    observed=books if observed is None else observed
+    structural_catalog=catalog if structural_catalog is None else structural_catalog
     for asset, quantity in sorted(wallet.items()):
         if not quantity:
             continue
         if asset in excluded:
             continue
+        detail={'asset':asset,'state':'COMPLETE','blockers':[],'route':[],'residue_assets':[]}
+        details.append(detail)
         if asset == 'ETH':
             proceeds += quantity
             continue
@@ -99,14 +117,23 @@ def _return_to_eth(wallet, *, books, rules, catalog, now, fee, slip, excluded):
         if not paths:
             missing[asset] = 'NO_LISTED_ETH_RETURN_PATH'
             leftovers[asset] = leftovers.get(asset, D(0)) + quantity
+            detail.update(state='UNCONVERTED',blockers=missing_route_blockers(asset,
+                catalog=structural_catalog,rules=rules,observed=observed,now=now,excluded=excluded))
             continue
         path = paths[0]  # Stable shortest/lexical policy, never best-profit search.
+        detail['route']=[leg[0] for leg in path]
         current = quantity
         for pair, side, source, target in path:
             fx = usd_conversion(source, books, now=now, max_age=30, max_legs=2)
             if fx is None:
                 missing[source] = 'USD_MARK_MISSING'
                 leftovers[source] = leftovers.get(source, D(0)) + current
+                mark=listed_usd_paths(catalog).get(source)
+                reasons=(['USD_MARK_ROUTE_NOT_LISTED'] if mark is None else
+                    ['USD_MARK_QUOTE_'+book_status(observed.get(p),now) for p in mark
+                     if book_status(observed.get(p),now)!='FRESH'])
+                detail['blockers'].extend(reasons or ['USD_MARK_UNVERIFIED'])
+                detail['state']='UNCONVERTED';detail['residue_assets'].append(source)
                 break
             dependencies.update((pair,) + fx['path'])
             try:
@@ -116,27 +143,34 @@ def _return_to_eth(wallet, *, books, rules, catalog, now, fee, slip, excluded):
             except (ValueError, ArithmeticError):
                 missing[source] = 'FULL_SIZE_PRODUCT_OR_COST_BLOCK'
                 leftovers[source] = leftovers.get(source, D(0)) + current
+                detail['blockers'].extend(receipt_blockers(pair=pair,side=side,available=current,
+                    book=books[pair],rules=rules,fee=fee,slip=slip))
+                detail['state']='UNCONVERTED';detail['residue_assets'].append(source)
                 break
             orders.append(receipt)
             residue = current - receipt['input_quantity']
             if residue:
                 leftovers[source] = leftovers.get(source, D(0)) + residue
+                detail['blockers'].append('CANONICAL_ROUNDING_RESIDUE')
+                detail['residue_assets'].append(source);detail['state']='PARTIAL_WITH_RESIDUE'
             current = receipt['output_quantity']
         else:
             proceeds += current
     return {'modeled_eth_proceeds': proceeds,
             'estimated_recoverable_eth': None if leftovers or missing else proceeds,
             'unconverted_native': leftovers, 'missing': missing,
-            'orders': orders, 'dependencies': tuple(sorted(dependencies))}
+            'orders': orders, 'dependencies': tuple(sorted(dependencies)),
+            'conversion_details':details}
 
 
 def measure_eth(*, result, balances, quotes, rules, catalog, now, balances_at,
-                fee_rate, excluded=(), slippage_bps=D(15)):
+                fee_rate, excluded=(), slippage_bps=D(15), observed_quotes=None):
     """Account-AVAILABLE scope only; protected/working allocation is unknown.
 
     Never infer earnings, settled ETH, reserves or cashflows from snapshots.
     Full portfolio totals fail closed on missing assets, dust or timestamp skew.
     """
+    observed=quotes if observed_quotes is None else observed_quotes
     out = {'state': 'UNKNOWN', 'reason': 'ETH_REFERENCE_MISSING_STALE_OR_WIDE',
         'scope': 'ACCOUNT_AVAILABLE_ONLY_NOT_RECONCILED_WORKING_FUNDS',
         'actual_available_eth': None, 'settled_eth': None, 'protected_eth': None,
@@ -148,6 +182,16 @@ def measure_eth(*, result, balances, quotes, rules, catalog, now, balances_at,
         'portfolio_usd_mark': None,
         'synchronization_state': 'UNKNOWN',
         'live_order_permission': False}
+    unpriced=[]
+    for asset,raw in sorted(balances.items()):
+        try:
+            if not _quantity(raw) or asset in excluded:continue
+        except (ValueError,TypeError,ArithmeticError):
+            pass
+        unpriced.append({'asset':asset,'state':'UNPRICED','blockers':['VALUATION_INPUTS_UNVERIFIED']})
+    out['conversion_diagnostics']=conversion_diagnostics(unpriced,
+        reference_state=book_status(observed.get('ETH-USD'),now),
+        balances_fresh=balances_at is not None and 0<=now-balances_at<=120)
     if balances_at is None or not 0 <= now - balances_at <= 120:
         return dict(out, reason='AVAILABLE_BALANCES_STALE_OR_UNOBSERVED')
     with localcontext() as ctx:
@@ -162,7 +206,16 @@ def measure_eth(*, result, balances, quotes, rules, catalog, now, balances_at,
         except (ValueError, TypeError, ArithmeticError):
             return dict(out, reason='QUANTITY_OR_COST_ESTIMATE_UNKNOWN')
         books = _prepare({p:b for p,b in quotes.items() if p in catalog}, rules, now)['books']
+        allowed = approved_pairs(catalog, rules, excluded)
+        clean = {p: books[p] for p in sorted(set(allowed) & set(books))}
+        args = dict(books=clean, rules=rules, catalog=allowed, now=now,
+                    fee=fee, slip=slip, excluded=set(excluded), observed=observed,structural_catalog=catalog)
+        hold = _return_to_eth(wallet, **args)
+        out['hold'] = hold
+        out['conversion_diagnostics']=conversion_diagnostics(hold['conversion_details'],
+            reference_state=book_status(observed.get('ETH-USD'),now))
         if 'ETH-USD' not in books:
+            hold['estimated_recoverable_eth']=None;hold['modeled_eth_proceeds']=None
             return out
         reference = books['ETH-USD'][0]  # Same conservative mark for every row.
         out['reference_eth_usd'] = reference
@@ -185,12 +238,6 @@ def measure_eth(*, result, balances, quotes, rules, catalog, now, balances_at,
             stamps = [b[2] for b in frame['books'].values()] + [ref_stamp]
             if max(stamps) - min(stamps) <= 12 and all(0 <= now-t <= 30 for t in stamps):
                 out['w_eth_by_frame'][frame['id']] = row['w'] / reference
-        allowed = approved_pairs(catalog, rules, excluded)
-        clean = {p: books[p] for p in sorted(set(allowed) & set(books))}
-        args = dict(books=clean, rules=rules, catalog=allowed, now=now,
-                    fee=fee, slip=slip, excluded=set(excluded))
-        hold = _return_to_eth(wallet, **args)
-        out['hold'] = hold
         best = result.get('best')
         if best:
             # Observational comparison only: no mutable or persistent wallet.
@@ -207,6 +254,8 @@ def measure_eth(*, result, balances, quotes, rules, catalog, now, balances_at,
         stamps = [books[p][2] for p in dependencies]
         out['quote_span_s'] = max(stamps) - min(stamps)
         out['oldest_quote_age_s'] = now - min(stamps)
+        out['conversion_diagnostics']=conversion_diagnostics(hold['conversion_details'],
+            quote_span=out['quote_span_s'])
         if out['quote_span_s'] > 12:
             for value in (hold, out['switch']):
                 if value is not None:
@@ -224,6 +273,28 @@ def measure_eth(*, result, balances, quotes, rules, catalog, now, balances_at,
         return dict(out, state='MODELED_UNVERIFIED' if complete else 'UNKNOWN',
                     reason='TOP_OF_BOOK_MODEL_NOT_EXECUTION_EVIDENCE' if complete
                            else 'INCOMPLETE_ETH_RETURN_DUST_OR_MISSING_ROUTE')
+
+
+def measure_working_eth(*, allocation, observation, slippage_bps=D(15)):
+    """Only explicit, reconciled working native amounts; never account fallback."""
+    if (allocation.get('state')!='AUTHORIZED_RECONCILED_MODEL_ONLY' or
+            allocation.get('owner_authorized') is not True or allocation.get('reconciled') is not True or
+            not allocation.get('eligible_working_balances')):
+        return {'state':'UNKNOWN','reason':'NO_AUTHORIZED_RECONCILED_WORKING_FUNDS',
+            'scope':'COINCAT_WORKING_ONLY','estimated_recoverable_eth':None,
+            'eth_profit_selection_enabled':False,'live_order_permission':False}
+    from coincat_working_allocation import allocation_keys
+    observed_key=allocation_keys(observation['balances'],(),observation.get('excluded',()))[0]
+    if observed_key!=allocation.get('snapshot_key'):
+        return {'state':'UNKNOWN','reason':'WORKING_ALLOCATION_SNAPSHOT_CONFLICT',
+            'scope':'COINCAT_WORKING_ONLY','estimated_recoverable_eth':None,
+            'eth_profit_selection_enabled':False,'live_order_permission':False}
+    inputs=dict(observation,balances=dict(allocation['eligible_working_balances']))
+    value=measure_eth(result={'ranked':[]},**inputs,slippage_bps=slippage_bps)
+    return {'state':value['state'],'reason':value['reason'],'scope':'COINCAT_WORKING_ONLY',
+        'estimated_recoverable_eth':(value.get('hold') or {}).get('estimated_recoverable_eth'),
+        'conversion_diagnostics':value['conversion_diagnostics'],
+        'eth_profit_selection_enabled':False,'live_order_permission':False}
 
 
 @dataclass(frozen=True)

@@ -54,7 +54,7 @@ def listed_usd_paths(catalog):
 
 def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
                  max_routes=None, valuation_catalog=None, excluded=(), priority_groups=(),
-                 valuation_groups=()):
+                 valuation_groups=(), service_period_s=12):
     listed = approved_pairs(catalog, rules, excluded)
     valuation = set(approved_pairs(valuation_catalog if valuation_catalog is not None else catalog,
                                    rules, excluded))
@@ -73,6 +73,7 @@ def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
     dependencies = set()
     endpoint_groups = endpoint_deferred = endpoint_unavailable = 0
     research_due=[];research_scheduled=[];research_deferred=[];research_unavailable=[]
+    research_evidence={}
 
     def needed(books, earliest=None):
         extra = []
@@ -83,32 +84,63 @@ def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
                 extra.append(product)
         return extra
 
-    # EDF normally; after two unserved passes a horizon receives a protected
-    # turn. EDF still orders observations within that horizon's turn. A large
-    # hourly group need not fit into leftover scraps after short windows.
-    due = sorted(priority_groups, key=lambda g:(
-        0 if g.get('wait_passes',0)>=2 else 1,
-        -g.get('wait_passes',0) if g.get('wait_passes',0)>=2 else 0,
-        g['deadline'],tuple(g['books'])))
+    # Protect an individual deadline before horizon-level aging when another
+    # conservative collection turn may not fit. This is an estimate, never a
+    # promise of network service. Outside that window retain aging EDF.
+    def priority(group):
+        last_turn=group['deadline']-now <= service_period_s+6
+        if last_turn:
+            return (0,group['deadline'],0,0,tuple(group['books']))
+        wait=group.get('wait_passes',0)
+        return (1,0 if wait>=2 else 1,-wait if wait>=2 else 0,
+                group['deadline'],tuple(group['books']))
+    due = sorted(priority_groups,key=priority)
+    committed_groups=0
     for group in due:
         if not group['earliest'] <= now <= group['deadline']:
             continue
         jobs=group.get('jobs',())
         research_due.extend(jobs)
         books = tuple(dict.fromkeys(group['books']))
+        extra = needed(books, group['earliest'])
+        windows=group.get('job_windows',{})
+        def evidence(state, blockers=()):
+            for job in jobs:
+                earliest,deadline=windows.get(job,(group['earliest'],group['deadline']))
+                remaining=deadline-now
+                flags=list(blockers)
+                if remaining < 6:
+                    flags.append('LESS_THAN_COLLECTION_WINDOW_REMAINING')
+                if remaining <= service_period_s+6:
+                    flags.append('NO_CONSERVATIVE_RETRY_WINDOW')
+                research_evidence[job]={'state':state,'blockers':tuple(flags),
+                    'required_books':len(books),'additional_books':len(needed(books,earliest)),
+                    'group_additional_books':len(extra),
+                    'research_books_committed':len(chosen),
+                    'competing_groups':committed_groups,'research_limit':min(MAX_ENDPOINT_REQUESTS,budget),
+                    'remaining_s':max(0,remaining),'estimated_service_period_s':service_period_s,
+                    'deadline':deadline,'planned_at':now}
         if not set(books) <= valuation:
             endpoint_unavailable += 1
             research_unavailable.extend(jobs)
+            evidence('UNAVAILABLE',('PRODUCT_UNAVAILABLE',))
             continue
-        extra = needed(books, group['earliest'])
         if len(chosen)+len(extra) > min(MAX_ENDPOINT_REQUESTS, budget):
             endpoint_deferred += 1
             research_deferred.extend(jobs)
+            blockers=['SIX_BOOK_RESEARCH_LIMIT' if budget>=MAX_ENDPOINT_REQUESTS else 'OVERALL_REQUEST_LIMIT']
+            if len(extra)>min(MAX_ENDPOINT_REQUESTS,budget):
+                blockers.append('DEPENDENCIES_CANNOT_FIT_TOGETHER')
+            if committed_groups:
+                blockers.append('COMPETING_DEADLINE_GROUPS')
+            evidence('DEFERRED',blockers)
             continue
+        evidence('SCHEDULED')
         chosen.extend(extra)
         dependencies.update(books)
         endpoint_groups += 1
         research_scheduled.extend(jobs)
+        committed_groups+=1
     endpoint_requests = len(chosen)
 
     # One atomic account-wide ETH group if it fits, otherwise a rotating
@@ -185,6 +217,7 @@ def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
         'endpoint_requests':endpoint_requests,
         '_research_due':research_due,'_research_scheduled':research_scheduled,
         '_research_deferred':research_deferred,'_research_unavailable':research_unavailable,
+        '_research_evidence':research_evidence,
         '_eth_group':eth_group,'eth_valuation_requests':valuation_requests,
         'eth_groups_deferred':eth_deferred,
         'next_cursor':(offset+advance)%count if count else 0,

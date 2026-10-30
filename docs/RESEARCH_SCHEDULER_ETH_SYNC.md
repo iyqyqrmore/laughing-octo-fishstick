@@ -1,5 +1,9 @@
 # Research Scheduler & ETH Synchronization Patch
 
+The subsequent focused deadline-evidence and working-allocation increment is
+documented in [WORKING_ALLOCATION_DIAGNOSTICS.md](WORKING_ALLOCATION_DIAGNOSTICS.md).
+The verification below describes this earlier scheduler patch.
+
 Read-only follow-up to `4c3a4c0c459adb1a3cfc419924c2a1cca16d3ee7` on
 `coincat-eth-farmer-design`. CoinCat remains a v91-based immediate USD-W scanner,
 not a validated ETH-profit selector. No production settings, private records,

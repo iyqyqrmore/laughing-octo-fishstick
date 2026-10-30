@@ -15,6 +15,11 @@ adds capacity-based admission, protected hourly service, coordinated ETH quote
 groups and distinct per-horizon diagnostic counts. Limits, economics and trading
 blocks remain unchanged; account-wide ETH totals can still be UNKNOWN.
 
+The [working-allocation and diagnostics patch](docs/WORKING_ALLOCATION_DIAGNOSTICS.md)
+adds a local RAM-only draft worksheet, individual ETH conversion blockers and
+per-observation deadline evidence. Owner draft authorization requires separate
+verified reconciliation; no account funds are automatically assigned to CoinCat.
+
 One policy: rank eligible direct swaps by their greatest positive immediate
 after-cost USD wallet advantage versus holding. Each proposal uses the full
 verified AVAILABLE source balance, with modeled fees and exchange rounding

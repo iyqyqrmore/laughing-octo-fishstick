@@ -2,7 +2,7 @@
 
 No winner, sizing, settings, financial writes, forecasts or execution authority.
 """
-from collections import Counter
+from collections import Counter, deque
 from decimal import Decimal, localcontext
 from coincat_cross_quote import usd_conversion
 from coincat_v701_quotes import valid_book
@@ -31,6 +31,8 @@ class PassiveLab:
         self.failure_causes={h:Counter() for h in HORIZONS}
         self.eth_failure_causes={h:Counter() for h in HORIZONS}
         self.service_wait={h:0 for h in HORIZONS}
+        self.capacity_misses=deque(maxlen=256)
+        self.capacity_miss_records_dropped=0
 
     def quote_groups(self, *, now, listed=()):
         """Pure fixed-path requirements; horizon debt protects hourly service."""
@@ -51,6 +53,7 @@ class PassiveLab:
                 group['earliest']=max(group['earliest'],earliest)
                 group['deadline']=min(group['deadline'],deadline)
                 group['jobs'].append((key,horizon))
+                group.setdefault('job_windows',{})[(key,horizon)]=(earliest,deadline)
         return sorted(grouped.values(),key=lambda g:(g['deadline'],g['books']))
 
     def record_service(self, plan, incoming, errors, *, now):
@@ -72,6 +75,10 @@ class PassiveLab:
             if row is None or horizon in row['done']:
                 continue
             stats=self.horizon_stats[horizon]
+            detail=plan.get('_research_evidence',{}).get((key,horizon))
+            if detail is not None:
+                row.setdefault('deadline_evidence',{})[horizon]=dict(detail)
+                row['deadline_evidence'][horizon]['collection_finished_after_deadline']=now>detail['deadline']
             if (key,horizon) in unavailable:
                 row['blocked'][horizon]='PRODUCT_UNAVAILABLE'
                 stats['unavailable_attempts']+=1
@@ -82,10 +89,15 @@ class PassiveLab:
                     stats['distinct_deferred_observations']+=1
                     row['deferred'].add(horizon)
                 row['blocked'][horizon]='RESEARCH_SHARE_DEFERRED'
+                retries=row.setdefault('deferral_passes',Counter())
+                retries[horizon]+=1
+                stats['max_observation_deferral_passes']=max(stats['max_observation_deferral_passes'],retries[horizon])
                 continue
             if (key,horizon) not in scheduled:
                 continue
             stats['scheduled_attempts']+=1
+            if detail is not None and 'NO_CONSERVATIVE_RETRY_WINDOW' in detail['blockers']:
+                stats['last_chance_scheduled_attempts']+=1
             if horizon not in row['scheduled']:
                 stats['distinct_scheduled_observations']+=1
                 row['scheduled'].add(horizon)
@@ -128,7 +140,10 @@ class PassiveLab:
         admission['not_admitted_review_attempts']=admission['not_admitted_distinct']+admission['repeated_not_admitted_review_attempts']
         return {'admission':admission,'not_admitted_reasons':dict(self.admission_reasons),
             'distinct_definition':'ONE_DIRECTION_REVIEW_PER_300_SECONDS; CORRELATED_NOT_INDEPENDENT',
-            'forecast_service_period_s':self.period,'horizons':horizons}
+            'forecast_service_period_s':self.period,'horizons':horizons,
+            'capacity_miss_records':list(self.capacity_misses),
+            'capacity_miss_records_dropped':self.capacity_miss_records_dropped,
+            'deadline_evidence_scope':'PER_OBSERVATION; NO_IDS_OR_QUANTITIES; ESTIMATES_NOT_SERVICE_GUARANTEES'}
 
     @staticmethod
     def _comparison(row, quotes, *, now, earliest):
@@ -165,6 +180,25 @@ class PassiveLab:
                     self.counts[f'{horizon}_MISSED']+=1
                     self.eth_counts[f'{horizon}_MISSED']+=1
                     cause=row['blocked'].get(horizon,'NOT_OBSERVED_WITHIN_WINDOW')
+                    detail=row.get('deadline_evidence',{}).get(horizon,{})
+                    if detail.get('collection_finished_after_deadline') and detail.get('state')=='SCHEDULED':
+                        cause='COLLECTION_FINISHED_AFTER_DEADLINE'
+                    if cause=='RESEARCH_SHARE_DEFERRED' or (
+                            detail.get('collection_finished_after_deadline') and
+                            detail.get('state')=='SCHEDULED'):
+                        if len(self.capacity_misses)==self.capacity_misses.maxlen:
+                            self.capacity_miss_records_dropped+=1
+                        event={k:detail.get(k) for k in ('state','required_books','additional_books',
+                            'group_additional_books',
+                            'research_books_committed','competing_groups','research_limit',
+                            'remaining_s','estimated_service_period_s','collection_finished_after_deadline')}
+                        event.update(horizon_s=horizon,terminal_cause=cause,
+                            blockers=tuple(detail.get('blockers',())),
+                            observation_deferral_passes=row.get('deferral_passes',{}).get(horizon,0),
+                            expiry_review_lag_s=elapsed-horizon-ENDPOINT_GRACE_S,
+                            service_gap_s=None if not detail else now-detail['planned_at'],
+                            attribution='LAST_OBSERVED_BLOCKER_NOT_PROVEN_SOLE_CAUSE')
+                        self.capacity_misses.append(event)
                     self.missed_causes[f'{horizon}_'+cause]+=1
                     row['done'].add(horizon)
                     continue

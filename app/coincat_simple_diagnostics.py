@@ -5,6 +5,7 @@ import sqlite3
 import time
 from coincat_version import DISPLAY
 from coincat_live import TERMINAL
+from coincat_working_allocation import allocation_diagnostics
 
 
 def make_report(app, *, now=None):
@@ -16,6 +17,10 @@ def make_report(app, *, now=None):
     reserve=getattr(app,'reserve_calculation',None) or {}
     mixer=getattr(app,'mixer',None)
     proposed={} if mixer is None else {k:str(v) for k,v in mixer.values().items()}
+    allocation=getattr(app,'working_allocation',None) or result.get('working_allocation')
+    editor=getattr(app,'allocation_editor',None)
+    if editor is not None:allocation=editor.assessment()
+    working_eth=getattr(app,'working_eth_measurement',None) or {}
     ledger_state='UNAVAILABLE';pending='UNVERIFIED'
     try:
         with closing(sqlite3.connect(app.ledger.path.resolve().as_uri()+'?mode=ro',uri=True)) as db:
@@ -38,7 +43,11 @@ def make_report(app, *, now=None):
                 'reference_product','quote_span_s','oldest_quote_age_s','allocation_state','evidence','synchronization_state')},
             'reference_eth_usd':str(eth['reference_eth_usd']) if eth.get('reference_eth_usd') is not None else 'UNKNOWN',
             'realized_earned_eth':'UNKNOWN_NOT_INFERRED_FROM_BALANCES',
-            'unconverted_asset_count':len((eth.get('hold') or {}).get('unconverted_native',{})),
+            'unconverted_asset_count':len(eth['hold']['unconverted_native']) if eth.get('hold') is not None else 'UNKNOWN_NOT_EVALUATED',
+            'eth_conversion_blockers':eth.get('conversion_diagnostics',{'state':'UNOBSERVED'}),
+            'working_allocation':allocation_diagnostics(allocation) if allocation else 'UNOBSERVED',
+            'working_eth_measurement':{k:working_eth.get(k,'UNKNOWN') for k in ('state','reason','scope')},
+            'eth_profit_selection_enabled':False,
             'reserve_preview_state':reserve.get('state','UNOBSERVED'),
             'actual_reserved_eth':'UNKNOWN_NO_EARMARKING',
             'manual_mixer_proposal':proposed,'preference_storage':'RAM_ONLY'}),
