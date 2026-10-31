@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-echo CoinCat v91.0 - full-balance immediate scanner and passive AI Lab
+echo CoinCat v92 development preview - read-only ETH cycle research
 if exist ".venv\Scripts\python.exe" goto packages
 py -3.11 -m venv ".venv"
 if errorlevel 1 (
