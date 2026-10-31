@@ -36,6 +36,7 @@ class CoinCatApp:
         self.running=False;self.closed=False;self.busy=False;self.generation=0
         self.cancel=threading.Event();self.jobs=Queue();self._after={}
         self.connected=False;self.last_error=None
+        self.cycle_summary=tk.StringVar(value='ETH cycles: awaiting a fresh scan; research only.')
         self.eth_measurement=None
         self.reserve_calculation=None
         self.working_allocation=None;self.working_eth_measurement=None
@@ -93,6 +94,10 @@ class CoinCatApp:
             'Complete ETH totals remain UNKNOWN whenever a required holding, residue or quote is blocked.',
             wraplength=990).pack(anchor='w')
         self.conversion_tree=self._table(conversion_tab,('Asset','Conversion state','Verified blockers','Observed route'))
+        cycle_tab=ttk.Frame(tabs,padding=5)
+        tabs.add(cycle_tab,text='ETH Cycles — Research Only')
+        ttk.Label(cycle_tab,textvariable=self.cycle_summary,wraplength=990).pack(anchor='w')
+        self.cycle_tree=self._table(cycle_tab,('ETH cycle route','Legs','Net ETH vs HOLD','Quote age / span s','State / blockers'))
         self._note('AI Lab is a passive observer. It reports available findings about every three minutes. It never ranks trades, changes sizing or controls the scanner.')
 
     def _allocation_changed(self):
@@ -273,9 +278,32 @@ class CoinCatApp:
         for asset,quantity in sorted(self.scanner.balances.items()):
             self.wallet_tree.insert('', 'end',values=(asset,str(quantity),'EXCLUDED' if asset in excluded else 'FULL AVAILABLE'))
 
+    def _render_cycles(self,result):
+        research=result.get('eth_cycle_research') or {}
+        for item in self.cycle_tree.get_children():self.cycle_tree.delete(item)
+        funnel=research.get('funnel',{})
+        inventory=research.get('inventory',{})
+        negative=research.get('best_negative')
+        self.cycle_summary.set(
+            'Proposed working ETH only; funding unreconciled. Research estimates, never earned income. '
+            + ' | '.join(f'{k}: {v}' for k,v in funnel.items())
+            + (' | BOUNDED SEARCH TRUNCATED' if inventory.get('truncated') else '')
+            + (' | Best negative: '+str(negative['net_additional_eth'])+' ETH' if negative else '')
+            + ' | Depth, actual fees and exchange timing unverified. Live orders blocked.')
+        ranked=research.get('ranked',[])
+        others=[r for r in research.get('results',[]) if r.get('net_additional_eth') is None]
+        for row in (ranked+others)[:250]:
+            cycle=row['cycle'];net=row['net_additional_eth']
+            self.cycle_tree.insert('','end',values=(
+                ' → '.join(['ETH']+[leg[3] for leg in cycle]),len(cycle),
+                'UNKNOWN' if net is None else str(net),
+                str(row.get('oldest_quote_age_s'))+' / '+str(row.get('quote_span_s')),
+                row['state']+' '+', '.join(row['blockers'])))
+
     def _render(self,result):
         self._render_wallet()
         self._render_eth(result)
+        self._render_cycles(result)
         for item in self.route_tree.get_children():self.route_tree.delete(item)
         for row in result['ranked']:
             self.route_tree.insert('', 'end',values=(row['pair']+' / '+row['side'],row['source']+' -> '+row['target'],

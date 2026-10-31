@@ -6,6 +6,7 @@ import time
 from coincat_version import DISPLAY
 from coincat_live import TERMINAL
 from coincat_working_allocation import allocation_diagnostics
+from coincat_eth_evaluator import public_cycle_report
 
 
 def make_report(app, *, now=None):
@@ -47,6 +48,7 @@ def make_report(app, *, now=None):
             'eth_conversion_blockers':eth.get('conversion_diagnostics',{'state':'UNOBSERVED'}),
             'working_allocation':allocation_diagnostics(allocation) if allocation else 'UNOBSERVED',
             'working_eth_measurement':{k:working_eth.get(k,'UNKNOWN') for k in ('state','reason','scope')},
+            'eth_cycle_research':public_cycle_report(result['eth_cycle_research']) if result.get('eth_cycle_research') else 'UNOBSERVED',
             'eth_profit_selection_enabled':False,
             'reserve_preview_state':reserve.get('state','UNOBSERVED'),
             'actual_reserved_eth':'UNKNOWN_NO_EARMARKING',

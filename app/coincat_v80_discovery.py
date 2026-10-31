@@ -54,7 +54,7 @@ def listed_usd_paths(catalog):
 
 def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
                  max_routes=None, valuation_catalog=None, excluded=(), priority_groups=(),
-                 valuation_groups=(), service_period_s=12):
+                 valuation_groups=(), cycle_groups=(), service_period_s=12):
     listed = approved_pairs(catalog, rules, excluded)
     valuation = set(approved_pairs(valuation_catalog if valuation_catalog is not None else catalog,
                                    rules, excluded))
@@ -143,6 +143,19 @@ def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
         committed_groups+=1
     endpoint_requests = len(chosen)
 
+    # One fresh native-cycle group shares the six-book research allowance.
+    # Refresh every dependency in this collection; never fill from old scans.
+    cycle_group=None;cycle_deferred=0
+    for group in cycle_groups:
+        books=tuple(dict.fromkeys(group['books']))
+        extra=[p for p in books if p not in chosen]
+        if not set(books)<=valuation or len(chosen)+len(extra)>min(MAX_ENDPOINT_REQUESTS,budget):
+            cycle_deferred+=1
+            continue
+        chosen.extend(extra);dependencies.update(books);cycle_group=group
+        break
+    cycle_requests=len(chosen)-endpoint_requests
+
     # One atomic account-wide ETH group if it fits, otherwise a rotating
     # per-asset group. Every dependency includes ETH-USD. Never combine partial
     # groups into a claimed synchronized account total or exceed 16 GETs.
@@ -158,7 +171,7 @@ def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
         chosen.extend(extra);dependencies.update(books)
         eth_group=group
         break
-    valuation_requests=len(chosen)-endpoint_requests
+    valuation_requests=len(chosen)-endpoint_requests-cycle_requests
 
     mark_cache = {}
     structural_paths=listed_usd_paths(valuation)
@@ -218,6 +231,7 @@ def select_books(catalog, rules, funding, *, quotes, now, cursor=0, limit=16,
         '_research_due':research_due,'_research_scheduled':research_scheduled,
         '_research_deferred':research_deferred,'_research_unavailable':research_unavailable,
         '_research_evidence':research_evidence,
+        '_cycle_group':cycle_group,'cycle_requests':cycle_requests,'cycle_groups_deferred':cycle_deferred,
         '_eth_group':eth_group,'eth_valuation_requests':valuation_requests,
         'eth_groups_deferred':eth_deferred,
         'next_cursor':(offset+advance)%count if count else 0,

@@ -1,5 +1,12 @@
 # CoinCat v91.0 setup and testing
 
+This successor checkout adds the **v92 native ETH-cycle dashboard preview**.
+Read [the patch notes](docs/V92_CONNECTED_CYCLE_PATCH.md) before use. The new
+ETH Cycles tab evaluates proposed working ETH in native units; it does not
+require USD conversion quotes or establish reconciled funding or earned income.
+Use a separate installation and preserve your current private records/backups.
+
+
 This branch includes an **ETH Farmer development preview** on the preserved v91
 base. Read docs/ETH_FARMER_DESIGN.md and docs/ETH_DESIGN_VERIFICATION.md. Mixer
 reserve/reference values are proposed and RAM-only; they do not earmark funds.

@@ -14,6 +14,7 @@ from coincat_eth_farmer import eth_quote_plan
 from coincat_research_admission import service_period
 from coincat_working_allocation import assess_allocation
 from coincat_eth_cycles import eth_cycle_inventory
+from coincat_eth_evaluator import enumerate_cycles, observe_cycle_snapshot
 
 
 class Scanner:
@@ -27,7 +28,7 @@ class Scanner:
         self.account_at=None;self.catalog_at=None;self.cursor=0
         self.lab=PassiveLab();self.last_result=None;self.sequence=0
         self.observed_books={};self.priced_at={}
-        self.eth_cursor=0
+        self.eth_cursor=0;self.cycle_cursor=0
 
     def refresh(self, *, now=None):
         fixed_now=now
@@ -61,14 +62,37 @@ class Scanner:
             rules=self.rules,excluded=excluded,cursor=self.eth_cursor)
         if working['eligible_working_balances']:
             eth_plan['scope']='AUTHORIZED_RECONCILED_WORKING_ONLY'
+        cycle_inventory=enumerate_cycles(catalog=self.catalog,rules=self.rules,excluded=excluded)
+        cycles=cycle_inventory['cycles']
+        # Freeze the proposed native amount and product rules before collection.
+        cycle_amount=next((r['working'] for r in working['rows'] if r['asset']=='ETH'),Decimal(0))
+        cycle_catalog=tuple(self.catalog);cycle_rules=deepcopy(self.rules)
+        cycle_groups=[]
+        if cycles:
+            offset=self.cycle_cursor%len(cycles)
+            cycle_groups=[{'books':tuple(leg[0] for leg in c),'index':i}
+                for i,c in [(j,cycles[j]) for j in
+                    list(range(offset,len(cycles)))+list(range(offset))]]
         plan=select_books(self.catalog,self.rules,funding,quotes=self.books,now=now,
             cursor=self.cursor,excluded=excluded,priority_groups=due,valuation_groups=eth_plan['groups'],
-            service_period_s=service_period(scan_interval_s))
+            cycle_groups=cycle_groups,service_period_s=service_period(scan_interval_s))
         snapshots,errors,elapsed=(SCOUT.collect if collect is None else collect)(plan['books'],fetch=fetch_snapshot)
         if cancel is not None and cancel.is_set():return {'state':'CANCELLED'}
         now=time.time() if fixed_now is None else now
-        self.cursor=plan['next_route_cursor']
         incoming={pair:item.book() for pair,item in snapshots.items()}
+        tier=self.fees.latest_tier(now=now)
+        cycle_research=observe_cycle_snapshot(inventory=cycle_inventory,cancel=cancel,
+            starting_eth=cycle_amount,catalog=cycle_catalog,rules=cycle_rules,
+            quotes=deepcopy(incoming),now=now,balances_at=self.account_at,
+            fee_rate=tier.get('taker') if tier.get('fresh') else None,excluded=tuple(sorted(excluded)))
+        if cycle_research is None or (cancel is not None and cancel.is_set()):
+            return {'state':'CANCELLED'}
+        cycle_research['scheduling']={'requested_books':plan['cycle_requests'],
+            'selected':plan['_cycle_group'] is not None,'groups_deferred':plan['cycle_groups_deferred'],
+            'scope':'CURRENT_COLLECTION_ONLY_NO_CROSS_SCAN_QUOTE_REUSE',
+            'quote_time_evidence':'LOCAL_RECEIPT_TIMES_NOT_VERIFIED_EXCHANGE_SYNCHRONIZATION'}
+        self.cursor=plan['next_route_cursor']
+        if plan['_cycle_group'] is not None:self.cycle_cursor=plan['_cycle_group']['index']+1
         self.lab.record_service(plan,incoming,errors,now=now)
         if plan['_eth_group'] is not None:
             self.eth_cursor+=1
@@ -80,7 +104,6 @@ class Scanner:
         self.books={p:b for p,raw in self.observed_books.items()
                     if (b:=valid_book(raw,now,30)) is not None}
         recorded=self.market_store.record_quotes([(p,b[2],b[0],b[1],'COINBASE_PUBLIC_REST_BEST_BID_ASK') for p,b in incoming.items()])
-        tier=self.fees.latest_tier(now=now)
         self.sequence+=1
         result=rank_full_balances(balances=self.balances,catalog=self.catalog,rules=self.rules,
             quotes=self.books,fee_rate=tier.get('taker') if tier.get('fresh') else None,
@@ -133,6 +156,7 @@ class Scanner:
             catalog=tuple(self.catalog), rules=deepcopy(self.rules),
             quotes=dict(self.books), observed_quotes=dict(self.observed_books), now=now, balances_at=self.account_at,
             fee_rate=result['fee_rate'], excluded=tuple(sorted(excluded)))
+        result['eth_cycle_research']=cycle_research
         result['working_allocation']=assess_allocation(now=now,**allocation_args)
         result['eth_cycle_feasibility']=eth_cycle_inventory(catalog=self.catalog,rules=self.rules,excluded=excluded)
         result['lab_note']=self.lab.observe(result,self.observed_books,now=now,
