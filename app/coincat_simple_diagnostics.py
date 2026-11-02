@@ -42,15 +42,19 @@ def make_report(app,*,now=None):
     sections=[
         ('CONNECTION',dict(connected=bool(app.connected and authenticated_fresh and connection['connection_state']!='RETRYING'),
             running=app.running,busy=app.busy,account_age_s=account_age,
+            local_monitor=app.monitor.diagnostics() if hasattr(app,'monitor') else 'UNOBSERVED',
             last_error_class=app.last_error,**connection,
             last_good_scan_at=view['last_good_scan_at'],last_good_scan_age_s=view['last_good_scan_age_s'],
             last_successful_account_refresh_at=getattr(scanner,'last_successful_account_refresh_at',account_at))),
-        ('POLICY','ETH-only funding and success unit. At most three manually approved direct-ETH companions; '
+        ('POLICY','ETH-only funding and success unit. Four possible direct ETH companions in the seven-market approved scope; '
             'no USD/USDC bridges or automatic market expansion. Independent scenarios use identical ETH versus HOLD; '
-            'never sum them as simultaneous deployments. Old USD/cycle libraries are secondary; old experiments do not run in ETH Growth.'),
+            'never sum them as simultaneous deployments. BTC cross-pairs are observations awaiting usable inventory; no independent BTC budget is invented. '
+            'Old USD/cycle libraries remain secondary; no cycle strategy is enabled.'),
         ('COVERAGE',dict(scan=result.get('scan','UNOBSERVED'),at=result.get('at','UNOBSERVED'),
             chart_history=app.chart.diagnostics() if hasattr(app,'chart') else 'UNOBSERVED',
             observation_freshness_at_export=view['display_state'],products_at_export=current_products,
+            watch_scope=[dict(pair=r['pair'],mode=r['mode'],deferred=r['deferred'],reason=r['reason'])
+                for r in result.get('watched_markets',())],
             state=result.get('state','UNOBSERVED'),quote_scheduling=result.get('quote_scheduling',{}),
             quote_errors=result.get('quote_errors',{}),fetch_ms=result.get('fetch_ms','UNOBSERVED'),
             price_integrity='BOUNDED_LOCAL_REST_OBSERVATIONS_ONLY',
@@ -66,6 +70,12 @@ def make_report(app,*,now=None):
             depth_queue_exchange_event_time='NOT VERIFIED',cost_status='MODELED_ONLY')),
         ('ALLOCATION AND LOCAL RECORDS',dict(
             working_allocation=allocation_diagnostics(allocation) if allocation else 'UNOBSERVED',
+            portfolio_reference=dict(basis='WATCHED_BASKET_MIDPOINT_BEFORE_EXIT_FEES',flow_adjusted=False,
+                trading_profit='UNVERIFIED',
+                baseline_observed=getattr(getattr(app,'portfolio_view',None),'baseline_at',None) is not None,
+                basket_priced=getattr(app,'portfolio_result',{}).get('watched_value_eth') is not None,
+                outside_asset_count=len(getattr(app,'portfolio_result',{}).get('outside_assets',())),
+                unpriced_asset_count=len(getattr(app,'portfolio_result',{}).get('missing_assets',()))),
             reconciliation='NOT VERIFIED',reserve='PROPOSED_CALCULATOR_ONLY_NO_EARMARKING',
             preferences='RAM_ONLY',sqlite_integrity=ledger_state,local_unresolved_orders=pending,
             financial_mutations='NONE_BY_RESEARCH',earned_eth='NOT_ESTABLISHED')),

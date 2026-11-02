@@ -1,7 +1,8 @@
 # CoinCat v95.0 decision chain
 
 Explicit ETH modeling proposal → manual direct-ETH companions → authenticated
-eligible product rules → at most three shared bounded REST books → frozen quote
+eligible product rules → approved seven-market scope with at most six REST books
+per pass (four ETH anchors plus rotating BTC cross-pairs) → frozen quote
 and account-fee observations → immediate taker benchmark and independent maker
 hypothesis → passive uncertain-fill observations → quantity-free diagnostics.
 
@@ -37,3 +38,10 @@ read-only recovery never infers touches through gaps; STOP cancels retries and
 evaluation and rejects stale Tk results. Last-good prices/fees have explicit
 export-time validity labels.
 LiveBroker.submit still raises unconditional LiveBlocked as its first statement.
+
+BTC is an ETH companion through ETH-BTC. BTC cross-pairs connect companions but
+cannot spend ETH directly or spend an assumed prior fill. This build models up
+to four independent ETH-funded comparisons; cross-pairs remain observations.
+Watched-basket midpoint change is a display reference before exit fees, with
+external/manual flows unadjusted. It never becomes a verified trading-profit
+counter. Portfolio holdings outside the watch network stay explicitly unvalued.

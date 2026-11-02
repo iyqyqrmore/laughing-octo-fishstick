@@ -1,5 +1,22 @@
 # CoinCat v95.0 — ETH Growth development preview
 
+Dark spot-style workspace: chart left, ETH engine controls right, research/watch
+activity and explicit order/portfolio views below. Exact observation scope is the
+seven owner-named ETH/BTC spot products; six-book passes rotate BTC cross-pairs.
+ETH is the sole initial funding source. Four direct ETH paper comparisons need
+no pre-owned companions; BTC cross-pairs stay observation-only. Basket value
+change is a labeled reference, not assumed earnings. Real orders stay blocked.
+
+Optional local monitoring records redacted app health every five seconds, with
+bounded minute history. A separate localhost helper provides an authenticated,
+read-only browser/status endpoint suitable for private Tailscale Serve. It has
+no trading, app-control or code-update channel; see docs/V95_MONITOR.md.
+
+Allocation now shows ETH and selected companions by default. **Show all balances**
+reveals other holdings, including small residuals, with their exact native amounts.
+Only visibility changes; full-account drafts, funding, exclusions and active
+research remain intact. Unapplied edits stay visible until applied.
+
 Replaces the broad dashboard and multi-horizon experiments with one direct-ETH
 research flow. ETH plus at most three manually selected companions; explicit
 working-ETH proposal; exact immediate taker benchmark versus a patient post-only

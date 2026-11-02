@@ -5,12 +5,13 @@ from dataclasses import dataclass
 from decimal import Decimal as D, localcontext, ROUND_CEILING, ROUND_FLOOR
 import math
 
-from coincat_multicurrency import _rule, research_order
-from coincat_v6010_registry import STABLE_AND_FIAT, REJECT_FLAGS
+from coincat_multicurrency import research_order
+from coincat_v6010_registry import STABLE_AND_FIAT
 from coincat_v701_quotes import valid_book
 from coincat_v80_immediate import exact
 from coincat_working_allocation import public_asset
 from coincat_continuity import identity_change, quote_reason
+from coincat_watchlist import product_eligibility
 
 
 @dataclass(frozen=True)
@@ -22,11 +23,13 @@ class MakerConfig:
     expiry_hours: D = D(24)
     scan_interval_s: D = D(5)
     taker_slippage_bps: D = D(15)
+    observe_watchlist: bool = False
 
     def validate(self):
-        if (not isinstance(self.companions, tuple) or len(self.companions)>3 or
+        if (not isinstance(self.companions, tuple) or len(self.companions)>4 or
                 len(set(self.companions))!=len(self.companions)):
-            raise ValueError('AT_MOST_THREE_EXPLICIT_COMPANIONS')
+            raise ValueError('AT_MOST_FOUR_EXPLICIT_COMPANIONS')
+        if type(self.observe_watchlist) is not bool:raise ValueError('INVALID_WATCH_MODE')
         for asset in self.companions:
             if public_asset(asset)!=asset or asset=='ETH' or asset in STABLE_AND_FIAT:
                 raise ValueError('CRYPTO_COMPANIONS_ONLY')
@@ -52,23 +55,10 @@ def select_markets(catalog, rules, companions, excluded=()):
         if asset in excluded or 'ETH' in excluded:
             rejects[asset]=['EXCLUDED'];continue
         for pair in sorted(set(catalog)&{asset+'-ETH','ETH-'+asset}):
-            p=rules.get(pair,{})
-            if (p.get('product_id')!=pair or str(p.get('product_type','')).upper()!='SPOT'
-                    or str(p.get('status','')).lower()!='online'):
-                reasons.append('PRODUCT_ID_TYPE_OR_STATUS_UNVERIFIED');continue
-            if p.get('view_only') is not False:
-                reasons.append('ACCOUNT_TRADABILITY_UNVERIFIED');continue
-            if any(p.get(flag) is True for flag in REJECT_FLAGS):
-                reasons.append('PRODUCT_RESTRICTED');continue
-            try:
-                if _rule(rules,pair) is None:raise ValueError()
-                tick=exact(p.get('price_increment',p.get('quote_increment')))
-                if tick<=0 or exact(p['quote_increment'])<=0:raise ValueError()
-                base,quote=pair.split('-')
-                if p.get('base_currency_id',base)!=base or p.get('quote_currency_id',quote)!=quote:
-                    raise ValueError()
-            except (ValueError,TypeError,KeyError,ArithmeticError):
-                reasons.append('PRODUCT_RULES_UNVERIFIED');continue
+            reason=product_eligibility(pair,rules)
+            if reason:reasons.append(reason);continue
+            p=rules[pair];tick=exact(p.get('price_increment',p.get('quote_increment')))
+            base,quote=pair.split('-')
             choices.append(dict(pair=pair,asset=asset,entry_side='BUY' if quote=='ETH' else 'SELL',
                                 exit_side='SELL' if quote=='ETH' else 'BUY',tick=tick))
         if choices:

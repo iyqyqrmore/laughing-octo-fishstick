@@ -19,14 +19,19 @@ folder between running versions. Use normal 64-bit Windows Python 3.11.
    preselected. BTC/SOL/ADA availability is NOT VERIFIED. If the list is empty,
    stop with NO QUALIFIED EVIDENCE; there is no USD/USDC fallback.
 5. In **Allocation**, review ETH working/manual/protected proposals and exclusions.
+   The view shows ETH and selected companions. **Show all balances** reveals other
+   holdings, including small residual balances; it does not change any amounts.
    Apply each edited row. These are RAM-only; a checkbox cannot reconcile funds.
    Unassigned, excluded, manual and protected funds never supply this model.
 6. **Manual mixer** starts with the defaults below. Model ETH automatically uses
    the full ETH working proposal after connection, less manual/protected/excluded
    amounts. A custom entry stays unchanged through refresh; Reset returns to the
-   latest full working default. In **ETH Growth**, choose one to three companions
-   under the chart, then **Apply research plan**. Each companion is an independent scenario using the identical ETH
+   latest full working default. In **ETH Growth**, choose one to four companions
+   in the right-hand ETH engine panel, then **Apply research plan**. Each companion is an independent scenario using the identical ETH
    allocation; do not add the scenarios together as simultaneous funding.
+   Existing companion holdings are unnecessary for this ETH-funded model. A real
+   manual swap changes funding and requires a new Apply; it does not establish
+   maker-fill evidence for these research scenarios.
 7. Leave target/entry offset/wait/cadence/taker stress at the initial research
    defaults unless deliberately choosing another scenario. Hover labels, controls,
    table rows or details for costs, native dust, timestamps and waiting risk.
@@ -46,6 +51,12 @@ counts disappear on restart; export before closing. Public quotes use the existi
 bounded local research store. Native Windows launcher, DPAPI, single-instance,
 cleanup and resource checks still need local evidence. Source restoration and
 environment publication are separate; no old publication success is asserted.
+
+Optional read-only helper: enable **Local monitor** in **Research notes**, then
+run **tools\START_LOCAL_MONITOR.bat**. It opens a local health dashboard and keeps
+redacted bounded history. Existing older app processes need a source update and
+restart first. See [docs/V95_MONITOR.md](docs/V95_MONITOR.md) for local testing and
+private Tailscale setup. Coinbase keys never enter this helper or its snapshots.
 
 ## Tonight's defaults
 
@@ -72,6 +83,18 @@ trade volume or invented candle in an empty interval. One-second candles cannot
 create observations between five-second scans. All stored reaches only the
 history actually present in this installation's public quote database.
 
+The latest spot-style workspace puts research controls on the right, and Research,
+Watchlist, Open orders and Portfolio below the chart. Only ADA-ETH, ETH-BTC,
+LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC and ADA-BTC may be observed or charted.
+BTC cross-pairs rotate through remaining research slots; the six-book cap stays.
+Chart prices now use the actual product quote currency (ETH-BTC is BTC per ETH).
+No companion purchase is needed for ETH-funded paper entries. BTC cross-pairs
+remain observations awaiting usable inventory and a separately funded strategy.
+Watched-basket change is a midpoint reference before exit fees, unadjusted for
+deposits/withdrawals/manual trading; other portfolio assets remain unvalued.
+Scans/setups are research counters, never verified fills or assumed bot profit.
+See [docs/V95_MARKET_WORKSPACE.md](docs/V95_MARKET_WORKSPACE.md).
+
 Tooltips now open near the pointer, flip above it near an edge, fit the visible
 window/monitor work area and scroll when detailed text is long. Move into the
 popup to use its scrollbar. Escape dismisses it. Windows monitor/DPI behavior
@@ -87,7 +110,7 @@ single-instance protection, mouse/scroll/STOP and clean close on the PC.
 
 1. Connect, confirm the current account fee observation and eligible ETH products,
    Apply the exact research proposal and Start. Observe RUNNING for 60–120 minutes.
-2. In Allocation, edit/apply a non-ETH row: it must leave the ETH plan and original
+2. In Allocation, enable **Show all balances** to edit/apply a non-ETH row: it must leave the ETH plan and original
    setup time intact. Edit an ETH row or research setting: Apply must be required
    again. Never change a real financial record for this acceptance check.
 3. Inspect per-market gap reasons (not returned/stale/wide/invalid/future/timeout/

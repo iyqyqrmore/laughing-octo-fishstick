@@ -97,3 +97,94 @@ Earlier owner-supplied Windows result belongs to an earlier 152-case source.
 Run 03_VERIFY_COINCAT.bat and the supervised 60–120 minute continuity exercise
 in START_HERE.md before another 48–72 hour research run. Do not treat Linux
 fixtures as Windows/connected validation or a profitability finding.
+
+ALLOCATION WATCH VIEW — BASE 6175dff
+Owner requested hiding small/unwatched balances and watching ETH/companions.
+Allocation now defaults to reported ETH and manually selected companions, with
+Show all balances for the complete snapshot. No threshold, rounding or deletion
+is applied. Full-account assessment/drafts, exact quantities, exclusions and ETH
+funding are unchanged. Pending edits remain visible until applied; toggling the
+view preserves research generations, original setups and draft authorization.
+Changing actual companions still requires explicit Apply.
+
+Actual checkout: 200 discovered/distinct/run; zero failures, errors, skips or
+expected failures. HTTP forbidden during discovery and execution. Linux Python
+3.11.17 / SQLite 3.53.1 / Tk/Tcl 9.0 with Xvfb. Three new regressions verify exact
+hidden balances/authorization, pending edits and active research continuity.
+All 50 other application files match 6175dff byte for byte. Actual Tk checkbox,
+hover, minimum-window layout and clean-close checks passed. Manifest regenerated;
+source-only ZIP checksum and independent extracted-source log delivered beside it.
+
+Owner supplied a Windows result for the preceding 197-case hotfix: Python 3.11.9,
+SQLite 3.45.1, Tk/Tcl 8.6; 197 run, 196 passed, one synthetic-symlink capability
+skip, zero failures/errors, 99 source hashes matched. This new UI patch still
+requires a native Windows rerun. No new commit/push or PC deployment performed.
+
+READ-ONLY HELPER — BASE 6175dff + ALLOCATION WATCH VIEW
+Owner authorized a monitoring helper and their existing Tailscale network.
+Opt-in Local monitor records a strict quantity-free five-second heartbeat and
+bounded minute history. One coalescing background writer; roughly 8 MiB history
+cap; fixed-file reads; authenticated GET-only localhost browser/status server.
+The helper has no exchange client, database access, app commands or update path.
+No native amounts, credentials, raw errors or private paths enter its snapshots.
+The eight-section diagnostic export adds controlled monitor status metadata.
+
+Actual Linux checkout: 217 discovered/distinct/run; zero failures, errors, skips
+or expected failures; HTTP forbidden during discovery/execution. Runtime Python
+3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 with Xvfb. Seventeen new regressions cover
+strict redaction/schema validation, stale/future/closed/disabled state, bounded
+queue/history, disk/sharing-lock errors, read token/origin/protocol rejection and
+GUI plan/STOP/close preservation. In-memory protocol cases make no HTTP requests.
+
+A separate actual Tk + loopback HTTP integration passed: localhost binding,
+authenticated status/static reads, unauthorized/mutation/path rejection, final
+CLOSED snapshot and clean thread shutdown. Browser JavaScript passed Node syntax
+and DOM/fetch/failure-state checks. These are synthetic Linux checks, not a native
+Windows browser run. All 49 other checkpoint application files match 6175dff byte
+for byte; unconditional first-statement LiveBlocked remains. No new dependency.
+
+The regenerated manifest covers 105 source files. Source-only archive/checksum
+and independent extracted-source test log are delivered separately. Native Windows
+GUI/browser/Tailscale/ACL/cloud VPN acceptance remains pending. Existing PC tailnet
+membership does not establish this cloud's private access. No commit/push,
+publication, installation on the PC, real-account run or live remote read claimed.
+
+SEVEN-MARKET SPOT WORKSPACE — BASE 6175dff + LOCAL FOLLOW-UPS
+Owner authorized a Coinbase-style chart/control/activity arrangement and exact
+scope ADA-ETH, ETH-BTC, LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC, ADA-BTC, then clarified
+ETH is the only initial funding source. The dark workspace keeps chart left,
+manual controls right and activity below. Native chart units, seven-market watch,
+visible basic counters and a RAM-only unadjusted reference basket are included.
+Four direct ETH paper comparisons require no existing companion balances. They
+are independent comparisons, not simultaneous full-wallet allocations. BTC cross
+pairs remain observations; no inventory, fill, profit or live allocator is invented.
+
+Exactly seven IDs are admitted to active quote/history observation. Four ETH
+anchors plus two rotating BTC cross-pairs cover all eligible markets over two
+successful passes, retaining the six-research/16-total ceilings, spacing, timing,
+freshness/spread and fee requirements. Deferred/failed books keep explicit original
+timestamps and reasons. Cancelled passes never advance the rotation or cache.
+The reference basket uses only GUI-accepted snapshots, so unpublished worker
+state cannot change its display. VET/VTHO/USD or other outside assets stay unvalued.
+
+Actual checkout: 229 discovered/distinct/run, zero failures/errors/skips/expected
+failures, HTTP forbidden during discovery and execution. Linux Python 3.11.17 /
+SQLite 3.53.1 / Tk-Tcl 9.0 with Xvfb. Twelve added regressions cover strict scope,
+six-book rotation, ETH-only four-entry modeling without fake inventory, partial
+cross-pair failure and STOP staging, native/inverse references, unpriced values,
+price/deposit changes without profit credit, native chart scope/units, layout,
+baseline/chart independence and redaction. The old three-book span test now uses
+the actual ETH-BTC orientation with explicit synthetic authenticated tradability;
+all 12s/economic assertions remain. Four companions are allowed, five rejected.
+
+Actual Tk previews passed at 1380x900 and 1040x780, including visible fixed
+counters, native-price candle bodies from labeled synthetic retained observations,
+seven watch rows, exact controls, STOP/close, bounded hover and helper regressions.
+All 45 other checkpoint app files match 6175dff byte-for-byte, including protected
+broker/FIFO/state/importer/receipts/transport sources. LiveBlocked remains first.
+
+Manifest: 111 source files. Source ZIP/checksum and independent extracted-source
+verification are delivered outside checkout. Native Windows/DPI, actual account
+eligibility/fees, Tailscale and remote reads remain unverified for this patch.
+No financial records, settings, allocations, private data/backups or old history
+were edited or removed. No commit, push, publication or PC deployment performed.

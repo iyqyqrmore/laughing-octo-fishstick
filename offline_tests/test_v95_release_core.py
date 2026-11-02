@@ -22,7 +22,9 @@ class ReleaseCore(unittest.TestCase):
 
     def test_no_order_or_preview_adapters_in_active_scanner(self):
         for name in ('coincat_app.py','coincat_scanner.py','coincat_full_balance.py','coincat_eth_maker.py',
-                     'coincat_chart.py','coincat_continuity.py','coincat_recovery.py'):
+                     'coincat_chart.py','coincat_continuity.py','coincat_recovery.py',
+                     'coincat_monitor.py','coincat_monitor_server.py','coincat_workspace.py',
+                     'coincat_watchlist.py','coincat_portfolio_view.py','coincat_theme.py'):
             tree=ast.parse((ROOT/'app'/name).read_text())
             names={n.func.attr for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)}
             self.assertFalse(names & {'submit','create_order','cancel_orders','preview_order','market_order_buy','market_order_sell'},name)

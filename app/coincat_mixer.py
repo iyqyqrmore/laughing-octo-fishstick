@@ -35,7 +35,7 @@ CONTROLS=(
         'Observation horizon for each frozen hypothetical setup. Expiry means cancelled/expired research, not a real cancellation. '
         'A real holding could remain exposed for longer or lose its entire value; unfilled and uncertain outcomes are retained as such.'),
     Control('scan_interval_s','Scan interval','seconds after each pass',D(5),D(5),D(60),D(1),
-        'Manual observation cadence. At most three selected direct books use the existing collector, six-research/16-total ceilings, '
+        'Manual observation cadence. Approved markets share the existing collector and six-research/16-total ceilings; BTC cross-pairs rotate. '
         '0.2-second spacing and server backoff. Quote age 30s, spread 0.25% and single-decision span 12s cannot be relaxed here.'),
     Control('taker_slippage_bps','Taker stress','bps per benchmark leg',D(15),D(0),D(50),D(1),
         'Explicit assumed slippage for the immediate taker benchmark only, in addition to actual bid/ask and estimated taker fee. '

@@ -30,7 +30,7 @@ def main():
     names=source_files()
     data=dict(build='95.0-eth-growth-research-preview',
         description='ETH-only direct-pair maker research; no execution or financial writes.',
-        base_commit='f0b6181efc5ae4e12a2b9c82578d1a6b08482d87',
+        base_commit='6175dffbddb9dd007088c127aa792d8e95629fca',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))

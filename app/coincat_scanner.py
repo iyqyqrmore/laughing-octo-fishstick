@@ -7,6 +7,7 @@ from coincat_working_allocation import assess_allocation
 from coincat_eth_maker import MakerStudy,select_markets,model_market
 from coincat_continuity import eth_funding,research_identity,quote_reason
 from coincat_recovery import read_call,ReadFailure,public_quote_failure
+from coincat_watchlist import WATCH_PAIRS,eligible_watchlist,schedule_books
 
 
 class Scanner:
@@ -17,6 +18,7 @@ class Scanner:
         self.account_at=None;self.catalog_at=None;self.sequence=0;self.last_result=None
         self.last_successful_account_refresh_at=None;self.last_successful_scan_at=None
         self.maker_study=MakerStudy();self.require_refresh=False
+        self.watch_books={}
 
     def pause_observation(self,reason,*,now=None):
         """GUI invokes after its worker finishes; never race an in-flight copy."""
@@ -33,8 +35,8 @@ class Scanner:
         if stopped():return {'state':'CANCELLED'}
         catalog=self.catalog;rules=self.rules;catalog_at=self.catalog_at
         if force_catalog or catalog_at is None or not 0<=now-catalog_at<=7200:
-            catalog=list(read_call('CATALOG',self.broker.catalog))
-            rules=deepcopy(self.broker.catalog_product_rules);catalog_at=now
+            catalog=[p for p in read_call('CATALOG',self.broker.catalog) if p in WATCH_PAIRS]
+            rules={p:deepcopy(self.broker.catalog_product_rules[p]) for p in catalog};catalog_at=now
         if stopped():return {'state':'CANCELLED'}
         read_call('FEE_TIER',self.fees.refresh_from_client,self.client,now=now,cancel=cancel,raise_errors=True)
         if stopped():return {'state':'CANCELLED'}
@@ -54,7 +56,8 @@ class Scanner:
             if refreshed.get('state')=='CANCELLED':return refreshed
         if stopped():return {'state':'CANCELLED'}
         excluded=tuple(sorted(row['asset'] for row in self.ledger.assets() if not row.get('enabled',1)))
-        selection=select_markets(tuple(self.catalog),self.rules,config.companions,excluded)
+        scoped=tuple(p for p in self.catalog if p in WATCH_PAIRS)
+        selection=select_markets(scoped,self.rules,config.companions,excluded)
         rules={m['pair']:deepcopy(self.rules[m['pair']]) for m in selection['selected']}
         allocation=assess_allocation(balances=dict(self.balances),balances_at=self.account_at,
             now=now,excluded=excluded,draft=tuple(allocation_draft))
@@ -72,12 +75,16 @@ class Scanner:
             self.maker_study=study
             return dict(state='PAUSED_NEEDS_ATTENTION',reason='ETH_FUNDING_CHANGED_REAPPLY_REQUIRED',
                         study_counts=study.statistics(),study_continuity=study.diagnostics())
-        books=tuple(m['pair'] for m in selection['selected'])
+        qualified,watch_rejects=eligible_watchlist(scoped,self.rules,excluded)
+        if config.observe_watchlist:books,deferred=schedule_books(qualified,self.sequence)
+        else:books=tuple(m['pair'] for m in selection['selected']);deferred=()
         snapshots,errors,elapsed=read_call('PUBLIC_QUOTE',SCOUT.collect if collect is None else collect,
                                          books,fetch=fetch_snapshot)
         if stopped():return {'state':'CANCELLED'}
         now=time.time() if fixed_now is None else now
         incoming={p:item.book() for p,item in snapshots.items() if p in books}
+        watch_books={p:b for p,b in self.watch_books.items() if p in qualified}
+        watch_books.update(incoming)
         by_product=getattr(errors,'by_product',{})
         if errors:
             attributed=[public_quote_failure(code,minimum_delay=max(0,BUDGET.blocked_until-time.monotonic()))
@@ -119,7 +126,13 @@ class Scanner:
             market_selection=selection,study_counts=study.statistics(),study_continuity=study.diagnostics(),
             fee_evidence=tier,allocation_state='UNRECONCILED / RESEARCH ONLY',working_allocation=allocation,
             quote_scheduling=dict(requested_books=len(books),research_books=len(books),request_limit=16,
-                research_limit=6,quote_span_s=max(stamps)-min(stamps) if stamps else None),
+                research_limit=6,quote_span_s=max(stamps)-min(stamps) if stamps else None,
+                approved_markets=list(WATCH_PAIRS),deferred_markets=list(deferred)),
+            watched_markets=[dict(pair=p,book=watch_books.get(p),
+                mode='ETH_SCENARIO' if p in selected_pairs else 'OBSERVE_ONLY',
+                deferred=p in deferred,reason=watch_rejects.get(p) or
+                    quote_reason(None if p in books and p not in incoming else watch_books.get(p),now,by_product.get(p)))
+                for p in WATCH_PAIRS],
             quote_errors=dict(errors),fetch_ms=elapsed,orders_submitted=0,live_order_permission=False,
             execution='BLOCKED',lab_note='Manual research only. Gaps pause frozen hypotheses; '
                 'touches are uncertain fills. No ETH earnings established.')
@@ -127,5 +140,5 @@ class Scanner:
         read_call('LOCAL_PUBLIC_QUOTE_STORE',self.market_store.record_quotes,
             [(p,b[2],b[0],b[1],'COINBASE_PUBLIC_REST_BEST_BID_ASK') for p,b in incoming.items()],cancel=cancel)
         if stopped():return {'state':'CANCELLED'}
-        self.maker_study=study;self.sequence+=1;self.last_result=result;self.last_successful_scan_at=now
+        self.maker_study=study;self.watch_books=watch_books;self.sequence+=1;self.last_result=result;self.last_successful_scan_at=now
         return result

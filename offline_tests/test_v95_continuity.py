@@ -407,13 +407,30 @@ class ContinuityGUI(unittest.TestCase):
     def test_unrelated_allocation_edit_keeps_applied_eth_plan_and_relevant_edit_revokes(self):
         _,s=self.prepare();s.balances['OTHER']=D(2);self.app._render_wallet()
         previous=self.app.last_result;generation=self.app.generation;config=self.app.applied_config
-        editor=self.app.allocation_editor;editor.tree.selection_set('OTHER');editor._select()
+        editor=self.app.allocation_editor;editor.show_all.set(True)
+        editor.tree.selection_set('OTHER');editor._select()
         editor.fields['working'].set('1');editor.apply_selected()
         self.assertEqual(self.app.generation,generation);self.assertIs(self.app.last_result,previous)
         self.assertEqual(self.app.applied_config,config)
         editor.tree.selection_set('ETH');editor._select();editor.fields['protected'].set('.1')
         self.assertIsNone(self.app.applied_config);self.assertGreater(self.app.generation,generation)
         self.assertFalse(self.app.running)
+
+    def test_balance_visibility_toggle_preserves_running_plan_funding_and_setup(self):
+        client,s=self.prepare();s.balances['OTHER']=D('0.0000000097614163');self.app._render_wallet()
+        editor=self.app.allocation_editor;self.root.update()
+        self.assertFalse(editor.tree.exists('OTHER'))
+        config=self.app.applied_config;funding=self.app.applied_eth_key;generation=self.app.generation
+        result=self.app.last_result;setup=deepcopy(s.maker_study.active);reads=list(client.calls)
+        before=fixtures.ledger_dump(self.app.ledger)
+        for expected in (True,False):
+            editor.show_all_button.invoke();self.root.update()
+            self.assertEqual(editor.tree.exists('OTHER'),expected)
+            self.assertIs(self.app.applied_config,config);self.assertEqual(self.app.applied_eth_key,funding)
+            self.assertEqual(self.app.generation,generation);self.assertIs(self.app.last_result,result)
+            self.assertTrue(self.app.running);self.assertEqual(self.app.recovery.state,'RUNNING')
+            self.assertEqual(s.maker_study.active,setup);self.assertEqual(client.calls,reads)
+        self.assertEqual(before,fixtures.ledger_dump(self.app.ledger))
 
     def test_stale_badge_fee_overlay_and_rows_do_not_mutate_last_good(self):
         self.prepare();original=deepcopy(self.app.last_result)

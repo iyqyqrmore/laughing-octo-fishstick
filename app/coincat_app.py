@@ -7,7 +7,7 @@ import threading
 import math
 import time
 import tkinter as tk
-from tkinter import ttk,filedialog,messagebox
+from tkinter import filedialog,messagebox
 
 from coinbase_account import parse_key_json,save_encrypted,load_encrypted
 from coincat_live import LiveLedger,client_from_credentials
@@ -17,19 +17,19 @@ from coincat_v502_fee_learning import FeeLearning
 from coincat_scanner import Scanner
 from coincat_version import DISPLAY
 from coincat_simple_diagnostics import make_report
-from coincat_allocation_editor import WorkingAllocationEditor
-from coincat_mixer import ResearchMixer
 from coincat_eth_maker import MakerConfig,available_companions
-from coincat_hover import Hover,help_tree
-from coincat_chart import QuoteChart
 from coincat_continuity import eth_funding,freshness,age
 from coincat_recovery import Recovery,failure
+from coincat_monitor import MonitorPublisher
+from coincat_portfolio_view import PortfolioView
+from coincat_watchlist import WATCH_PAIRS
 
 
 class CoinCatApp:
     def __init__(self,root):
         self.root=root;root.title(DISPLAY+' | ETH Growth — Research Only | LIVE blocked')
-        root.geometry('1120x800');root.minsize(1000,740)
+        root.geometry(f'{max(1000,min(1380,root.winfo_screenwidth()-40))}x{max(740,min(900,root.winfo_screenheight()-70))}')
+        root.minsize(1000,740)
         self.data=data_root();self.ledger=LiveLedger(self.data/'CoinCat_Live_Orders.sqlite3')
         self.fees=FeeLearning(self.data/'research_data'/'CoinCat_Fee_Evidence_v502.sqlite3')
         self.market=ForwardStore(self.data/'research_data'/'CoinCat_Forward_Market.sqlite3',Retention())
@@ -38,102 +38,26 @@ class CoinCatApp:
         self.connected=False;self.running=False;self.closed=False;self.busy=False;self.generation=0
         self.cancel=threading.Event();self.jobs=Queue();self._after={};self.last_error=None
         self.last_note_at=0;self._ready=False;self.working_allocation=None
+        self.monitor=MonitorPublisher();self.monitor_enabled=tk.BooleanVar(value=False)
+        self.monitor_text=tk.StringVar(value='Off · No automatic snapshots')
         self.status=tk.StringVar(value='Connect, choose companions, then apply a research plan.')
         self.observation_text=tk.StringVar(value='STOPPED · No completed research observation')
         self.funding_text=tk.StringVar(value='Working proposal: unset · Protected ETH: unverified')
         self.evidence_text=tk.StringVar(value='Fees: unobserved · Fills: unverified · Actual profit: not established')
         self.detail_text=tk.StringVar(value='Select a market for details. Hover any control or result for help.')
-        self.companions=[tk.StringVar() for _ in range(3)]
+        self.portfolio_view=PortfolioView();self.portfolio_result={}
+        self.eth_held_text=tk.StringVar(value='Unobserved');self.basket_text=tk.StringVar(value='Unpriced')
+        self.basket_change_text=tk.StringVar(value='No baseline');self.counter_text=tk.StringVar(value='Scans 0 · Verified bot fills 0')
+        self.companions=[tk.StringVar() for _ in range(4)]
         self._ui();self._ready=True
-        for value in self.companions:value.trace_add('write',lambda *args:self._invalidate())
+        for value in self.companions:value.trace_add('write',lambda *args:self._companions_changed())
         self.root.protocol('WM_DELETE_WINDOW',self._close);self._schedule('poll',100,self._poll)
         self._schedule('history',200,self.chart.refresh)
         self._schedule('freshness',1000,self._freshness_tick)
 
     def _ui(self):
-        shell=ttk.Frame(self.root,padding=12);shell.pack(fill='both',expand=True)
-        header=ttk.Frame(shell);header.pack(fill='x')
-        self.logo=tk.PhotoImage(file=str(Path(__file__).with_name('coincat_logo_banner_520.png'))).subsample(2)
-        title=ttk.Label(header,image=self.logo);title.pack(side='left',padx=(0,12))
-        Hover(title,DISPLAY+' development preview. ETH Growth research only. Existing CoinCat artwork; no order execution.')
-        ttk.Label(header,text=DISPLAY+' · ETH Growth',font=('Segoe UI',17,'bold')).pack(side='left')
-        badge=ttk.Label(header,text='RESEARCH ONLY · LIVE BLOCKED',foreground='#a34d00');badge.pack(side='right')
-        Hover(badge,'No orders, previews, cancellations or transfers. LiveBroker.submit raises LiveBlocked before doing any work. '
-            'This preview does not establish Windows acceptance, settlement, fills or profitability.')
-        if sys.platform=='win32':self.root.iconbitmap(str(Path(__file__).with_name('CoinCat50.ico')))
-        actions=ttk.Frame(shell);actions.pack(fill='x',pady=(8,5))
-        tips=(('Import key JSON',self._import_key,'Select a Coinbase key on this PC. Never paste keys into chat. Existing Windows DPAPI storage is unchanged.'),
-            ('Connect / refresh',self._connect,'Read account AVAILABLE, authenticated spot products and account maker/taker fees. No financial enrollment or settings are changed.'),
-            ('Start research',self._start,'Start observing only the manually approved direct ETH markets. Apply a research plan first. No USD/USDC bridge or fallback.'),
-            ('STOP',self._stop,'Stop scheduling, cancel pending evaluation and reject queued results from earlier generations. Retain displayed findings. No real order exists to cancel.'),
-            ('Export diagnostics',self._export,'Export eight quantity-free sections. No native balances, receipts, funding amounts, keys, account IDs or private paths. No network requests from export.'))
-        for text,command,tip in tips:
-            button=ttk.Button(actions,text=text,command=command);button.pack(side='left',padx=(0,7));Hover(button,tip)
-        status=ttk.Label(shell,textvariable=self.status,wraplength=1060);status.pack(anchor='w',pady=(0,5))
-        Hover(status,lambda:self.status.get()+' All proposals are RAM-only. STOP before a new connection or configuration change.')
-        badge=ttk.Label(shell,textvariable=self.observation_text,wraplength=1060,foreground='#a34d00')
-        badge.pack(anchor='w',pady=(0,4))
-        Hover(badge,'Current connection/retry state and age of last-good observations. Historical quotes and fee tiers are never rescored as current. STOP cancels retry timers; no order execution is enabled.')
-        self.tabs=ttk.Notebook(shell);self.tabs.pack(fill='both',expand=True)
-        growth=ttk.Frame(self.tabs,padding=8);allocation=ttk.Frame(self.tabs)
-        mixer_tab=ttk.Frame(self.tabs,padding=8)
-        lab=ttk.Frame(self.tabs,padding=8)
-        self.tabs.add(growth,text='ETH Growth');self.tabs.add(mixer_tab,text='Manual mixer')
-        self.tabs.add(allocation,text='Allocation');self.tabs.add(lab,text='Research notes')
-        self.mixer=ResearchMixer(mixer_tab,self._invalidate);self.mixer.pack(fill='x')
-        self.chart=QuoteChart(growth,self.market.path);self.chart.pack(fill='both',expand=True)
-        research=ttk.LabelFrame(growth,text='Coins & research',padding=5);research.pack(fill='x',pady=(7,0))
-        watch=ttk.Frame(research);watch.pack(fill='x',pady=3)
-        label=ttk.Label(watch,text='Companions');label.pack(side='left',padx=(0,6))
-        Hover(label,'ETH plus up to three manually approved companions. Choices come from the authenticated eligible direct-ETH catalog. '
-            'BTC, SOL and ADA are examples, never preselected. If no pair qualifies, stop with NO QUALIFIED EVIDENCE; no automatic replacements.')
-        self.companion_boxes=[]
-        for variable in self.companions:
-            box=ttk.Combobox(watch,textvariable=variable,values=('',),state='readonly',width=12)
-            box.pack(side='left',padx=(0,6));self.companion_boxes.append(box)
-            Hover(box,'Manually choose an eligible companion or leave empty. Changing selection invalidates the applied plan and pending analysis. '
-                'At most three companions, direct spot ETH markets only. Region/account restrictions and missing verified rules exclude a product.')
-        apply=ttk.Button(watch,text='Apply research plan',command=self._apply_plan);apply.pack(side='left',padx=5)
-        Hover(apply,'Acknowledge the exact ETH modeling amount and selected companions for this RAM-only study. '
-            'This is not settlement reconciliation, trading authorization or an allocation change. Unapplied allocation edits must be resolved first.')
-        self.funding_label=ttk.Label(research,textvariable=self.funding_text,wraplength=1040)
-        self.funding_label.pack(anchor='w')
-        Hover(self.funding_label,lambda:self.funding_text.get()+'. UNRECONCILED / RESEARCH ONLY. '
-            'The model amount must fit the ETH working proposal after manual/protected exclusions. Other assets never supply funding. '
-            'Each market is an independent scenario against HOLD of the same initial ETH, not a combined deployment. No earned ETH is inferred.')
-        evidence=ttk.Label(research,textvariable=self.evidence_text,wraplength=1040);evidence.pack(anchor='w',pady=(2,5))
-        Hover(evidence,lambda:self._fee_details())
-        columns=('Market','ETH / coin','Spread / age','Taker ΔETH','Maker ΔETH / move','Fill evidence')
-        table=ttk.Frame(research);table.pack(fill='x')
-        self.growth_tree=ttk.Treeview(table,columns=columns,show='headings',height=3,selectmode='browse')
-        widths=(115,130,125,145,210,200)
-        for name,width in zip(columns,widths):
-            self.growth_tree.heading(name,text=name);self.growth_tree.column(name,width=width,minwidth=80,stretch=True)
-        scroll=ttk.Scrollbar(table,orient='vertical',command=self.growth_tree.yview)
-        self.growth_tree.configure(yscrollcommand=scroll.set);scroll.pack(side='right',fill='y');self.growth_tree.pack(fill='both',expand=True)
-        self.growth_tree.bind('<<TreeviewSelect>>',lambda event:self._select_row())
-        Hover(self.growth_tree,lambda:self._row_help())
-        def row_motion(event):
-            row=self.growth_tree.identify_row(event.y)
-            if row and row!=getattr(self,'_hover_row',None):
-                self._hover_row=row;self.growth_tree.hover_help.schedule(event)
-        self.growth_tree.bind('<Motion>',row_motion,add='+')
-        detail=ttk.Label(research,textvariable=self.detail_text,wraplength=1030);detail.pack(anchor='w',pady=(4,0))
-        Hover(detail,lambda:self._row_help())
-        self.allocation_editor=WorkingAllocationEditor(allocation,self._allocation_changed)
-        self.allocation_editor.pack(fill='both',expand=True)
-        self.lab_text=tk.Text(lab,wrap='word',font=('Segoe UI',10),state='disabled',height=7)
-        self.lab_text.pack(fill='both',expand=True)
-        Hover(self.lab_text,'Passive notes only. No AI changes settings, sets prices, alters funding, arms or places orders. '
-            'Notes describe deterministic research observations and uncertainty. They do not gate economics.')
-        self._note('Choose a small direct-ETH watch set. Quotes cannot prove maker fills. No ETH earnings established.')
-        help_tree(allocation,'Read-only allocation worksheet. Exact native-unit proposals remain in RAM. '
-            'Apply each edited row explicitly; manual/protected/excluded funds cannot enter the working model. '
-            'An owner checkbox cannot verify settlement, external cashflows, outstanding orders or tax basis. No trading is enabled.')
-        help_tree(shell,DISPLAY+' ETH Growth research. ETH is the funding and success unit; '
-            'choose up to three direct-ETH companions manually. Compare the same initial ETH versus HOLD. '
-            'Maker figures are conditional scenarios with uncertain fills; no earnings or live orders. '
-            'Hover individual controls and results for exact costs, timestamps, native dust and risk.')
+        from coincat_workspace import build_workspace
+        build_workspace(self)
 
     def _fee_details(self):
         tier=(self.last_result or {}).get('fee_evidence',{})
@@ -196,6 +120,10 @@ class CoinCatApp:
                 ('Native dust retained' if h.get('scenario',{}).get('native_dust') else 'Dust: none in scenario' if h else 'Unpriced')+
                 ' · No profit credited'+(' · '+', '.join(row['blockers']) if row['blockers'] else ''))
 
+    def _companions_changed(self):
+        self.allocation_editor.set_watch_assets(v.get() for v in self.companions)
+        self._invalidate()
+
     def _invalidate(self):
         if not self._ready:return
         self._stop();self.applied_config=None;self.applied_eth_key=None;self.last_result=None
@@ -226,7 +154,8 @@ class CoinCatApp:
         try:
             self.mixer.commit_entries()
             if self.allocation_editor.dirty_fields:raise ValueError('Apply or correct allocation edits first.')
-            config=MakerConfig(companions=tuple(v.get() for v in self.companions if v.get()),**self.mixer.values()).validate()
+            config=MakerConfig(companions=tuple(v.get() for v in self.companions if v.get()),
+                observe_watchlist=True,**self.mixer.values()).validate()
             if config.amount_eth<=0:raise ValueError('Enter an explicit ETH modeling amount.')
             if not config.companions:raise ValueError('Choose at least one eligible direct-ETH companion.')
             if self.scanner is None or not self.connected:raise ValueError('Connect and verify available markets first.')
@@ -239,7 +168,7 @@ class CoinCatApp:
         for item in self.growth_tree.get_children():self.growth_tree.delete(item)
         self.evidence_text.set('Plan applied · Awaiting a fresh scan')
         self.detail_text.set('Research scenarios only · No orders or credited profit')
-        self.funding_text.set(f'Model {config.amount_eth} ETH per scenario · Protected {row.get("protected",0)} ETH · UNRECONCILED / RESEARCH ONLY')
+        self.funding_text.set(f'Model {config.amount_eth} ETH per scenario\nUNRECONCILED / RESEARCH ONLY')
         self.status.set('Research plan applied in RAM. Start research when ready.')
 
     def _schedule(self,key,delay,callback):
@@ -407,6 +336,7 @@ class CoinCatApp:
                 ' · Fill evidence: unverified · Actual profit: not established')
             self._render_rows(self.last_result,view)
             self._select_row()
+        self._update_market_view(now)
 
     def _render_wallet(self):
         if self.scanner is None:return
@@ -416,6 +346,52 @@ class CoinCatApp:
         changed=self.applied_eth_key is not None and self._funding()['key']!=self.applied_eth_key
         self._sync_eth_default()
         if changed:self._invalidate()
+        self._update_market_view(time.time())
+
+    def _select_watch(self,event=None):
+        selected=self.watch_tree.selection()
+        if selected and selected[0] in WATCH_PAIRS:
+            self.chart.pair.set(selected[0]);self.chart.refresh()
+
+    def _reset_view_baseline(self):
+        self.portfolio_view.baseline=None;self.portfolio_view.baseline_at=None
+        self._update_market_view(time.time())
+
+    def _update_market_view(self,now):
+        from coincat_continuity import quote_reason
+        rows={r['pair']:r for r in (self.last_result or {}).get('watched_markets',())}
+        for pair in WATCH_PAIRS:
+            row=rows.get(pair,{});book=row.get('book')
+            reason=row.get('reason') or quote_reason(book,now)
+            label=reason or ('Deferred · last observation' if row.get('deferred') else 'Observed')
+            if book is not None and self.recovery.state in ('RETRYING','PAUSED_NEEDS_ATTENTION'):
+                label='Paused · last observation'
+            elif book is not None and not self.running:label='Stopped · last observation'
+            price='—' if book is None else f'{(book[0]+book[1])/2:.9g} '+pair.split('-')[1]
+            role='ETH scenario' if row.get('mode')=='ETH_SCENARIO' else 'Await BTC inventory' if 'ETH' not in pair.split('-') else 'Watch only'
+            self.watch_tree.item(pair,values=(pair,price,label,role))
+        result=self.last_result or {};counts=result.get('study_counts',{})
+        self.counter_text.set(f'Scans {result.get("scan",0)} · Setups {counts.get("setups",0)}\nVerified bot fills 0 · Bot orders 0')
+        if self.scanner is None:return
+        # Display only snapshots accepted on the GUI thread. A late worker from
+        # an invalidated generation must not update the reference basket either.
+        accepted_books={pair:row['book'] for pair,row in rows.items() if row.get('book') is not None}
+        try:value=self.portfolio_view.measure(self.allocation_editor.balances,
+            self.allocation_editor.balances_at,accepted_books,now)
+        except (ValueError,ArithmeticError,TypeError):
+            self.eth_held_text.set('Unverified');self.basket_text.set('Unpriced');self.basket_change_text.set('Unpriced');return
+        self.portfolio_result=value
+        self.eth_held_text.set('Unobserved / stale' if value['eth_held'] is None else f'{value["eth_held"]:.9g} ETH')
+        self.basket_text.set('Unpriced' if value['watched_value_eth'] is None else f'{value["watched_value_eth"]:.9g}')
+        self.basket_change_text.set('Unpriced / no baseline' if value['change_eth'] is None else
+            '+0 ETH' if value['change_eth']==0 else f'{value["change_eth"]:+.9g} ETH')
+        text=('Watched basket: ETH, BTC, ADA, LINK, SOL\n'
+            'Midpoint reference before exit fees; change is not flow adjusted or verified bot profit.\n'
+            'Outside basket (unvalued): '+(', '.join(value['outside_assets']) or 'None reported')+'\n'
+            'Awaiting valid quote: '+(', '.join(value['missing_assets']) or 'None for reported basket holdings')+'\n'
+            'Account snapshot: '+('Within freshness limit' if value['account_fresh'] else 'Stale / unobserved'))
+        self.portfolio_text.configure(state='normal');self.portfolio_text.delete('1.0','end')
+        self.portfolio_text.insert('1.0',text);self.portfolio_text.configure(state='disabled')
 
     def _render(self,result):
         self._render_wallet()
@@ -452,6 +428,33 @@ class CoinCatApp:
         if int(self.lab_text.index('end-1c').split('.')[0])>500:self.lab_text.delete('1.0','100.0')
         self.lab_text.configure(state='disabled')
 
+    def _monitor_changed(self):
+        if self.monitor_enabled.get():
+            if not self.monitor.start():
+                self.monitor_enabled.set(False);self.monitor_text.set('Previous writer is finishing; retry shortly.');return
+            self._monitor_tick()
+        else:
+            timer=self._after.pop('monitor',None)
+            if timer is not None:self.root.after_cancel(timer)
+            self._monitor_stop('DISABLED')
+            self.monitor_text.set('Off · Last snapshot retained')
+
+    def _monitor_tick(self):
+        if self.closed or not self.monitor.enabled:return
+        try:
+            self.monitor.publish(self.monitor.sample(self))
+            detail=self.monitor.diagnostics()
+            self.monitor_text.set('Write failed · Check support_monitor access' if detail['error'] else
+                'Recording · Local redacted snapshots' if detail['last_written_at'] is not None else 'Starting local recorder')
+        except Exception:
+            self.monitor_text.set('Snapshot unavailable · Research unchanged')
+        self._schedule('monitor',5000,self._monitor_tick)
+
+    def _monitor_stop(self,lifecycle):
+        try:final=self.monitor.sample(self,lifecycle=lifecycle)
+        except Exception:final=None
+        self.monitor.stop(final)
+
     def _export(self):
         path=filedialog.asksaveasfilename(title='Save v95 diagnostics',defaultextension='.txt',
             initialfile='CoinCat_v95_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
@@ -462,6 +465,7 @@ class CoinCatApp:
     def _close(self):
         if self.closed:return
         self._stop();self.closed=True
+        if self.monitor.enabled:self._monitor_stop('CLOSED')
         for task in self._after.values():
             try:self.root.after_cancel(task)
             except tk.TclError:pass

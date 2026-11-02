@@ -29,7 +29,8 @@ def range_start(end,span):
     return dt.replace(year=year,month=month,day=min(dt.day,monthrange(year,month)[1])).timestamp()
 
 
-def read_history(path,pair=None,*,interval='1m',span='1 day',end=None,cancel=None,max_candles=500):
+def read_history(path,pair=None,*,interval='1m',span='1 day',end=None,cancel=None,max_candles=500,
+                 allowed_products=None,native=False):
     """Aggregate stored midpoint samples into bounded display OHLC via read-only SQL.
 
     No interpolation, API requests, new schemas, pruning or financial database.
@@ -38,6 +39,8 @@ def read_history(path,pair=None,*,interval='1m',span='1 day',end=None,cancel=Non
     """
     if interval not in INTERVALS or span not in RANGES or not 10<=max_candles<=1000:
         raise ValueError('INVALID_CHART_RANGE')
+    if allowed_products is not None and pair is not None and pair not in allowed_products:
+        return dict(state='OUTSIDE_APPROVED_WATCHLIST',pair=pair,products=[],candles=[])
     deadline=time.monotonic()+20
     stopped=lambda:(cancel is not None and cancel.is_set()) or time.monotonic()>deadline
     if stopped():return {'state':'CANCELLED','candles':[]}
@@ -47,11 +50,12 @@ def read_history(path,pair=None,*,interval='1m',span='1 day',end=None,cancel=Non
         db.execute('PRAGMA query_only=ON');db.set_progress_handler(lambda:int(stopped()),1000)
         try:
             products=[]
-            for (product,) in db.execute('SELECT DISTINCT pair FROM market_quotes'):
+            scope='' if allowed_products is None else ' WHERE pair IN ('+','.join('?' for _ in allowed_products)+')'
+            for (product,) in db.execute('SELECT DISTINCT pair FROM market_quotes'+scope,tuple(allowed_products or ())):
                 try:
                     base,quote=split_spot(product)
                     companion=base if quote=='ETH' else quote if base=='ETH' else None
-                    if companion and companion!='ETH' and companion not in STABLE_AND_FIAT:products.append(product)
+                    if native or (companion and companion!='ETH' and companion not in STABLE_AND_FIAT):products.append(product)
                 except (ValueError,TypeError):continue
             products.sort()
             if pair is None:pair=next(iter(products),None)
@@ -77,7 +81,7 @@ def read_history(path,pair=None,*,interval='1m',span='1 day',end=None,cancel=Non
             else:
                 size=INTERVALS[effective];bucket=f'(at_utc/{size})*{size}'
             raw_bid='CAST(bid AS REAL)';raw_ask='CAST(ask AS REAL)'
-            price=f'({raw_bid}+{raw_ask})/2.0' if quote=='ETH' else f'(1.0/{raw_ask}+1.0/{raw_bid})/2.0'
+            price=f'({raw_bid}+{raw_ask})/2.0' if native or quote=='ETH' else f'(1.0/{raw_ask}+1.0/{raw_bid})/2.0'
             valid=f'{raw_bid}>=1e-100 AND {raw_ask}>={raw_bid} AND {raw_ask}<1e100'
             query=f'''WITH grouped AS (
                 SELECT {bucket} bucket,MIN(at_utc) first_at,MAX(at_utc) last_at,
@@ -95,38 +99,41 @@ def read_history(path,pair=None,*,interval='1m',span='1 day',end=None,cancel=Non
             return dict(state='QUOTE_CANDLES' if candles else 'NO_QUOTES_IN_RANGE',pair=pair,products=products,
                 candles=candles,oldest=oldest,newest=newest,stored_samples=count,
                 start=start,end=clock,requested_interval=interval,interval=effective,span=span,
-                price_unit='ETH_PER_COIN',basis='STORED_BID_ASK_MIDPOINT_SAMPLES_NOT_TRADE_OHLC')
+                price_unit=quote+'_PER_'+base if native else 'ETH_PER_COIN',basis='STORED_BID_ASK_MIDPOINT_SAMPLES_NOT_TRADE_OHLC')
         except sqlite3.OperationalError:
             if cancel is not None and cancel.is_set():return {'state':'CANCELLED','candles':[]}
             return {'state':'HISTORY_READ_BUSY_OR_LIMITED','candles':[],'products':[]}
 
 
 class QuoteChart(ttk.LabelFrame):
-    def __init__(self,parent,path):
-        super().__init__(parent,text='Quote history · ETH per coin',padding=5)
+    def __init__(self,parent,path,allowed_products=None):
+        super().__init__(parent,text='Price chart · Recorded quotes',padding=5)
+        self.allowed_products=None if allowed_products is None else tuple(allowed_products)
         self.path=Path(path);self.result={};self.closed=False;self.busy=False;self.generation=0
         self.cancel=threading.Event();self.jobs=Queue();self.pending=None;self.last_live=0
         self.poll_after=None;self.cursor_candle=None;self.reader=None
         self.pair=tk.StringVar();self.interval=tk.StringVar(value='1m');self.span=tk.StringVar(value='1 day')
         self.end=None;self.summary=tk.StringVar(value='Recorded quotes only · No imported trade candles')
         controls=ttk.Frame(self);controls.pack(fill='x')
-        self.product=ttk.Combobox(controls,textvariable=self.pair,state='readonly',width=14)
+        navigation=ttk.Frame(controls);navigation.pack(fill='x')
+        ranges=ttk.Frame(controls);ranges.pack(fill='x',pady=(4,0))
+        self.product=ttk.Combobox(navigation,textvariable=self.pair,state='readonly',width=13,values=self.allowed_products or ())
         self.product.pack(side='left',padx=(0,6));self.product.bind('<<ComboboxSelected>>',lambda e:self.refresh())
-        Hover(self.product,'Historical chart product only; it does not select a research companion or allocate funds. Direct ETH products stored in this database.')
+        Hover(self.product,'Historical chart product only; it does not change funding or research selection. Only approved markets are shown. Prices use the product’s actual quote currency.')
         for label,var,values,tip in (
             ('Candle',self.interval,tuple(INTERVALS),'Candle interval: aggregate only recorded quote midpoints. 1s does not add ticks between scans. Months and years use calendar UTC boundaries. Wide history may explicitly use coarser candles to fit the screen.'),
             ('History',self.span,RANGES,'Visible history range. All stored reaches the oldest quote retained in this database. Previous/next moves the time window. Missing intervals stay empty; no backfill or interpolation.')):
-            ttk.Label(controls,text=label).pack(side='left',padx=(0,3))
-            box=ttk.Combobox(controls,textvariable=var,values=values,state='readonly',width=11)
+            ttk.Label(ranges,text=label).pack(side='left',padx=(0,3))
+            box=ttk.Combobox(ranges,textvariable=var,values=values,state='readonly',width=10)
             box.pack(side='left',padx=(0,7));box.bind('<<ComboboxSelected>>',lambda e:self.refresh());Hover(box,tip)
         for text,command,tip in (
             ('Prev',lambda:self.pan(-1),'Previous history window; no new data is downloaded.'),
             ('Next',lambda:self.pan(1),'Next history window.'),
             ('Latest',self.latest,'Return to the latest time window.'),
             ('Refresh',self.refresh,'Read the existing public quote journal again. No exchange or financial requests.')):
-            button=ttk.Button(controls,text=text,command=command,width=7 if len(text)>1 else 3)
+            button=ttk.Button(navigation,text=text,command=command,width=7)
             button.pack(side='left',padx=(0,3));Hover(button,tip)
-        self.canvas=tk.Canvas(self,height=220,background='#101823',highlightthickness=0)
+        self.canvas=tk.Canvas(self,height=220,background='#0b0e12',highlightthickness=0)
         self.canvas.pack(fill='both',expand=True,pady=(5,0))
         self.canvas.bind('<Configure>',lambda e:self.draw());self.canvas.bind('<Motion>',self.inspect)
         self.canvas.bind('<MouseWheel>',self.zoom);self.canvas.bind('<Button-4>',lambda e:self.zoom(e,-1))
@@ -141,15 +148,16 @@ class QuoteChart(ttk.LabelFrame):
 
     def set_products(self,products):
         known=set(self.product['values'])|set(products)
+        if self.allowed_products is not None:known.intersection_update(self.allowed_products)
         self.product.configure(values=tuple(sorted(known)))
-        if not self.pair.get() and products:self.pair.set(products[0])
+        if not self.pair.get() and known:self.pair.set(next((p for p in products if p in known),sorted(known)[0]))
 
     def refresh(self,*,live=False):
         if self.closed:return
         if live and time.monotonic()-self.last_live<10:return
         self.last_live=time.monotonic();self.generation+=1;self.cancel.set()
         self.pending=(self.generation,self.pair.get() or None,self.interval.get(),self.span.get(),self.end)
-        self.summary.set('Reading stored quote history…')
+        self.summary.set('Reading stored quote history...')
         if not self.busy:self._launch()
 
     def _launch(self):
@@ -157,7 +165,8 @@ class QuoteChart(ttk.LabelFrame):
         generation,pair,interval,span,end=self.pending;self.pending=None
         self.busy=True;self.cancel=threading.Event();cancel=self.cancel;path=self.path
         def work():
-            try:result=read_history(path,pair,interval=interval,span=span,end=end,cancel=cancel)
+            try:result=read_history(path,pair,interval=interval,span=span,end=end,cancel=cancel,
+                allowed_products=self.allowed_products,native=self.allowed_products is not None)
             except Exception:result={'state':'HISTORY_UNAVAILABLE','candles':[]}
             self.jobs.put((generation,result))
         self.reader=threading.Thread(target=work,daemon=True);self.reader.start()
@@ -244,7 +253,8 @@ class QuoteChart(ttk.LabelFrame):
         oldest=datetime.fromtimestamp(self.result['oldest'],timezone.utc).strftime('%Y-%m-%d')
         newest=datetime.fromtimestamp(self.result['newest'],timezone.utc).strftime('%Y-%m-%d')
         fitted=(' (fitted from '+self.result['requested_interval']+')' if self.result['interval']!=self.result['requested_interval'] else '')
-        self.summary.set(f"{self.result['pair']} · {self.result['interval']}{fitted} quote candles · UTC · Stored {oldest} → {newest} · {len(rows)} candles in view")
+        unit=self.result.get('price_unit','ETH_PER_COIN').replace('_PER_',' / ')
+        self.summary.set(f"{self.result['pair']} · {unit} · {self.result['interval']}{fitted} · UTC · {oldest} → {newest}")
 
     def inspect(self,event):
         self.canvas.delete('crosshair')
@@ -259,9 +269,9 @@ class QuoteChart(ttk.LabelFrame):
 
     def candle_help(self):
         row=self.cursor_candle
-        if row is None:return 'Recorded quote midpoint candles in ETH per coin. Move over a candle for OHLC and sample count. Empty intervals are gaps, not unchanged prices. Wheel changes candle interval; history controls and arrows browse stored time.'
+        if row is None:return 'Recorded quote midpoint candles in the actual product’s quote currency. Move over a candle for OHLC and sample count. Empty intervals are gaps, not unchanged prices. Wheel changes candle interval; history controls and arrows browse stored time.'
         return (datetime.fromtimestamp(row['at'],timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')+
-            f"\nOpen {row['open']:.10g} · High {row['high']:.10g}\nLow {row['low']:.10g} · Close {row['close']:.10g} ETH/coin\n"+
+            f"\nOpen {row['open']:.10g} · High {row['high']:.10g}\nLow {row['low']:.10g} · Close {row['close']:.10g} "+self.result.get('price_unit','ETH_PER_COIN').replace('_PER_',' / ')+'\n'+
             f"{row['samples']} recorded bid/ask observations. No executed trades, fill evidence or volume inferred.")
 
     def _destroy(self,event):

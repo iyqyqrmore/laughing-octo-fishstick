@@ -185,8 +185,49 @@ class AllocationGUI(unittest.TestCase):
     def prepare(self):
         editor=self.app.allocation_editor;editor.clock=lambda:NOW
         editor.snapshot({'ETH':D(3),'BTC':D('.002')},NOW,NOW)
+        editor.show_all.set(True)  # Full-account editing remains available explicitly.
         self.root.update();editor.tree.selection_set('ETH');editor._select()
         return editor
+
+    def test_watch_view_preserves_all_exact_balances_drafts_and_authorization(self):
+        editor=self.app.allocation_editor;editor.clock=lambda:NOW
+        balances={'ETH':D('.0773899458270708'),'BTC':D('0.0000000016216215'),
+            'CTX':D('0.0000000097614163'),'USD':D('100'),'VET':D('75')}
+        before=gui.ledger_dump(self.app.ledger)
+        editor.snapshot(balances,NOW,NOW);self.root.update()
+        self.assertFalse(editor.show_all.get());self.assertEqual(editor.tree.get_children(),('ETH',))
+        self.app.companions[0].set('BTC');self.root.update()
+        self.assertEqual(set(editor.tree.get_children()),{'ETH','BTC'})
+        self.assertEqual(editor.tree.set('BTC','available'),str(balances['BTC']))
+        editor.confirmed.set(True);editor.authorize();authorization=editor.authorization
+        self.assertIsNotNone(authorization)
+        draft=deepcopy(editor.draft);assessment=editor.assessment()
+        editor.show_all_button.invoke();self.root.update()
+        self.assertEqual(set(editor.tree.get_children()),set(balances))
+        self.assertEqual(editor.tree.set('CTX','available'),str(balances['CTX']))
+        editor.show_all_button.invoke();self.root.update()
+        self.assertEqual(set(editor.tree.get_children()),{'ETH','BTC'})
+        self.assertEqual(editor.balances,balances);self.assertEqual(editor.draft,draft)
+        self.assertEqual(editor.assessment(),assessment);self.assertIs(editor.authorization,authorization)
+        self.assertEqual(before,gui.ledger_dump(self.app.ledger))
+        self.app.companions[0].set('VET');self.app.companions[1].set('ADA');self.root.update()
+        self.assertEqual(set(editor.tree.get_children()),{'ETH','VET'})  # No invented ADA balance.
+        self.assertIsNone(self.app.applied_config)  # Selections still need explicit Apply.
+
+    def test_hiding_other_balances_retains_pending_edit_until_applied(self):
+        editor=self.prepare();editor.tree.selection_set('BTC');editor._select()
+        editor.fields['working'].set('.001')
+        editor.show_all_button.invoke();self.root.update()
+        self.assertEqual(editor.tree.selection(),('BTC',));self.assertTrue(editor.tree.exists('BTC'))
+        self.assertEqual(editor.fields['working'].get(),'.001');self.assertIn('working',editor.dirty_fields)
+        self.assertIn('Pending edit kept visible',editor.filter_text.get())
+        editor.snapshot({'ETH':D(3),'BTC':D('.002')},NOW+1,NOW+1);self.root.update()
+        self.assertEqual(editor.fields['working'].get(),'.001')
+        editor.apply_selected();self.root.update()
+        self.assertEqual(editor.draft['BTC'].working,D('.001'));self.assertFalse(editor.tree.exists('BTC'))
+        self.assertEqual(editor.tree.selection(),('ETH',));self.assertFalse(editor.dirty_fields)
+        editor.show_all_button.invoke();self.root.update()
+        self.assertEqual(editor.tree.set('BTC','working'),'0.001')
 
     def test_local_draft_authorization_requires_action_and_reconciliation_remains_missing(self):
         editor=self.prepare();before=gui.ledger_dump(self.app.ledger)

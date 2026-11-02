@@ -63,7 +63,7 @@ outlast the selected observation horizon.
 
 ## Observation model and uncertainty
 
-At most one frozen setup per selected product, at most three active setups. A
+At most one frozen setup per selected product, at most four active ETH setups. A
 valid setup binds its entry time, original quote, rules, rates, amount, target and
 controls. Repeated scans do not create independent setups. Later entry touch is
 PARTIAL_OR_UNCERTAIN_FILL, never HYPOTHETICAL_FULL_FILL. Later target crossing is
@@ -83,8 +83,8 @@ research result and rejects stale Tk generations; changing controls or unapplied
 allocation fields requires a new Apply action. Public quotes use the existing
 canonical research journal; hypotheses/counts do not persist across restart.
 
-Within a quote decision: ≤30s age, ≤0.25% spread, ≤12s span. At most three selected
-books share the existing collector, below the unchanged six research/16 total
+Within a quote decision: ≤30s age, ≤0.25% spread, ≤12s span. Approved books share
+the existing collector, with at most six per pass and unchanged six research/16 total
 ceilings. Existing four-worker maximum, 0.2s spacing, six-second collection window,
 slow-quote rejection and Retry-After/backoff remain. No parallel request loop or
 old endpoint experiment runs. REST request timing is local evidence, not verified
@@ -104,6 +104,14 @@ The reserve proposal calculator remains a secondary pure source capability,
 without earmarking, harvest, high-watermark journal or earned-balance inference.
 Protected broker/FIFO/state/importer/lot/key modules are byte-identical to the
 checkpoint. No running Windows installation or private records are changed.
+
+Allocation displays reported ETH and manually selected companions by default.
+Show all balances reveals the full snapshot, including tiny residual balances.
+This is a display filter, with no dollar threshold, rounding, deletion or change
+to full-account assessment, exclusions, drafts or ETH funding. An asset with
+unapplied edits stays visible until applied. A companion need not already be held
+for the ETH-funded scenario; the view never invents a missing account balance.
+Changing the display does not invalidate research; changing companions still does.
 
 ## Pre-registered observational trial
 
@@ -130,7 +138,9 @@ private detailed values remain local. No cloud authenticated account run is clai
 Chart history reads the same canonical market_quotes table, in SQLite read-only
 mode with query_only enabled. It performs no network request, schema change or
 financial write. Candles aggregate recorded bid/ask midpoints into display-only
-OHLC (including inverse ETH-base products, normalized to ETH per coin). These
+OHLC. The current workspace displays native product quote units, including
+BTC per ETH for ETH-BTC and BTC per coin for the three BTC cross-pairs. The pure
+secondary chart helper retains optional ETH-per-coin normalization. These
 are sampled quote candles, not executed-trade/exchange OHLC or fill evidence.
 SQLite REAL chart coordinates never become native strategy prices.
 
@@ -165,7 +175,7 @@ editor changes leave the applied ETH plan and its clock intact.
 A quote gap is SETUP_ACTIVE_UNPRICED, not a new setup. Original entry/expiry,
 prior observed uncertainty and assumptions remain frozen. Gap episodes, reasons,
 resumptions, invalidations and expiries are counted separately; repeated unpriced
-polls do not count as distinct episodes. At most three setups and 128 public
+polls do not count as distinct episodes. At most four setups and 128 public
 lifecycle events remain in RAM; dropped-history count is exported. First recovery
 quotes establish a new observation boundary and do not infer gap touches. Missing
 or stale fees never create current return/fill claims. Realized profit remains
@@ -197,3 +207,13 @@ GUI labels aged rows STALE_LAST_OBSERVATION and shows current retry state. Expor
 retain original quote_age_s and fee-fresh-then evidence, adding scan/account ages,
 per-product export-time age/state and fee validity using the established two-hour
 TTL. The eight-section export makes no network calls or financial writes.
+
+## Read-only monitoring helper
+
+The owner opted for a local helper and their existing Tailscale network. Optional
+Local monitor in Research notes writes a strict quantity-free heartbeat without
+reading financial SQLite files, changing funding or influencing research. A
+separate authenticated localhost GET server displays it and can be proxied with
+private Tailscale Serve. Cloud VPN access is not established by installing this
+code. No remote commands, updates, orders, automatic plan changes or continuous
+AI process exist. See V95_MONITOR.md for limits, setup and acceptance.

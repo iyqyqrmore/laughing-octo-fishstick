@@ -1,6 +1,6 @@
 # CoinCat v95.0 — ETH Growth research preview
 
-A small, read-only ETH maker study: ETH plus up to three manually approved
+A small, read-only ETH maker study: ETH plus up to four manually approved
 companions with eligible authenticated direct ETH spot markets. No USD/USDC
 bridges, automatic coin selection, orders, previews, transfers or wallet posts.
 
@@ -11,7 +11,7 @@ fills, never earned ETH. Account fee tier does not establish pair-specific fees
 or fee currency. Missing evidence yields **NO QUALIFIED EVIDENCE**.
 
 The v95 screen has a small original CoinCat logo and a stored-quote candlestick
-chart above three companion selectors and compact research results. Separate
+chart beside the ETH engine controls, with compact activity below. Separate
 Manual mixer, Allocation and Research notes tabs keep the screen compact. Six
 manual faders have exact text entries; modeling ETH defaults to full working ETH
 after carve-outs. Pointer-adjacent hover details stay bounded and scroll when long.

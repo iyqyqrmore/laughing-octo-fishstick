@@ -39,12 +39,13 @@ def modeled(**changes):
 
 
 class DirectMarketSelection(unittest.TestCase):
-    def test_explicit_three_companions_only_and_no_auto_replacement(self):
+    def test_explicit_four_companion_ceiling_and_no_auto_replacement(self):
         m,r,q=inputs();r['ADA-USD']=dict(r[m['pair']],product_id='ADA-USD')
         selection=select_markets(list(r),r,('BTC','ADA','SOL'))
         self.assertEqual([x['pair'] for x in selection['selected']],['ADA-ETH'])
         self.assertEqual(set(selection['rejects']),{'BTC','SOL'})
-        with self.assertRaises(ValueError):select_markets(list(r),r,('BTC','ADA','SOL','XRP'))
+        MakerConfig(('BTC','ADA','SOL','LINK')).validate()
+        with self.assertRaises(ValueError):select_markets(list(r),r,('BTC','ADA','SOL','LINK','XRP'))
         for bad in ('ETH','USD','USDC','private-identifier'):
             with self.assertRaises(ValueError):select_markets(list(r),r,(bad,))
         with self.assertRaises(ValueError):select_markets(list(r),r,('ADA','ADA'))
@@ -243,7 +244,9 @@ class ReadOnlyGrowth(unittest.TestCase):
         with TemporaryDirectory() as folder:
             _,c,s=prepare(folder)
             template=deepcopy(s.rules['ADA-ETH'])
-            for asset in ('BTC','SOL'):
+            native=fixtures.FakeClient();s.rules['ETH-BTC']=dict(native.rules['ETH-BTC'],view_only=False)
+            s.catalog.append('ETH-BTC');c.q['ETH-BTC']=native.q['ETH-BTC']
+            for asset in ('SOL',):
                 pair=asset+'-ETH';s.rules[pair]=dict(template,product_id=pair)
                 s.catalog.append(pair);c.q[pair]=c.q['ADA-ETH']
             config=MakerConfig(('ADA','BTC','SOL'),D('.1'))

@@ -7,8 +7,14 @@ The implementation/change record is docs/V95_IMPLEMENTATION.md; retirement list
 is docs/V95_RETIRED.md. Preserve prior checkpoint history; no commit/push or
 publication unless separately requested.
 
-ETH Growth is read-only: ETH funding/success unit, at most three explicit manually
-approved companions using actual eligible authenticated direct ETH spot products.
+ETH Growth is read-only: ETH funding/success unit, at most four explicit manually
+approved companions (BTC, ADA, LINK, SOL) using actual eligible authenticated direct ETH spot products.
+The owner now explicitly restricts active observation/history to ADA-ETH, ETH-BTC,
+LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC and ADA-BTC. Six books per pass remain the cap;
+four direct ETH anchors and rotating BTC cross-pairs cover all seven over time.
+BTC cross-pairs are observation-only until usable inventory and an explicit funded
+strategy exist. ETH is the sole initial funding source; never pre-credit companion
+inventory from an uncertain fill or treat independent comparisons as joint budgets.
 No USD/USDC bridges, automatic expansion, scanner funding fallback, fee fallback,
 fake fills, realized ETH credit, reserve movement, AI settings or auto-ARM.
 Patient maker returns cannot be justified with synchronous multi-leg prices.
@@ -44,14 +50,16 @@ receipts, account IDs, private paths and authorization/evidence references.
 Owner's follow-up explicitly authorizes a full working-ETH GUI default (after
 manual/protected/excluded carve-outs), pointer-near bounded/scrollable help and
 a candlestick view of retained quote history above coins/research. Preserve custom
-amounts until Reset and keep the companion limit at three. Chart data is sampled
+amounts until Reset. The latest seven-market request expands the ETH companion
+limit to four. Chart data is sampled
 midpoint OHLC, not trade OHLC, volume, fill evidence or a strategy input. Keep
 all historical reads cancellable/read-only, gaps explicit, controls fit on screen,
 and existing book/request/storage limits unchanged. See START_HERE defaults.
 
-Current owner-authorized work is the overnight continuity hotfix described in
-V95_CONTINUITY_HOTFIX.md. It explicitly requires no new commit/push/deletion/
-publication/deployment without fresh owner authorization. Preserve typed ETH-only
+Current owner-authorized work is the dark spot-style workspace, strict seven-market
+scope and truthful watched-basket/counter display. Keep the local read-only helper.
+No new commit/push/deletion/publication/deployment without fresh owner authorization.
+Preserve the continuity hotfix in V95_CONTINUITY_HOTFIX.md, including typed ETH-only
 per-market research identity, original setup expiry through gaps, monotonic bounded
 read retries, STOP generations, stage-only sanitized failures and export-time
 freshness. Whole-account allocation/reconciliation contracts remain independent

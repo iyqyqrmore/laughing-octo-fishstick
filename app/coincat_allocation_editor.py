@@ -4,6 +4,7 @@ from decimal import localcontext, Inexact
 import tkinter as tk
 from tkinter import ttk
 
+from coincat_hover import Hover
 from coincat_working_allocation import (AllocationRow, OwnerAuthorization,
     allocation_keys, assess_allocation, quantity)
 
@@ -16,6 +17,8 @@ class WorkingAllocationEditor(ttk.Frame):
         self.dirty_fields=set();self.loading_fields=False
         self.clock=time.time if clock is None else clock
         self.balances={};self.excluded=();self.balances_at=None;self.now=0
+        self.watch_assets=frozenset({'ETH'})
+        self.show_all=tk.BooleanVar(value=False);self.filter_text=tk.StringVar()
         self.message=tk.StringVar(value='Unassigned funds are ineligible. No automatic trading is available.')
         self.canvas=tk.Canvas(self,highlightthickness=0,borderwidth=0,takefocus=True)
         scrollbar=ttk.Scrollbar(self,orient='vertical',command=self.canvas.yview)
@@ -31,6 +34,15 @@ class WorkingAllocationEditor(ttk.Frame):
             'Working starts at full AVAILABLE; manual/protected carve-outs reduce it. '
             'Existing exclusions take precedence. Draft authorization does not enable trading.',
             wraplength=990).pack(anchor='w')
+        view=ttk.Frame(body);view.pack(fill='x',pady=(5,0))
+        self.show_all_button=ttk.Checkbutton(view,text='Show all balances',variable=self.show_all)
+        self.show_all_button.pack(side='left')
+        Hover(self.show_all_button,'By default, show reported ETH and your manually selected companions only. '
+            'Show all balances reveals other holdings, including tiny residual balances. '
+            'This changes the display only: exact amounts, exclusions, the full allocation draft and research funding stay unchanged. '
+            'An asset with unapplied edits stays visible until those edits are applied. '
+            'A companion does not need an existing balance for an ETH-funded research scenario.')
+        ttk.Label(view,textvariable=self.filter_text).pack(side='right')
         tree_frame=ttk.Frame(body);tree_frame.pack(fill='both',expand=True,pady=5)
         self.tree=ttk.Treeview(tree_frame,columns=('asset','available','working','manual','protected','excluded','unassigned'),
             show='headings',height=5,selectmode='browse')
@@ -66,6 +78,12 @@ class WorkingAllocationEditor(ttk.Frame):
             for name in ('<MouseWheel>','<Button-4>','<Button-5>'):widget.bind(name,wheel,add='+')
             for child in widget.winfo_children():bind_wheel(child)
         bind_wheel(self)
+        self.show_all.trace_add('write',lambda *args:self.render())
+
+    def set_watch_assets(self,assets):
+        watched=frozenset({'ETH',*(asset for asset in assets if asset)})
+        if watched!=self.watch_assets:
+            self.watch_assets=watched;self.render()
 
     def parameters(self):
         return {'allocation_draft':tuple(self.draft[a] for a in sorted(self.draft)),
@@ -107,6 +125,14 @@ class WorkingAllocationEditor(ttk.Frame):
                 rows.append(dict(asset=asset,available=available,working=proposal.working,
                     manual=proposal.manual,protected=proposal.protected,excluded=excluded,
                     unassigned=remainder if remainder>=0 else 'OVERALLOCATED'))
+        total=len(rows)
+        # Filter only the view. Keep the complete snapshot/draft for assessment,
+        # and keep a pending edit visible instead of discarding its entry text.
+        pending=self.selected_asset if self.dirty_fields else None
+        rows=[row for row in rows if self.show_all.get() or row['asset'] in self.watch_assets or row['asset']==pending]
+        scope='All balances' if self.show_all.get() else 'ETH + companions'
+        self.filter_text.set(f'{scope} · {len(rows)} of {total} assets'+
+            (' · Pending edit kept visible' if pending and pending not in self.watch_assets and not self.show_all.get() else ''))
         assets={row['asset'] for row in rows}
         for item in self.tree.get_children():
             if item not in assets:self.tree.delete(item)
@@ -114,7 +140,7 @@ class WorkingAllocationEditor(ttk.Frame):
             fields=tuple(str(row[k]) for k in self.tree['columns'])
             if self.tree.exists(row['asset']):self.tree.item(row['asset'],values=fields)
             else:self.tree.insert('','end',iid=row['asset'],values=fields)
-        if not self.tree.selection() and rows:self.tree.selection_set(rows[0]['asset'])
+        if not self.tree.selection() and rows:self.tree.selection_set('ETH' if 'ETH' in assets else rows[0]['asset'])
         self._select(force=reload_fields)
         if self.dirty_fields:
             self.message.set('Unapplied edits retained. Apply selected draft before recording authorization.');return
