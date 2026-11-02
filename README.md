@@ -23,3 +23,9 @@ Read [START_HERE.md](START_HERE.md) for a separate Windows trial tonight and
 [VERIFICATION.txt](VERIFICATION.txt) records actual validation; Linux tests do not
 establish native Windows/DPAPI acceptance or profitability. This is a development
 preview, not an execution-ready release. Preserve private_data and private_backups.
+
+The continuity hotfix keeps relevant per-market setups through temporary quote
+and fee gaps, adds bounded read-only reconnection and labels last-good data by
+its age at display/export. Unrelated assets no longer reset ETH research. Read
+[the hotfix record](docs/V95_CONTINUITY_HOTFIX.md) and the supervised local steps
+in START_HERE.md before another overnight observation.

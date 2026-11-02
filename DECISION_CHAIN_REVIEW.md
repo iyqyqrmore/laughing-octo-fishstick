@@ -30,6 +30,10 @@ outlast the observation horizon. Touches/crossings never establish fills.
 
 Within a decision: quote age ≤30s, spread ≤0.25%, span ≤12s. A future independent
 exit decision has its own valid quote; it is intentionally separated in time.
-Frozen setups invalidate on draft/account/exclusion/rule/control/fee changes or
-missing/invalid observations. STOP cancels evaluation and rejects stale Tk results.
+Frozen setups invalidate on relevant ETH funding, selected eligibility/rules,
+applied controls or verified fee changes. Unrelated account changes do not reset
+them. Missing/invalid observations pause the original clock. Monotonic bounded
+read-only recovery never infers touches through gaps; STOP cancels retries and
+evaluation and rejects stale Tk results. Last-good prices/fees have explicit
+export-time validity labels.
 LiveBroker.submit still raises unconditional LiveBlocked as its first statement.

@@ -72,9 +72,12 @@ cancellation/repricing outcome is evidenced by REST BBO alone. Counts never clai
 actual executions. The offline helper separately supports NO_FILL, PARTIAL_OR_UNCERTAIN_FILL,
 HYPOTHETICAL_FULL_FILL, UNPRICED, CANCELLED_OR_EXPIRED and UNVERIFIED scenarios.
 
-Changed drafts/account contents/exclusions/rules/controls reset active hypotheses;
-fee changes replace them without crediting returns. Missing/stale/wide/invalid
-quotes invalidate affected setups. Expiry records CANCELLED_OR_EXPIRED; a later
+Changes to relevant ETH funding, applied controls or a selected market's critical
+rules invalidate the affected hypothesis with an explicit reason. Unrelated
+asset/draft/exclusion changes and catalog price/volume statistics do not reset
+ETH-only research. Verified fee-rate changes close/restart with a reason; missing
+fees and missing/stale/wide/invalid quotes pause the original setup through its
+original expiry. The first recovered quote does not infer touches across a gap. Expiry records CANCELLED_OR_EXPIRED; a later
 scan can begin a new setup. All changes are RAM-only. STOP stages no completed
 research result and rejects stale Tk generations; changing controls or unapplied
 allocation fields requires a new Apply action. Public quotes use the existing
@@ -147,3 +150,50 @@ Chart product selection does not approve a companion or change funds, hypotheses
 or scanner inputs. Diagnostics export only chart coverage/interval/basis metadata,
 not native balances or full price-series payloads. Existing research-store quota
 still pauses new recording at its limit; no retention deletion was introduced.
+
+## Overnight continuity hotfix
+
+Per-market versioned research identity uses canonical typed product/rule fields,
+effective applied controls and the exact ETH funding slice. It does not use the
+whole-account allocation digests, quote prices, chart controls or changing catalog
+statistics. The unchanged full allocation/reconciliation contract is still shown
+separately; ETH-only research applies that same contract to the ETH slice and
+never grants execution eligibility. Non-ETH drafts cannot provide ETH funding.
+ETH edits and actual ETH funding changes require explicit Apply again. Unrelated
+editor changes leave the applied ETH plan and its clock intact.
+
+A quote gap is SETUP_ACTIVE_UNPRICED, not a new setup. Original entry/expiry,
+prior observed uncertainty and assumptions remain frozen. Gap episodes, reasons,
+resumptions, invalidations and expiries are counted separately; repeated unpriced
+polls do not count as distinct episodes. At most three setups and 128 public
+lifecycle events remain in RAM; dropped-history count is exported. First recovery
+quotes establish a new observation boundary and do not infer gap touches. Missing
+or stale fees never create current return/fill claims. Realized profit remains
+unverified and no hypothetical fill is posted to financial records.
+
+The connection controller exposes RUNNING, RETRYING, PAUSED_NEEDS_ATTENTION and
+STOPPED. Transient read failures retry after 10/20/40/80/160 seconds, at most five
+attempts after the initial failure, on a monotonic clock. Longer Retry-After and
+the existing public budget win. Fee-provider failures preserve its existing
+at-least-600-second retry interval; a deferred fee refresh cannot masquerade as a
+new successful response. Authentication/permission errors, malformed settings,
+local SQLite failures and exhausted retries require manual attention. Only one
+read job can run; no collector/pool/GET-cap increase exists. Reconnection refreshes
+account permissions, balances and product eligibility before pricing again.
+
+Operation stage/class/status are controlled metadata: permissions, balances,
+catalog, fee tier, public quote or local public quote store. No raw exception
+message, account ID, URL, secret or private path is retained in public failures.
+No current successful result is published for a fully failed quote collection.
+Partially usable collections preserve explicit per-market gaps; permission denial
+pauses even when another book was returned. Account refresh and observer changes
+are staged; STOP checks occur between read stages and around public journaling,
+which rolls back a cancelled insert. GUI generation guards discard late results.
+STOP cancels pending retries; explicit connect can recover without starting
+research, and selected funding changes still require Apply.
+
+Last-good observations are kept separately from live validity. Every second, the
+GUI labels aged rows STALE_LAST_OBSERVATION and shows current retry state. Exports
+retain original quote_age_s and fee-fresh-then evidence, adding scan/account ages,
+per-product export-time age/state and fee validity using the established two-hour
+TTL. The eight-section export makes no network calls or financial writes.

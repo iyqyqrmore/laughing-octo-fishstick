@@ -76,3 +76,37 @@ Tooltips now open near the pointer, flip above it near an edge, fit the visible
 window/monitor work area and scroll when detailed text is long. Move into the
 popup to use its scrollbar. Escape dismisses it. Windows monitor/DPI behavior
 of this follow-up still requires a native rerun.
+
+## Continuity hotfix acceptance — before another overnight run
+
+Use a separate source folder and preserve the installed application and private
+backups. This session has not deployed to your running PC or independently checked
+its installed hashes. Run 03_VERIFY_COINCAT.bat under Windows Python 3.11, inspect
+all counts/errors/skips and confirm source hashes. Recheck launch/DPAPI/local key,
+single-instance protection, mouse/scroll/STOP and clean close on the PC.
+
+1. Connect, confirm the current account fee observation and eligible ETH products,
+   Apply the exact research proposal and Start. Observe RUNNING for 60–120 minutes.
+2. In Allocation, edit/apply a non-ETH row: it must leave the ETH plan and original
+   setup time intact. Edit an ETH row or research setting: Apply must be required
+   again. Never change a real financial record for this acceptance check.
+3. Inspect per-market gap reasons (not returned/stale/wide/invalid/future/timeout/
+   connection/deferred). Gaps must say paused and retain entry/expiry, with no
+   new fill/profit. A returning quote must not fabricate touches during the gap.
+4. When feasible, temporarily disconnect network access for this read-only app
+   while supervised. Expect RETRYING with stage/class and a visible countdown;
+   restore connectivity before the next attempt. Expect one recovered period,
+   fresh quotes and unchanged relevant setup/expiry. Provider backoff may delay
+   recovery; fee refresh failures can wait at least ten minutes. Five unsuccessful
+   retries or authentication errors must pause for manual attention.
+5. Press STOP during a retry wait. It must cancel the countdown/scheduled retry,
+   retain findings and never restart itself. Reconnect/start manually. Export
+   diagnostics before closing. Never simulate the outage by altering keys, API
+   permissions, allocations, transfers or order settings.
+6. For deliberately old observations, verify STALE_LAST_OBSERVATION and fee
+   validity at export rather than trusting the earlier fresh-then flag. Export
+   must remain responsive offline and redact native quantities/receipts/IDs.
+
+Proceed to 48–72h only after supervised continuity/recovery checks pass. The
+strategy's costs, actual fills and profitability remain separate unanswered
+questions. Do not relax freshness, spread, synchronization or fee requirements.

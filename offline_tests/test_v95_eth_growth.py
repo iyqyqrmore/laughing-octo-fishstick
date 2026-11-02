@@ -206,9 +206,11 @@ class UncertainObservations(unittest.TestCase):
         self.assertEqual(study.counts['fee_changes'],1)
         self.assertEqual(changed['hypothesis']['maker_rate'],D('.006'))
         study.observe([modeled()],key='changed_allocation',now=NOW)
-        self.assertEqual(study.counts['invalidated'],1)
+        self.assertEqual(study.counts['invalidated'],2)
+        self.assertEqual(study.invalidations['ACCOUNT_FEE_RATE_CHANGED'],1)
         bad=modeled(raw_quote=None);study.observe([bad],key='changed_allocation',now=NOW+1)
-        self.assertEqual(study.active,{})
+        self.assertEqual(bad['observation_state'],'SETUP_ACTIVE_UNPRICED')
+        self.assertEqual(len(study.active),1)
         study.observe([modeled()],key='b',now=NOW)
         expired=modeled(raw_quote=(D('.0002'),D('.0002001'),NOW+86400),now=NOW+86400)
         study.observe([expired],key='b',now=NOW+86400)
@@ -253,7 +255,8 @@ class ReadOnlyGrowth(unittest.TestCase):
                 return {p:QuoteSnapshot(p,*c.q[p][:2],NOW-(13 if i==0 else 0),NOW,1)
                         for i,p in enumerate(pairs)}, {},1
             result=s.scan_growth(config,now=NOW,collect=skew,allocation_draft=(AllocationRow('ETH',D(2)),))
-            self.assertTrue(all(r['hypothesis'] is None for r in result['rows']))
+            self.assertTrue(all(r['observation_state']=='SETUP_ACTIVE_UNPRICED' for r in result['rows']))
+            self.assertTrue(all(r['benchmark'] is None and not r['current_estimate_available'] for r in result['rows']))
             self.assertTrue(all('QUOTE_DECISION_SPAN_EXCEEDS_12S' in r['blockers'] for r in result['rows']))
 
     def test_future_dated_and_expired_account_fee_cache_is_unverified(self):
@@ -288,11 +291,14 @@ class ReadOnlyGrowth(unittest.TestCase):
 
     def test_disconnect_cannot_reuse_previous_book(self):
         with TemporaryDirectory() as folder:
-            _,c,s=prepare(folder);run_growth(s,c)
-            result=run_growth(s,c,collect=lambda *a,**k:({}, {'TEST_DISCONNECT':1},1))
-            self.assertEqual(result['state'],'NO_QUALIFIED_EVIDENCE')
-            self.assertEqual(s.maker_study.active,{})
-            self.assertTrue(all(row['hypothesis'] is None for row in result['rows']))
+            from coincat_recovery import ReadFailure
+            _,c,s=prepare(folder);previous=run_growth(s,c)
+            with self.assertRaises(ReadFailure) as error:
+                run_growth(s,c,collect=lambda *a,**k:({}, {'ConnectionError':1},1))
+            self.assertEqual(error.exception.detail['category'],'CONNECTION_ERROR')
+            self.assertIs(s.last_result,previous);self.assertEqual(s.sequence,1)
+            s.pause_observation('CONNECTION_ERROR',now=NOW)
+            self.assertTrue(s.maker_study.active['ADA-ETH']['_paused'])
 
     def test_stop_before_during_collection_or_evaluation_commits_no_study(self):
         with TemporaryDirectory() as folder:

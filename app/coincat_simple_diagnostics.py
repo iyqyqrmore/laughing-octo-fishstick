@@ -7,6 +7,7 @@ from coincat_version import DISPLAY
 from coincat_live import TERMINAL
 from coincat_eth_maker import public_summary
 from coincat_working_allocation import allocation_diagnostics
+from coincat_continuity import freshness,age
 
 
 def make_report(app,*,now=None):
@@ -16,6 +17,20 @@ def make_report(app,*,now=None):
     editor=getattr(app,'allocation_editor',None)
     if editor is not None:allocation=editor.assessment()
     tier=result.get('fee_evidence',{})
+    recovery=getattr(app,'recovery',None)
+    connection=(recovery.diagnostics() if recovery else dict(connection_state=
+        'PAUSED_NEEDS_ATTENTION' if app.last_error else 'RUNNING' if app.running else 'STOPPED'))
+    view=freshness(result,now,fee_ttl=getattr(getattr(app,'fees',None),'ttl',7200))
+    account_at=None if scanner is None else scanner.account_at
+    account_age=age(account_at,now)
+    authenticated_fresh=account_age is not None and 0<=account_age<=120 and app.last_error is None
+    current_products=[]
+    for row in view['products']:
+        item=dict(row)
+        item['state_at_export']=('SETUP_EXPIRED' if row['expired_at_export'] else 'SETUP_ACTIVE_UNPRICED'
+            if connection['connection_state'] in ('RETRYING','PAUSED_NEEDS_ATTENTION') or row['freshness_state']!='LAST_OBSERVATION_WITHIN_AGE_LIMIT'
+            else row['observation_state'])
+        current_products.append(item)
     ledger_state='UNAVAILABLE';pending='UNVERIFIED'
     try:
         with closing(sqlite3.connect(app.ledger.path.resolve().as_uri()+'?mode=ro',uri=True)) as db:
@@ -25,21 +40,26 @@ def make_report(app,*,now=None):
                 ','.join('?'*len(TERMINAL))+')',tuple(TERMINAL)).fetchone()[0]
     except (sqlite3.Error,OSError,AttributeError):pass
     sections=[
-        ('CONNECTION',dict(connected=app.connected,running=app.running,busy=app.busy,
-            account_age_s=None if scanner is None or scanner.account_at is None else now-scanner.account_at,
-            last_error_class=app.last_error)),
+        ('CONNECTION',dict(connected=bool(app.connected and authenticated_fresh and connection['connection_state']!='RETRYING'),
+            running=app.running,busy=app.busy,account_age_s=account_age,
+            last_error_class=app.last_error,**connection,
+            last_good_scan_at=view['last_good_scan_at'],last_good_scan_age_s=view['last_good_scan_age_s'],
+            last_successful_account_refresh_at=getattr(scanner,'last_successful_account_refresh_at',account_at))),
         ('POLICY','ETH-only funding and success unit. At most three manually approved direct-ETH companions; '
             'no USD/USDC bridges or automatic market expansion. Independent scenarios use identical ETH versus HOLD; '
             'never sum them as simultaneous deployments. Old USD/cycle libraries are secondary; old experiments do not run in ETH Growth.'),
         ('COVERAGE',dict(scan=result.get('scan','UNOBSERVED'),at=result.get('at','UNOBSERVED'),
             chart_history=app.chart.diagnostics() if hasattr(app,'chart') else 'UNOBSERVED',
+            observation_freshness_at_export=view['display_state'],products_at_export=current_products,
             state=result.get('state','UNOBSERVED'),quote_scheduling=result.get('quote_scheduling',{}),
             quote_errors=result.get('quote_errors',{}),fetch_ms=result.get('fetch_ms','UNOBSERVED'),
             price_integrity='BOUNDED_LOCAL_REST_OBSERVATIONS_ONLY',
             limits='30s age / 0.25% spread / 12s per-decision span; entry/exit separated intentionally')),
         ('ETH MAKER RESEARCH',public_summary(result)),
-        ('COST EVIDENCE',dict(account_tier={k:str(tier[k]) for k in
+        ('COST EVIDENCE',dict(account_tier_at_last_good_scan={k:str(tier[k]) for k in
             ('state','fresh','maker','taker','age_s','captured_at','source') if k in tier},
+            fee_fresh_at_last_good_scan=view['fee_fresh_at_last_good_scan'],
+            fee_valid_at_export=view['fee_valid_at_export'],fee_age_s_at_export=view['fee_age_s_at_export'],
             pair_exceptions='NOT VERIFIED',fee_currency='UNVERIFIED_QUOTE_DEBIT_SCENARIO',
             maker='LIMIT_PRICES_WITH_ACCOUNT_MAKER_ESTIMATE; NO_TAKER_SLIPPAGE',
             taker='BID_ASK_PLUS_ACCOUNT_TAKER_ESTIMATE_AND_EXPLICIT_SLIPPAGE_STRESS',
@@ -50,6 +70,7 @@ def make_report(app,*,now=None):
             preferences='RAM_ONLY',sqlite_integrity=ledger_state,local_unresolved_orders=pending,
             financial_mutations='NONE_BY_RESEARCH',earned_eth='NOT_ESTABLISHED')),
         ('PASSIVE RESEARCH',dict(observations=result.get('study_counts',{}),
+            current_continuity=scanner.maker_study.diagnostics() if scanner is not None else 'UNOBSERVED',
             guidance='Manual controls only. No AI settings, pricing, funding, ARM or execution authority.',
             fill_evidence='TOUCH_OR_CROSSING_IS_NOT_A_FILL',hypothetical_full_fills=0,
             verified_fills=0,partial_fill_returns='UNVERIFIED_NO_CREDIT',actual_profit='NOT_ESTABLISHED',

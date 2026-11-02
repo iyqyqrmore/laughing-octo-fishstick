@@ -32,3 +32,12 @@ Readout help opens near the pointer, flips/clamps to visible bounds and scrolls.
 Model ETH defaults to full working ETH after carve-outs; custom amounts survive
 refresh, Reset restores the latest default. Other defaults remain 0 bps entry,
 0.25% target, 24h horizon, 5s cadence and 15 bps taker stress. Three companions.
+
+Continuity hotfix: stable typed per-market research identity; ETH-only funding
+binding; reason-coded pause/resume/expiry/reset events in bounded RAM; original
+hypothesis clock preserved during temporary data gaps; no touch inference across
+outages. Read-only reconnection has monotonic capped retries, stage/status-only
+errors, provider backoff and explicit manual-attention states. Staged cancellation
+and Tk generations protect STOP; no order/preview/transfer code was added. Freshness
+labels distinguish last-good fee/quote evidence from validity at export. Financial
+allocation/reconciliation contracts, canonical economics and hard guards unchanged.

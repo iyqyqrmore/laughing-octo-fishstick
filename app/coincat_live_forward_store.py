@@ -34,7 +34,8 @@ class ForwardStore:
             with db:yield db
         finally:db.close()
 
-    def record_quotes(self,rows):
+    def record_quotes(self,rows,*,cancel=None):
+        if cancel is not None and cancel.is_set():return 0
         if research_sqlite_bytes(self.path.parent)>self.retention.max_mb*1024*1024:
             return 0  # Pause recording at quota; do not delete an older dataset.
         clean=[]
@@ -46,6 +47,8 @@ class ForwardStore:
                 clean.append((pair,int(stamp),str(bid),str(ask),str(source)))
             except (ValueError,InvalidOperation,TypeError,OverflowError):continue
         with self._db() as db:
+            if cancel is not None and cancel.is_set():return 0
             before=db.total_changes
             db.executemany('INSERT OR REPLACE INTO market_quotes VALUES(?,?,?,?,?)',clean)
+            if cancel is not None and cancel.is_set():db.rollback();return 0
             return db.total_changes-before

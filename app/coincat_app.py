@@ -4,6 +4,7 @@ from pathlib import Path
 from queue import Queue,Empty
 import sys
 import threading
+import math
 import time
 import tkinter as tk
 from tkinter import ttk,filedialog,messagebox
@@ -21,6 +22,8 @@ from coincat_mixer import ResearchMixer
 from coincat_eth_maker import MakerConfig,available_companions
 from coincat_hover import Hover,help_tree
 from coincat_chart import QuoteChart
+from coincat_continuity import eth_funding,freshness,age
+from coincat_recovery import Recovery,failure
 
 
 class CoinCatApp:
@@ -31,10 +34,12 @@ class CoinCatApp:
         self.fees=FeeLearning(self.data/'research_data'/'CoinCat_Fee_Evidence_v502.sqlite3')
         self.market=ForwardStore(self.data/'research_data'/'CoinCat_Forward_Market.sqlite3',Retention())
         self.scanner=None;self.credentials=None;self.last_result=None;self.applied_config=None
+        self.applied_eth_key=None;self.recovery=Recovery();self.retry_kind=None
         self.connected=False;self.running=False;self.closed=False;self.busy=False;self.generation=0
         self.cancel=threading.Event();self.jobs=Queue();self._after={};self.last_error=None
         self.last_note_at=0;self._ready=False;self.working_allocation=None
         self.status=tk.StringVar(value='Connect, choose companions, then apply a research plan.')
+        self.observation_text=tk.StringVar(value='STOPPED · No completed research observation')
         self.funding_text=tk.StringVar(value='Working proposal: unset · Protected ETH: unverified')
         self.evidence_text=tk.StringVar(value='Fees: unobserved · Fills: unverified · Actual profit: not established')
         self.detail_text=tk.StringVar(value='Select a market for details. Hover any control or result for help.')
@@ -43,6 +48,7 @@ class CoinCatApp:
         for value in self.companions:value.trace_add('write',lambda *args:self._invalidate())
         self.root.protocol('WM_DELETE_WINDOW',self._close);self._schedule('poll',100,self._poll)
         self._schedule('history',200,self.chart.refresh)
+        self._schedule('freshness',1000,self._freshness_tick)
 
     def _ui(self):
         shell=ttk.Frame(self.root,padding=12);shell.pack(fill='both',expand=True)
@@ -65,6 +71,9 @@ class CoinCatApp:
             button=ttk.Button(actions,text=text,command=command);button.pack(side='left',padx=(0,7));Hover(button,tip)
         status=ttk.Label(shell,textvariable=self.status,wraplength=1060);status.pack(anchor='w',pady=(0,5))
         Hover(status,lambda:self.status.get()+' All proposals are RAM-only. STOP before a new connection or configuration change.')
+        badge=ttk.Label(shell,textvariable=self.observation_text,wraplength=1060,foreground='#a34d00')
+        badge.pack(anchor='w',pady=(0,4))
+        Hover(badge,'Current connection/retry state and age of last-good observations. Historical quotes and fee tiers are never rescored as current. STOP cancels retry timers; no order execution is enabled.')
         self.tabs=ttk.Notebook(shell);self.tabs.pack(fill='both',expand=True)
         growth=ttk.Frame(self.tabs,padding=8);allocation=ttk.Frame(self.tabs)
         mixer_tab=ttk.Frame(self.tabs,padding=8)
@@ -128,7 +137,7 @@ class CoinCatApp:
 
     def _fee_details(self):
         tier=(self.last_result or {}).get('fee_evidence',{})
-        return ('Authenticated SPOT transaction-summary account tier: '+str(tier.get('state','UNOBSERVED'))+
+        return ('Frozen last-good SPOT transaction-summary account tier (not a live refresh): '+str(tier.get('state','UNOBSERVED'))+
             '; maker='+str(tier.get('maker','UNKNOWN'))+'; taker='+str(tier.get('taker','UNKNOWN'))+
             '; captured UTC='+self._stamp(tier.get('captured_at'))+'. Rates are fractions, not percentages. '
             'Account tier is an estimate, not proof of pair exceptions or fee debit currency. Calculations explicitly assume quote-currency fee debit once. '
@@ -151,6 +160,8 @@ class CoinCatApp:
                 'Fill evidence stays uncertain; missing pricing is not a loss. Select or hover a row for native residuals and matched timestamps.')
         hypothesis=row.get('hypothesis') or {};scenario=hypothesis.get('scenario') or {};benchmark=row.get('benchmark') or {}
         return (row['market']['pair']+' | '+row['state']+' | '+', '.join(row['blockers'])+
+            ' | Original expiry '+self._stamp(hypothesis.get('expiry_at'))+
+            '\nObservation state '+row.get('observation_state','UNOBSERVED')+'; frozen setup clock is not extended through gaps.'+
             '\nEntry '+row['market']['entry_side']+' limit: '+str(hypothesis.get('entry_price','UNKNOWN'))+
             '; later exit '+row['market']['exit_side']+' target: '+str(hypothesis.get('exit_price','UNKNOWN'))+
             '. Prices are quote units per base unit of the actual product.'+
@@ -158,7 +169,7 @@ class CoinCatApp:
             '; hypothetical exit decision '+self._stamp(hypothesis.get('exit_at'))+
             '; latest quote '+self._stamp((row.get('book') or (None,None,None))[2])+
             '. Entry and future exit are intentionally separate times.'+
-            '\nWaiting '+str(round(hypothesis.get('waiting_s',0)))+' s; observed adverse relative move '+str(hypothesis.get('adverse_move_pct','UNKNOWN'))+
+            '\nWaiting '+str(round(max(0,age(hypothesis.get('entry_at'),time.time()) or 0)))+' s; observed adverse relative move '+str(hypothesis.get('adverse_move_pct','UNKNOWN'))+
             '%; ETH exposed in full-entry scenario '+str(hypothesis.get('worst_case_eth_exposure','UNKNOWN'))+
             '. Entire coin exposure can be lost; a real holding may outlast the horizon.'+
             '\nHOLD ETH '+str(scenario.get('initial_eth','UNKNOWN'))+'; retained ETH '+str(scenario.get('retained_eth','UNKNOWN'))+
@@ -177,27 +188,38 @@ class CoinCatApp:
         row=next((r for r in (self.last_result or {}).get('rows',()) if r['market']['pair']==selection[0]),None)
         if row:
             h=row.get('hypothesis') or {}
-            self.detail_text.set('Waiting '+str(round(h.get('waiting_s',0)))+' s · '+
+            waited=age(h.get('entry_at'),time.time())
+            phase=('Expired' if h and time.time()>=h['expiry_at'] else 'Paused' if
+                row.get('observation_state')=='SETUP_ACTIVE_UNPRICED' or self.recovery.state in ('RETRYING','PAUSED_NEEDS_ATTENTION') else
+                'Historical' if age(row.get('at'),time.time()) is not None and time.time()-row['at']>30 else 'Observed')
+            self.detail_text.set('Waiting '+('unknown' if waited is None else str(round(max(0,waited)))+' s')+' · '+phase+' · '+
                 ('Native dust retained' if h.get('scenario',{}).get('native_dust') else 'Dust: none in scenario' if h else 'Unpriced')+
                 ' · No profit credited'+(' · '+', '.join(row['blockers']) if row['blockers'] else ''))
 
     def _invalidate(self):
         if not self._ready:return
-        self._stop();self.applied_config=None;self.last_result=None
+        self._stop();self.applied_config=None;self.applied_eth_key=None;self.last_result=None
         for row in self.growth_tree.get_children():self.growth_tree.delete(row)
         self.evidence_text.set('Plan changed · Previous analysis invalidated')
         self.detail_text.set('Apply the exact research plan before restarting.')
         self.status.set('Plan changed. Apply research plan to continue.')
 
+    def _funding(self):
+        editor=self.allocation_editor
+        return eth_funding(balances=editor.balances,balances_at=editor.balances_at,
+            now=editor.clock(),draft=editor.parameters()['allocation_draft'],excluded=editor.excluded)
+
     def _allocation_changed(self):
         self.working_allocation=self.allocation_editor.assessment()
-        self._sync_eth_default();self._invalidate()
+        relevant_edit=self.allocation_editor.selected_asset=='ETH' and self.allocation_editor.dirty_fields
+        changed=self.applied_eth_key is not None and self._funding()['key']!=self.applied_eth_key
+        self._sync_eth_default()
+        if relevant_edit or changed:self._invalidate()
 
     def _sync_eth_default(self):
-        if self.allocation_editor.dirty_fields:return
-        assessment=self.working_allocation or {}
-        row=next((r for r in assessment.get('rows',()) if r['asset']=='ETH'),{})
-        amount=row.get('working',0) if assessment.get('state')!='INVALID_DRAFT' else 0
+        if self.allocation_editor.dirty_fields and self.allocation_editor.selected_asset=='ETH':return
+        funding=self._funding()
+        amount=funding['row'].get('working',0) if funding['assessment']['state']!='INVALID_DRAFT' else 0
         self.mixer.controls['amount_eth'].update_default(amount)
 
     def _apply_plan(self):
@@ -208,13 +230,12 @@ class CoinCatApp:
             if config.amount_eth<=0:raise ValueError('Enter an explicit ETH modeling amount.')
             if not config.companions:raise ValueError('Choose at least one eligible direct-ETH companion.')
             if self.scanner is None or not self.connected:raise ValueError('Connect and verify available markets first.')
-            assessment=self.allocation_editor.assessment()
-            row=next((r for r in assessment['rows'] if r['asset']=='ETH'),{})
-            if assessment['state']=='INVALID_DRAFT' or row.get('working',0)<config.amount_eth:
+            funding=self._funding();row=funding['row']
+            if not funding['valid'] or row.get('working',0)<config.amount_eth:
                 raise ValueError('ETH amount exceeds the working draft after carve-outs.')
         except (ValueError,ArithmeticError) as exc:
             self.status.set('Plan not applied: '+str(exc));return
-        self._stop();self.last_result=None;self.applied_config=config
+        self._stop();self.last_result=None;self.applied_config=config;self.applied_eth_key=funding['key']
         for item in self.growth_tree.get_children():self.growth_tree.delete(item)
         self.evidence_text.set('Plan applied · Awaiting a fresh scan')
         self.detail_text.set('Research scenarios only · No orders or credited profit')
@@ -235,8 +256,10 @@ class CoinCatApp:
         if self.closed or self.busy:return False
         self.busy=True;generation=self.generation
         def work():
+            if self.closed or generation!=self.generation:
+                self.jobs.put((kind,generation,{'state':'CANCELLED'},None));return
             try:self.jobs.put((kind,generation,task(),None))
-            except Exception as exc:self.jobs.put((kind,generation,None,type(exc).__name__))
+            except Exception as exc:self.jobs.put((kind,generation,None,failure(exc)))
         threading.Thread(target=work,daemon=True).start();return True
 
     def _import_key(self):
@@ -257,34 +280,72 @@ class CoinCatApp:
             except Exception:self.credentials=None
             if not self.credentials:self.status.set('Import a key JSON locally first.');return
         self._stop();self.status.set('Reading account, products and fee tier…')
+        self._connect_job()
+
+    def _connect_job(self):
+        self.cancel=threading.Event();cancel=self.cancel
         def task():
+            if cancel.is_set():return {'state':'CANCELLED'}
             if self.scanner is None:self.scanner=Scanner(self.ledger,client_from_credentials(self.credentials),self.fees,self.market)
-            return self.scanner.refresh()
+            return self.scanner.refresh(cancel=cancel,force_catalog=True)
         self._submit('connect',task)
 
     def _start(self):
         if self.busy:self.status.set('A read-only request is finishing. Retry Start when it completes.');return
+        if self.running:return
         if not self.connected or self.scanner is None:self.status.set('Connect first.');return
         if self.applied_config is None:self.status.set('Apply a research plan first.');return
-        if self.running:return
-        self.running=True;self.cancel=threading.Event();self.status.set('Observing direct ETH markets · No orders')
-        self._scan()
+        self.running=True;self.cancel=threading.Event();self.recovery.start()
+        self.status.set('RUNNING · Observing direct ETH markets · No orders');self._scan()
 
     def _stop(self):
-        self.running=False;self.cancel.set();self.generation+=1
+        self.running=False;self.cancel.set();self.generation+=1;self.recovery.stop()
         if hasattr(self,'chart'):self.chart.cancel_pending()
-        task=self._after.pop('scan',None)
-        if task is not None:
-            try:self.root.after_cancel(task)
-            except tk.TclError:pass
-        self.status.set('Stopped · Findings retained · No orders')
+        for key in ('scan','retry'):
+            task=self._after.pop(key,None)
+            if task is not None:
+                try:self.root.after_cancel(task)
+                except tk.TclError:pass
+        self.status.set('STOPPED · Findings retained · No orders')
 
-    def _scan(self):
+    def _scan(self,*,force_refresh=False):
         if self.closed or not self.running:return
         if self.busy:self._schedule('scan',250,self._scan);return
         config=self.applied_config;cancel=self.cancel
-        draft=self.allocation_editor.parameters()['allocation_draft']
-        self._submit('scan',lambda:self.scanner.scan_growth(config,cancel=cancel,allocation_draft=draft))
+        draft=self.allocation_editor.parameters()['allocation_draft'];funding_key=self.applied_eth_key
+        self._submit('scan',lambda:self.scanner.scan_growth(config,cancel=cancel,allocation_draft=draft,
+                     applied_eth_key=funding_key,force_refresh=force_refresh))
+
+    def _retry(self):
+        if self.closed or self.recovery.state!='RETRYING':return
+        if self.retry_kind=='scan' and (not self.running or self.applied_config is None):return
+        if self.busy:self._schedule('retry',250,self._retry);return
+        if not self.recovery.begin_retry():self._schedule_retry();return
+        self.status.set(f'RETRYING · read-only attempt {self.recovery.attempt}/5')
+        if self.retry_kind=='connect':self._connect_job()
+        else:self._scan(force_refresh=True)
+
+    def _schedule_retry(self):
+        remaining=self.recovery.diagnostics()['retry_in_s']
+        if remaining is not None:self._schedule('retry',max(1,math.ceil(remaining*1000)),self._retry)
+
+    def _handle_failure(self,kind,detail):
+        if not isinstance(detail,dict):detail=failure(RuntimeError())
+        self.last_error=detail['error_class'];self.connected=False;self.retry_kind=kind
+        if self.scanner is not None:self.scanner.pause_observation(detail['category'])
+        state=self.recovery.failed(detail,operation=kind)
+        for key in ('scan','retry'):
+            timer=self._after.pop(key,None)
+            if timer is not None:
+                try:self.root.after_cancel(timer)
+                except tk.TclError:pass
+        if state=='RETRYING':
+            self.status.set(f"RETRYING · {detail['stage']} / {detail['category']} · Last-good results retained")
+            self._schedule_retry()
+        else:
+            self.running=False
+            self.status.set(f"PAUSED_NEEDS_ATTENTION · {detail['stage']} / {detail['category']} · Refresh manually")
+        self._update_freshness()
 
     def _poll(self):
         if self.closed:return
@@ -292,59 +353,99 @@ class CoinCatApp:
             while True:
                 kind,generation,payload,error=self.jobs.get_nowait();self.busy=False
                 if generation!=self.generation:continue
-                if error:
-                    self.last_error=error;self.running=False
-                    if kind=='connect':self.connected=False
-                    self.status.set(f'Read-only {kind} failed ({error}). Refresh before continuing.');continue
+                if error:self._handle_failure(kind,error);continue
+                if payload.get('state')=='CANCELLED':continue
                 self.last_error=None
                 if kind=='connect':
-                    self.connected=True;self._render_wallet()
+                    self.connected=True;self.recovery.authenticated();self._render_wallet()
                     excluded=tuple(r['asset'] for r in self.ledger.assets() if not r.get('enabled',1))
                     available=available_companions(self.scanner.catalog,self.scanner.rules,excluded)
                     for box in self.companion_boxes:box.configure(values=('',*available))
                     self.status.set(f'Connected · {len(available)} eligible direct-ETH companions'+
                         (' · Choose manually' if available else ' · NO QUALIFIED EVIDENCE; no fallback'))
                     self.chart.refresh()
-                elif kind=='scan' and payload.get('state')!='CANCELLED':
+                elif kind=='scan':
+                    if payload.get('state')=='PAUSED_NEEDS_ATTENTION':
+                        previous_result=self.last_result
+                        self.running=False;self.applied_config=None;self.applied_eth_key=None
+                        self._render_wallet();self.last_result=previous_result
+                        self.recovery.state='PAUSED_NEEDS_ATTENTION'
+                        self.status.set('PAUSED_NEEDS_ATTENTION · ETH funding changed · Apply the exact research plan again')
+                        self._update_freshness();continue
+                    self.recovery.successful(payload['at']);self.connected=True
+                    timer=self._after.pop('retry',None)
+                    if timer is not None:
+                        try:self.root.after_cancel(timer)
+                        except tk.TclError:pass
                     self.last_result=payload;self._render(payload)
                     if time.time()-self.last_note_at>=180:
                         self._note(payload['lab_note']);self.last_note_at=time.time()
                     if self.running:self._schedule('scan',int(self.applied_config.scan_interval_s*1000),self._scan)
+                self._update_freshness()
         except Empty:pass
         self._schedule('poll',100,self._poll)
+
+    def _freshness_tick(self):
+        if self.closed:return
+        self._update_freshness();self._schedule('freshness',1000,self._freshness_tick)
+
+    def _update_freshness(self):
+        now=time.time();view=freshness(self.last_result or {},now,fee_ttl=self.fees.ttl)
+        account_age=age(None if self.scanner is None else self.scanner.account_at,now)
+        self.connected=bool(account_age is not None and 0<=account_age<=120 and self.last_error is None and
+                            self.recovery.state!='RETRYING')
+        scan_age=view['last_good_scan_age_s']
+        age_text='none' if scan_age is None else str(round(max(0,scan_age)))+'s ago'
+        retry=self.recovery.diagnostics()['retry_in_s']
+        self.observation_text.set(self.recovery.state+' · Last-good scan '+age_text+' · '+view['display_state']+
+            (f' · Retry in {math.ceil(retry)}s' if retry is not None else ''))
+        if self.last_result:
+            tier=self.last_result.get('fee_evidence',{})
+            rates=(f"maker {tier['maker']*100}% / taker {tier['taker']*100}%" if tier.get('maker') is not None and tier.get('taker') is not None else 'unavailable')
+            self.evidence_text.set('Last-good account fees: '+rates+' · '+
+                ('within TTL at present' if view['fee_valid_at_export'] else 'STALE / UNVERIFIED NOW')+
+                ' · Fill evidence: unverified · Actual profit: not established')
+            self._render_rows(self.last_result,view)
+            self._select_row()
 
     def _render_wallet(self):
         if self.scanner is None:return
         excluded={r['asset'] for r in self.ledger.assets() if not r.get('enabled',1)}
         self.allocation_editor.snapshot(self.scanner.balances,self.scanner.account_at,time.time(),excluded)
         self.working_allocation=self.allocation_editor.assessment()
+        changed=self.applied_eth_key is not None and self._funding()['key']!=self.applied_eth_key
         self._sync_eth_default()
+        if changed:self._invalidate()
 
     def _render(self,result):
         self._render_wallet()
         if self.last_result is not result:return  # A changed default invalidates this queued plan.
         self.chart.set_products([r['market']['pair'] for r in result['rows']]);self.chart.refresh(live=True)
+        self._render_rows(result,freshness(result,time.time(),fee_ttl=self.fees.ttl))
+        self.status.set(f"{self.recovery.state} · Scan {result['scan']} · {result['state']}")
+        self._select_row()
+        self._update_freshness()
+
+    def _render_rows(self,result,view):
         selected=self.growth_tree.selection();pairs={r['market']['pair'] for r in result['rows']}
+        by_pair={r['pair']:r for r in view['products']}
         for item in self.growth_tree.get_children():
             if item not in pairs:self.growth_tree.delete(item)
         for row in result['rows']:
-            pair=row['market']['pair'];h=row.get('hypothesis');b=row.get('benchmark')
+            pair=row['market']['pair'];h=row.get('hypothesis');b=row.get('benchmark');current=by_pair[pair]
+            age_now=current['quote_age_s_at_export']
+            fresh=current['freshness_state']=='LAST_OBSERVATION_WITHIN_AGE_LIMIT'
+            paused=row.get('observation_state')=='SETUP_ACTIVE_UNPRICED' or self.recovery.state in ('RETRYING','PAUSED_NEEDS_ATTENTION')
             values=(pair,'—' if 'eth_per_coin' not in row else f'{row["eth_per_coin"]:.9g}',
-                '—' if 'quote_age_s' not in row else f'{row["spread_pct"]:.3f}% / {row["quote_age_s"]:.1f}s',
+                '—' if age_now is None or 'spread_pct' not in row else f'{row["spread_pct"]:.3f}% / {max(0,age_now):.1f}s',
                 'UNPRICED' if b is None else f'{b["net_eth_subtotal"]:+.9g}'+(' + dust' if b['native_dust'] else ''),
-                'UNPRICED' if h is None else f'{h["scenario"]["net_eth_subtotal"]:+.8g} / {h["required_move_pct"]:.3f}%'+
+                'EXPIRED' if current['expired_at_export'] else 'PAUSED' if paused else 'UNPRICED' if h is None else f'{h["scenario"]["net_eth_subtotal"]:+.8g} / {h["required_move_pct"]:.3f}%'+
                     (' + dust' if h['scenario']['native_dust'] else ''),
-                row['fill_state'])
+                current['freshness_state'] if not fresh else 'PAUSED / UNPRICED' if paused else row['fill_state'])
             if self.growth_tree.exists(pair):self.growth_tree.item(pair,values=values)
             else:self.growth_tree.insert('','end',iid=pair,values=values)
         if not selected and result['rows']:self.growth_tree.selection_set(result['rows'][0]['market']['pair'])
-        tier=result['fee_evidence']
-        rates=(f'maker {tier["maker"]*100}% / taker {tier["taker"]*100}%' if tier.get('fresh') else 'unavailable')
-        self.evidence_text.set('Account fees: '+rates+' · Fill evidence: unverified · Actual profit: not established')
-        rejected=result['market_selection']['rejects']
-        self.status.set(f'Scan {result["scan"]} · {result["state"]} · {len(result["rows"])} direct markets'+
-            (' · '+str(rejected) if rejected else ''))
-        self._select_row()
+
 
     def _note(self,text):
         self.lab_text.configure(state='normal');self.lab_text.insert('end',self._stamp(time.time())+'\n'+text+'\n\n')

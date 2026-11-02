@@ -65,3 +65,35 @@ native Windows monitor/DPI and GUI acceptance. Live order block is unchanged.
 GitHub follow-up delivery uses the already authorized coincat-v95 branch; the
 exact pushed commit is reported after remote verification. No environment
 publication or running-installation mutation is part of source delivery.
+
+OVERNIGHT CONTINUITY HOTFIX — BASE f0b6181
+Owner authorized implementation; source checkpoint independently archived outside
+checkout. No installed Windows source, private datasets or running app altered.
+No commit, push, deletion, environment publication or deployment authorized.
+
+Actual full checkout: 197 discovered/distinct/run; zero failures, errors, skips
+or expected failures, HTTP forbidden during discovery/execution. Linux Python
+3.11.17 / SQLite 3.53.1 / Tk/Tcl 9.0 with Xvfb. Includes 34 new continuity cases
+and retained 163-case battery. Existing assertions for disconnect, quote span,
+fee-change reset counts and gap continuity were updated to require the new
+specified lifecycle; financial/economic guards were not relaxed.
+
+Checks include hundreds of unrelated balance/draft/exclusion updates; canonical
+rule identity; relevant funding/control/rule/fee invalidation; original expiry
+through wide/stale/missing/timeout gaps; no touch inference across gaps; bounded
+lifecycle history; operation-stage errors; HTTP authentication/TLS rejection;
+5 monotonic retries; Retry-After and original fee-provider backoff; single-job
+retry/STOP/close generations; cancelled public SQL rollback; six-hour stale
+quote/fee overlays; quantity-free exports; native receipts, financial core,
+backup/import, GUI/chart/mixer/hover and unconditional LiveBlocked regressions.
+
+The updated manifest covers 99 source files; source-only ZIP and independent
+checksum/extracted-source test log are delivered outside the checkout. Seventeen
+protected financial, native, transport, allocation, cycle, key and lock sources
+were independently compared byte-for-byte with f0b6181 and matched. No new dependencies or changed request/quality/cost limits.
+
+Native Windows/DPAPI/single-instance/monitor behavior for THIS HOTFIX is pending.
+Earlier owner-supplied Windows result belongs to an earlier 152-case source.
+Run 03_VERIFY_COINCAT.bat and the supervised 60–120 minute continuity exercise
+in START_HERE.md before another 48–72 hour research run. Do not treat Linux
+fixtures as Windows/connected validation or a profitability finding.

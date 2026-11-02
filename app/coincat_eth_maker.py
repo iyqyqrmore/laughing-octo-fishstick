@@ -1,5 +1,5 @@
 """Bounded ETH-only research. No client, broker, wallet posts or order methods."""
-from collections import Counter
+from collections import Counter, deque
 from copy import deepcopy
 from dataclasses import dataclass
 from decimal import Decimal as D, localcontext, ROUND_CEILING, ROUND_FLOOR
@@ -10,6 +10,7 @@ from coincat_v6010_registry import STABLE_AND_FIAT, REJECT_FLAGS
 from coincat_v701_quotes import valid_book
 from coincat_v80_immediate import exact
 from coincat_working_allocation import public_asset
+from coincat_continuity import identity_change, quote_reason
 
 
 @dataclass(frozen=True)
@@ -133,8 +134,12 @@ def model_market(market,config,rules,raw_quote,tier,now):
         benchmark=None,hypothesis=None,fill_state='UNVERIFIED',actual_profit_eth=None,
         execution_eligible=False)
     quote=valid_book(raw_quote,now,30,D('.0025'))
+    try:
+        stamp=float(raw_quote[2])
+        out['quote_observed_at']=stamp if math.isfinite(stamp) else None
+    except (TypeError,ValueError,IndexError,OverflowError):out['quote_observed_at']=None
     if quote is None:
-        out['blockers']=['QUOTE_MISSING_STALE_WIDE_OR_INVALID'];return out
+        out['blockers']=[quote_reason(raw_quote,now)];return out
     bid,ask,stamp=quote
     out.update(book=quote,quote_age_s=now-stamp,spread_pct=(ask-bid)/ask*100,
         eth_per_coin=(bid+ask)/2 if market['entry_side']=='BUY' else (1/ask+1/bid)/2)
@@ -225,36 +230,96 @@ def evaluate_completion(*,market,amount,entry_price,exit_price,entry_quote,exit_
 
 
 class MakerStudy:
-    """At most three frozen RAM hypotheses. Touch never becomes a full fill."""
+    """Frozen per-market hypotheses, bounded episodes and no fills across gaps."""
     def __init__(self):
-        self.active={};self.key=None;self.counts=Counter()
+        self.active={};self.identities={};self.key=None;self.counts=Counter()
+        self.invalidations=Counter();self.pause_reasons=Counter()
+        self.history=deque(maxlen=128);self.history_dropped=0
 
-    def observe(self,rows,*,key,now):
-        if self.key!=key:
-            self.counts['invalidated']+=len(self.active);self.active={};self.key=key
+    def _event(self,pair,event,reason,now):
+        if len(self.history)==self.history.maxlen:self.history_dropped+=1
+        self.history.append(dict(pair=pair,event=event,reason=reason,at=now))
+
+    def invalidate(self,pair,reason,now):
+        if self.active.pop(pair,None) is not None:
+            self.counts['invalidated']+=1;self.invalidations[reason]+=1
+            self._event(pair,'SETUP_INVALIDATED',reason,now)
+        self.identities.pop(pair,None)
+
+    def _pause(self,pair,hypothesis,reasons,now):
+        if not hypothesis.get('_paused'):
+            self.counts['unpriced_episodes']+=1;hypothesis['_gap_reasons']=set()
+            self._event(pair,'SETUP_ACTIVE_UNPRICED',reasons[0],now)
+        hypothesis['_paused']=True
+        for reason in reasons:
+            if reason not in hypothesis['_gap_reasons']:
+                self.pause_reasons[reason]+=1;hypothesis['_gap_reasons'].add(reason)
+
+    def pause_all(self,reason,now):
+        for pair,h in self.active.items():self._pause(pair,h,[reason],now)
+
+    def diagnostics(self):
+        return dict(reset_reasons=dict(self.invalidations),unpriced_episode_reasons=dict(self.pause_reasons),
+                    history=list(self.history),dropped_histories=self.history_dropped,
+                    active_hypotheses=len(self.active))
+
+    def statistics(self):
+        names=('setups','invalidated','unpriced_episodes','resumed_episodes','fee_changes','expired',
+               'entry_touches_uncertain','target_touches_uncertain')
+        return {k:self.counts[k] for k in names}
+
+    def observe(self,rows,*,key=None,keys=None,now,fees=None,removed=None):
+        self.key=key
+        keys=keys if keys is not None else {r['market']['pair']:key for r in rows}
+        for pair,reason in (removed or {}).items():self.invalidate(pair,reason,now)
         for row in rows:
-            pair=row['market']['pair'];current=row.get('hypothesis')
-            if current is None:
-                old=self.active.pop(pair,None)
-                if old:self.counts['invalidated']+=1
-                continue
-            old=self.active.get(pair)
+            pair=row['market']['pair'];current=row.get('hypothesis');old=self.active.get(pair)
+            reason=identity_change(self.identities.get(pair),keys.get(pair))
+            if reason:self.invalidate(pair,reason,now);old=None
             if old and now>=old['expiry_at']:
                 expired=deepcopy(old);expired['fill_state']='CANCELLED_OR_EXPIRED'
-                expired['waiting_s']=now-old['entry_at'];row['hypothesis']=expired
-                row['fill_state']='CANCELLED_OR_EXPIRED';self.active.pop(pair)
-                self.counts['expired']+=1;continue
-            if old and (old['maker_rate'],old['taker_rate'])!=(current['maker_rate'],current['taker_rate']):
-                self.counts['fee_changes']+=1;old=None
+                expired['waiting_s']=now-old['entry_at'];row.update(hypothesis=expired,
+                    fill_state='CANCELLED_OR_EXPIRED',observation_state='SETUP_EXPIRED',current_estimate_available=False)
+                self.active.pop(pair);self.identities.pop(pair,None)
+                self.counts['expired']+=1;self._event(pair,'SETUP_EXPIRED','ORIGINAL_EXPIRY_REACHED',now)
+                continue
+            rates=(fees.get('maker'),fees.get('taker')) if fees and fees.get('fresh') else (
+                   (current['maker_rate'],current['taker_rate']) if current else None)
+            if rates is not None and not all(isinstance(r,D) and r.is_finite() for r in rates):rates=None
+            if old and rates is not None and (old['maker_rate'],old['taker_rate'])!=rates:
+                self.counts['fee_changes']+=1;self.invalidate(pair,'ACCOUNT_FEE_RATE_CHANGED',now);old=None
+            if current is None:
+                row.update(observation_state='SETUP_ACTIVE_UNPRICED' if old else 'NO_SETUP_UNPRICED',
+                           current_estimate_available=False)
+                if old:
+                    self._pause(pair,old,row['blockers'] or ['MODEL_UNPRICED'],now)
+                    old['waiting_s']=max(0,now-old['entry_at']);row['hypothesis']=deepcopy(old)
+                    row['fill_state']=old['fill_state']
+                continue
             if old is None:
-                self.active[pair]=deepcopy(current);self.counts['setups']+=1
+                current=deepcopy(current);current['_paused']=False
+                current['last_observable_at']=row['book'][2]
+                self.active[pair]=current;self.identities[pair]=deepcopy(keys.get(pair))
+                self.counts['setups']+=1;self._event(pair,'SETUP_ACTIVE_OBSERVABLE','CREATED',now)
             else:
                 bid,ask,stamp=row['book'];buy=row['market']['entry_side']=='BUY'
-                old['observations']+=1;old['waiting_s']=now-old['entry_at']
+                last=old.get('last_observable_at',old['entry_at'])
+                if stamp-last>30:self._pause(pair,old,['OBSERVATION_GAP'],now)
+                if stamp<last:
+                    self._pause(pair,old,['QUOTE_TIME_MOVED_BACKWARDS'],now)
+                    row.update(hypothesis=deepcopy(old),observation_state='SETUP_ACTIVE_UNPRICED',
+                               current_estimate_available=False,state='UNPRICED',fill_state=old['fill_state'])
+                    row['blockers'].append('QUOTE_TIME_MOVED_BACKWARDS');continue
+                resumed=old.get('_paused',False)
+                if resumed:
+                    self.counts['resumed_episodes']+=1;old['_paused']=False
+                    self._event(pair,'SETUP_ACTIVE_OBSERVABLE','RESUMED_WITHOUT_GAP_TOUCH_INFERENCE',now)
+                if stamp>last:old['observations']+=1
+                old['waiting_s']=max(0,now-old['entry_at']);old['last_observable_at']=stamp
                 price=bid if buy else ask
                 move=(price/old['entry_price']-1 if buy else old['entry_price']/price-1)*100
                 old['adverse_move_pct']=min(old['adverse_move_pct'],move)
-                if stamp>old['entry_at']:
+                if stamp>last and not resumed:
                     if old['entry_touched_at'] is None and (ask<=old['entry_price'] if buy else bid>=old['entry_price']):
                         old['entry_touched_at']=stamp;old['fill_state']='PARTIAL_OR_UNCERTAIN_FILL'
                         self.counts['entry_touches_uncertain']+=1
@@ -262,8 +327,8 @@ class MakerStudy:
                             old['target_touched_at'] is None and
                             (bid>=old['exit_price'] if buy else ask<=old['exit_price'])):
                         old['target_touched_at']=stamp;self.counts['target_touches_uncertain']+=1
-                row['hypothesis']=deepcopy(old)
-            row['fill_state']=row['hypothesis']['fill_state']
+            row['hypothesis']=deepcopy(self.active[pair]);row['fill_state']=row['hypothesis']['fill_state']
+            row.update(observation_state='SETUP_ACTIVE_OBSERVABLE',current_estimate_available=True)
         return rows
 
 
@@ -273,11 +338,14 @@ def public_summary(result):
         rejects=deepcopy(result.get('market_selection',{}).get('rejects',{})),
         selected_products=[r['market']['pair'] for r in result.get('rows',())],
         markets=[dict(pair=r['market']['pair'],state=r['state'],blockers=list(r['blockers']),
-            quote_age_s=r.get('quote_age_s'),fill_state=r['fill_state'],
+            quote_age_s=r.get('quote_age_s'),quote_observed_at=r.get('quote_observed_at'),
+            observation_state=r.get('observation_state','UNOBSERVED'),fill_state=r['fill_state'],
             dust_status='NATIVE_REMAINDER' if (r.get('hypothesis') or {}).get('scenario',{}).get('native_dust') else
                         'NONE_IN_SCENARIO' if r.get('hypothesis') else 'UNPRICED',
             entry_at=(r.get('hypothesis') or {}).get('entry_at'),
+            original_expiry_at=(r.get('hypothesis') or {}).get('expiry_at'),
             target_touched_at=(r.get('hypothesis') or {}).get('target_touched_at'))
             for r in result.get('rows',())],
-        observations=dict(result.get('study_counts',{})),hypothetical_full_fills=0,
+        observations=dict(result.get('study_counts',{})),continuity=deepcopy(result.get('study_continuity',{})),
+        hypothetical_full_fills=0,
         verified_fills=0,actual_profit='NOT_ESTABLISHED',live_order_permission=False)

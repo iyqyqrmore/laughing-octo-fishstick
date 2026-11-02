@@ -42,6 +42,7 @@ class FeeLearning:
     def __init__(self,path,*,ttl=TTL_SECONDS):
         self.path=Path(path)
         self.ttl=int(ttl)
+        self.last_refresh_failure=None
         self.path.parent.mkdir(parents=True,exist_ok=True)
         with closing(sqlite3.connect(self.path)) as db:
             db.executescript('''
@@ -98,22 +99,36 @@ class FeeLearning:
                        (ts,fmt(maker),fmt(taker),'AUTHENTICATED_SPOT_TRANSACTION_SUMMARY'))
             db.execute('INSERT OR REPLACE INTO fee_refresh_meta VALUES(1,?,?)',(ts,'VERIFIED'))
             db.commit()
+        self.last_refresh_failure=None
         return {'status':'VERIFIED','maker':fmt(maker),'taker':fmt(taker)}
 
-    def refresh_from_client(self,client,*,now=None):
+    def refresh_from_client(self,client,*,now=None,cancel=None,raise_errors=False):
         """Exactly one authenticated GET when due. Never invoke on the GUI thread."""
         now=int(time.time() if now is None else now)
-        if not self.due(now=now):return {'status':'NOT_DUE'}
+        if cancel is not None and cancel.is_set():return {'status':'CANCELLED'}
+        if not self.due(now=now):
+            if raise_errors and self.last_refresh_failure is not None:
+                from coincat_recovery import ReadFailure
+                raise ReadFailure(dict(stage='FEE_TIER',error_class='FeeRefreshDeferred',status=None,
+                    category='FEE_REFRESH_DEFERRED',transient=True,retry_after_s=RETRY_SECONDS))
+            return {'status':'NOT_DUE'}
         try:
             if not hasattr(client,'get_transaction_summary'):
                 raise FeeEvidenceError('SDK fee summary method unavailable')
             response=client.get_transaction_summary(product_type='SPOT')
-            return self.capture_tier(response,now=now)
-        except Exception:
+            if cancel is not None and cancel.is_set():return {'status':'CANCELLED'}
+            result=self.capture_tier(response,now=now);self.last_refresh_failure=None
+            return result
+        except Exception as exc:
+            if cancel is not None and cancel.is_set():return {'status':'CANCELLED'}
+            from coincat_recovery import failure,ReadFailure
+            detail=failure(exc,'FEE_TIER',minimum_delay=RETRY_SECONDS)
+            self.last_refresh_failure=detail
             # Don't copy exception messages: they can include response headers / IDs.
             with closing(self._db()) as db:
                 db.execute('INSERT OR REPLACE INTO fee_refresh_meta VALUES(1,?,?)',(now,'UNAVAILABLE'))
                 db.commit()
+            if raise_errors:raise ReadFailure(detail) from None
             return {'status':'UNAVAILABLE','reason':'READ_ONLY_FEE_TIER_GET_FAILED'}
 
     def account_cost(self,pair,*,now=None):

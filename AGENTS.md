@@ -48,3 +48,11 @@ amounts until Reset and keep the companion limit at three. Chart data is sampled
 midpoint OHLC, not trade OHLC, volume, fill evidence or a strategy input. Keep
 all historical reads cancellable/read-only, gaps explicit, controls fit on screen,
 and existing book/request/storage limits unchanged. See START_HERE defaults.
+
+Current owner-authorized work is the overnight continuity hotfix described in
+V95_CONTINUITY_HOTFIX.md. It explicitly requires no new commit/push/deletion/
+publication/deployment without fresh owner authorization. Preserve typed ETH-only
+per-market research identity, original setup expiry through gaps, monotonic bounded
+read retries, STOP generations, stage-only sanitized failures and export-time
+freshness. Whole-account allocation/reconciliation contracts remain independent
+and unchanged; no research key can authorize settlement or execution.
