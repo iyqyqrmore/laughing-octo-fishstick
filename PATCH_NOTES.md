@@ -24,3 +24,11 @@ compatibility; all active product labels/setup/diagnostics identify v95.0.
 
 Protected modules and real-order block unchanged. No commit/push, production
 publication, connected account/Windows acceptance or profitability claim.
+
+Follow-up: quote-history candlesticks with time axes, crosshair, interval/range
+selectors and browsing to the oldest stored samples. No external history or
+volume is fabricated. Coins/research are below the chart; mixer has its own tab.
+Readout help opens near the pointer, flips/clamps to visible bounds and scrolls.
+Model ETH defaults to full working ETH after carve-outs; custom amounts survive
+refresh, Reset restores the latest default. Other defaults remain 0 bps entry,
+0.25% target, 24h horizon, 5s cadence and 15 bps taker stress. Three companions.

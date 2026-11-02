@@ -9,7 +9,7 @@ publication unless separately requested.
 
 ETH Growth is read-only: ETH funding/success unit, at most three explicit manually
 approved companions using actual eligible authenticated direct ETH spot products.
-No USD/USDC bridges, automatic expansion, account-balance fallback, fee fallback,
+No USD/USDC bridges, automatic expansion, scanner funding fallback, fee fallback,
 fake fills, realized ETH credit, reserve movement, AI settings or auto-ARM.
 Patient maker returns cannot be justified with synchronous multi-leg prices.
 Keep the secondary cycle calculator/tests and protected financial compatibility.
@@ -40,3 +40,11 @@ Package source only, regenerated SHA256_MANIFEST.json and independent ZIP checks
 exclude private data/backups, uploaded diagnostics/keys, virtual environments,
 logs and bytecode. All eight v95 export sections must redact native quantities,
 receipts, account IDs, private paths and authorization/evidence references.
+
+Owner's follow-up explicitly authorizes a full working-ETH GUI default (after
+manual/protected/excluded carve-outs), pointer-near bounded/scrollable help and
+a candlestick view of retained quote history above coins/research. Preserve custom
+amounts until Reset and keep the companion limit at three. Chart data is sampled
+midpoint OHLC, not trade OHLC, volume, fill evidence or a strategy input. Keep
+all historical reads cancellable/read-only, gaps explicit, controls fit on screen,
+and existing book/request/storage limits unchanged. See START_HERE defaults.

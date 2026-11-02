@@ -90,9 +90,11 @@ future improvement, not part of this increment.
 
 ## Funding and records
 
-Explicit modeling ETH defaults to zero. It must fit the ETH working draft after
-manual/protected/excluded funds, a fresh account snapshot and valid disjoint
-allocation. There is no full-account fallback. The editor's owner checkbox does
+The owner requested full available ETH as the modeling default. The GUI now uses
+the full ETH working proposal after manual/protected/excluded carve-outs; before
+connection it remains unset/zero. Custom amounts are preserved until Reset. The
+scanner still requires the amount to fit a fresh valid ETH working draft, with
+no fallback to other assets or unreconciled execution funding. The editor's owner checkbox does
 not establish settlement, open-order holds, external flows or cashflow-adjusted
 basis. All GUI funding stays UNRECONCILED / RESEARCH ONLY and execution-ineligible.
 The reserve proposal calculator remains a secondary pure source capability,
@@ -119,3 +121,29 @@ Stop if no eligible pairs exist, minima/fees dominate sizes, quote integrity is
 inadequate or a defensible fill model is unavailable. Do not relax guards or switch
 routing to manufacture positive results. Export quantity-free v95 diagnostics;
 private detailed values remain local. No cloud authenticated account run is claimed.
+
+## Stored-quote candlestick view
+
+Chart history reads the same canonical market_quotes table, in SQLite read-only
+mode with query_only enabled. It performs no network request, schema change or
+financial write. Candles aggregate recorded bid/ask midpoints into display-only
+OHLC (including inverse ETH-base products, normalized to ETH per coin). These
+are sampled quote candles, not executed-trade/exchange OHLC or fill evidence.
+SQLite REAL chart coordinates never become native strategy prices.
+
+Time controls span seconds/minutes/hours/days and calendar UTC months/years.
+Range controls browse a minute through a year or all actual retained history;
+empty intervals remain gaps, future-dated samples are excluded and earlier
+history is never invented/downloaded. All stored uses the recorded oldest/newest
+bounds. Requests are cancellable on a single background reader, use a 20-second
+SQL progress deadline, and fit at most 500 candles with explicit interval
+coarsening. Very large/busy reads request a shorter range instead of returning
+an unlabeled partial chart. Live chart refresh is throttled to at most once per
+10 seconds and creates no exchange load. STOP rejects queued chart generations;
+manual history browsing remains possible while research is stopped.
+
+The chart is above Coins & research. Faders have a separate Manual mixer tab.
+Chart product selection does not approve a companion or change funds, hypotheses
+or scanner inputs. Diagnostics export only chart coverage/interval/basis metadata,
+not native balances or full price-series payloads. Existing research-store quota
+still pauses new recording at its limit; no retention deletion was introduced.

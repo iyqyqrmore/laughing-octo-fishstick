@@ -10,9 +10,11 @@ HOLD. The future exit is a target, not a forecast. Price touches are uncertain
 fills, never earned ETH. Account fee tier does not establish pair-specific fees
 or fee currency. Missing evidence yields **NO QUALIFIED EVIDENCE**.
 
-The v95 screen has a small original CoinCat logo, six manual mixer faders with
-exact text entries, three companion selectors, a compact comparison table and
-mouse/keyboard hover details. Allocation and passive notes have separate tabs.
+The v95 screen has a small original CoinCat logo and a stored-quote candlestick
+chart above three companion selectors and compact research results. Separate
+Manual mixer, Allocation and Research notes tabs keep the screen compact. Six
+manual faders have exact text entries; modeling ETH defaults to full working ETH
+after carve-outs. Pointer-adjacent hover details stay bounded and scroll when long.
 The old broad scanner/dashboard and multi-horizon experiments were retired.
 Canonical financial modules and the secondary immediate-cycle calculator remain.
 

@@ -21,7 +21,7 @@ class ReleaseCore(unittest.TestCase):
         with self.assertRaises(LiveBlocked):LiveBroker.__new__(LiveBroker).submit('BUY','BTC-USD','1')
 
     def test_no_order_or_preview_adapters_in_active_scanner(self):
-        for name in ('coincat_app.py','coincat_scanner.py','coincat_full_balance.py','coincat_eth_maker.py'):
+        for name in ('coincat_app.py','coincat_scanner.py','coincat_full_balance.py','coincat_eth_maker.py','coincat_chart.py'):
             tree=ast.parse((ROOT/'app'/name).read_text())
             names={n.func.attr for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)}
             self.assertFalse(names & {'submit','create_order','cancel_orders','preview_order','market_order_buy','market_order_sell'},name)

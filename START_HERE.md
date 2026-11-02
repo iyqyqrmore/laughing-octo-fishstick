@@ -21,9 +21,11 @@ folder between running versions. Use normal 64-bit Windows Python 3.11.
 5. In **Allocation**, review ETH working/manual/protected proposals and exclusions.
    Apply each edited row. These are RAM-only; a checkbox cannot reconcile funds.
    Unassigned, excluded, manual and protected funds never supply this model.
-6. In **ETH Growth**, enter an explicit **Model ETH** amount (default zero) within
-   the working proposal, choose one to three companions, then **Apply research
-   plan**. Each companion is an independent scenario using the identical ETH
+6. **Manual mixer** starts with the defaults below. Model ETH automatically uses
+   the full ETH working proposal after connection, less manual/protected/excluded
+   amounts. A custom entry stays unchanged through refresh; Reset returns to the
+   latest full working default. In **ETH Growth**, choose one to three companions
+   under the chart, then **Apply research plan**. Each companion is an independent scenario using the identical ETH
    allocation; do not add the scenarios together as simultaneous funding.
 7. Leave target/entry offset/wait/cadence/taker stress at the initial research
    defaults unless deliberately choosing another scenario. Hover labels, controls,
@@ -44,3 +46,33 @@ counts disappear on restart; export before closing. Public quotes use the existi
 bounded local research store. Native Windows launcher, DPAPI, single-instance,
 cleanup and resource checks still need local evidence. Source restoration and
 environment publication are separate; no old publication success is asserted.
+
+## Tonight's defaults
+
+| Control | Default |
+|---|---|
+| Model ETH | Full available ETH working proposal after carve-outs/exclusions |
+| Entry offset | 0 bps |
+| ETH target | 0.25% hypothetical net-ETH target |
+| Wait limit | 24 hours |
+| Scan interval | 5 seconds after each pass |
+| Taker stress | 15 bps per benchmark leg |
+
+Entry offset is distance away from the best resting price: BUY below bid or,
+for an inverse ETH-base product, SELL above ask. 0 bps uses bid/ask respectively;
+10 bps is 0.10% farther away. A larger offset seeks a better entry but may never
+fill. Defaults are research scenarios, not recommendations for live orders.
+
+The ETH Growth chart sits above Coins & research. **Candle** selects 1s, 1m, 5m,
+15m, 1h, 4h, 1d, calendar month or year. **History** selects one minute, hour, day,
+month, year or All stored. The arrows page through time; Latest returns to now.
+Wheel changes candle interval. Wide ranges explicitly fit coarser candles to
+at most 500 bars. Hover shows sampled OHLC and observation count. There is no
+trade volume or invented candle in an empty interval. One-second candles cannot
+create observations between five-second scans. All stored reaches only the
+history actually present in this installation's public quote database.
+
+Tooltips now open near the pointer, flip above it near an edge, fit the visible
+window/monitor work area and scroll when detailed text is long. Move into the
+popup to use its scrollbar. Escape dismisses it. Windows monitor/DPI behavior
+of this follow-up still requires a native rerun.

@@ -39,3 +39,29 @@ The source ZIP excludes all private datasets/backups, uploads, keys, environment
 logs and bytecode. Independent archive SHA-256 and extracted-source test output
 are delivered beside the ZIP. Tonight's local trial is read-only; see START_HERE.
 No positive market opportunity is required for software acceptance.
+
+FOLLOW-UP — STORED CHART, POINTER HELP AND ETH DEFAULT
+Local changes after 7eefd8a add quote-history candles and interval/range browsing,
+move Coins & research under the ticker, keep faders on Manual mixer, constrain
+pointer help with scrolling, and default modeling ETH to full working ETH after
+carve-outs while preserving manual entries. Companion limit remains three.
+
+Actual follow-up checkout validation: 163 discovered/distinct/run; zero failures,
+errors, skips and expected failures; HTTP forbidden. Linux Python 3.11.17,
+SQLite 3.53.1, Tk/Tcl 9.0, Xvfb. The eleven new cases cover sampled OHLC, inverse
+price orientation, missing/future observations, calendar boundaries, bounded
+history, pointer placement/scrolling, exact defaults/carve-outs and async chart
+STOP generations and deterministic history SQLite-reader shutdown before
+Windows folder cleanup. Chart is public-data/read-only; it never supplies strategy
+prices or fabricated trades, volumes or earlier history. The manifest now covers
+95 source files. The updated source ZIP has an independent checksum and a fresh
+extracted-source validation log beside it.
+
+Owner-provided Windows result for the previous 7eefd8a build: Python 3.11.9,
+SQLite 3.45.1, Tk/Tcl 8.6; 152 run, zero failures/errors, one skipped because the
+host could not create synthetic symlinks. This is supplied local evidence, not
+an agent-run Windows test. These new chart/tooltip/default changes still need
+native Windows monitor/DPI and GUI acceptance. Live order block is unchanged.
+GitHub follow-up delivery uses the already authorized coincat-v95 branch; the
+exact pushed commit is reported after remote verification. No environment
+publication or running-installation mutation is part of source delivery.

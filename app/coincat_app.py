@@ -20,6 +20,7 @@ from coincat_allocation_editor import WorkingAllocationEditor
 from coincat_mixer import ResearchMixer
 from coincat_eth_maker import MakerConfig,available_companions
 from coincat_hover import Hover,help_tree
+from coincat_chart import QuoteChart
 
 
 class CoinCatApp:
@@ -41,6 +42,7 @@ class CoinCatApp:
         self._ui();self._ready=True
         for value in self.companions:value.trace_add('write',lambda *args:self._invalidate())
         self.root.protocol('WM_DELETE_WINDOW',self._close);self._schedule('poll',100,self._poll)
+        self._schedule('history',200,self.chart.refresh)
 
     def _ui(self):
         shell=ttk.Frame(self.root,padding=12);shell.pack(fill='both',expand=True)
@@ -65,10 +67,14 @@ class CoinCatApp:
         Hover(status,lambda:self.status.get()+' All proposals are RAM-only. STOP before a new connection or configuration change.')
         self.tabs=ttk.Notebook(shell);self.tabs.pack(fill='both',expand=True)
         growth=ttk.Frame(self.tabs,padding=8);allocation=ttk.Frame(self.tabs)
+        mixer_tab=ttk.Frame(self.tabs,padding=8)
         lab=ttk.Frame(self.tabs,padding=8)
-        self.tabs.add(growth,text='ETH Growth');self.tabs.add(allocation,text='Allocation');self.tabs.add(lab,text='Research notes')
-        self.mixer=ResearchMixer(growth,self._invalidate);self.mixer.pack(fill='x')
-        watch=ttk.Frame(growth);watch.pack(fill='x',pady=7)
+        self.tabs.add(growth,text='ETH Growth');self.tabs.add(mixer_tab,text='Manual mixer')
+        self.tabs.add(allocation,text='Allocation');self.tabs.add(lab,text='Research notes')
+        self.mixer=ResearchMixer(mixer_tab,self._invalidate);self.mixer.pack(fill='x')
+        self.chart=QuoteChart(growth,self.market.path);self.chart.pack(fill='both',expand=True)
+        research=ttk.LabelFrame(growth,text='Coins & research',padding=5);research.pack(fill='x',pady=(7,0))
+        watch=ttk.Frame(research);watch.pack(fill='x',pady=3)
         label=ttk.Label(watch,text='Companions');label.pack(side='left',padx=(0,6))
         Hover(label,'ETH plus up to three manually approved companions. Choices come from the authenticated eligible direct-ETH catalog. '
             'BTC, SOL and ADA are examples, never preselected. If no pair qualifies, stop with NO QUALIFIED EVIDENCE; no automatic replacements.')
@@ -81,16 +87,16 @@ class CoinCatApp:
         apply=ttk.Button(watch,text='Apply research plan',command=self._apply_plan);apply.pack(side='left',padx=5)
         Hover(apply,'Acknowledge the exact ETH modeling amount and selected companions for this RAM-only study. '
             'This is not settlement reconciliation, trading authorization or an allocation change. Unapplied allocation edits must be resolved first.')
-        self.funding_label=ttk.Label(growth,textvariable=self.funding_text,wraplength=1040)
+        self.funding_label=ttk.Label(research,textvariable=self.funding_text,wraplength=1040)
         self.funding_label.pack(anchor='w')
         Hover(self.funding_label,lambda:self.funding_text.get()+'. UNRECONCILED / RESEARCH ONLY. '
             'The model amount must fit the ETH working proposal after manual/protected exclusions. Other assets never supply funding. '
             'Each market is an independent scenario against HOLD of the same initial ETH, not a combined deployment. No earned ETH is inferred.')
-        evidence=ttk.Label(growth,textvariable=self.evidence_text,wraplength=1040);evidence.pack(anchor='w',pady=(2,7))
+        evidence=ttk.Label(research,textvariable=self.evidence_text,wraplength=1040);evidence.pack(anchor='w',pady=(2,5))
         Hover(evidence,lambda:self._fee_details())
         columns=('Market','ETH / coin','Spread / age','Taker ΔETH','Maker ΔETH / move','Fill evidence')
-        table=ttk.Frame(growth);table.pack(fill='both',expand=True)
-        self.growth_tree=ttk.Treeview(table,columns=columns,show='headings',height=4,selectmode='browse')
+        table=ttk.Frame(research);table.pack(fill='x')
+        self.growth_tree=ttk.Treeview(table,columns=columns,show='headings',height=3,selectmode='browse')
         widths=(115,130,125,145,210,200)
         for name,width in zip(columns,widths):
             self.growth_tree.heading(name,text=name);self.growth_tree.column(name,width=width,minwidth=80,stretch=True)
@@ -101,9 +107,9 @@ class CoinCatApp:
         def row_motion(event):
             row=self.growth_tree.identify_row(event.y)
             if row and row!=getattr(self,'_hover_row',None):
-                self._hover_row=row;self.growth_tree.hover_help.schedule()
+                self._hover_row=row;self.growth_tree.hover_help.schedule(event)
         self.growth_tree.bind('<Motion>',row_motion,add='+')
-        detail=ttk.Label(growth,textvariable=self.detail_text,wraplength=1030);detail.pack(anchor='w',pady=(6,0))
+        detail=ttk.Label(research,textvariable=self.detail_text,wraplength=1030);detail.pack(anchor='w',pady=(4,0))
         Hover(detail,lambda:self._row_help())
         self.allocation_editor=WorkingAllocationEditor(allocation,self._allocation_changed)
         self.allocation_editor.pack(fill='both',expand=True)
@@ -184,7 +190,15 @@ class CoinCatApp:
         self.status.set('Plan changed. Apply research plan to continue.')
 
     def _allocation_changed(self):
-        self.working_allocation=self.allocation_editor.assessment();self._invalidate()
+        self.working_allocation=self.allocation_editor.assessment()
+        self._sync_eth_default();self._invalidate()
+
+    def _sync_eth_default(self):
+        if self.allocation_editor.dirty_fields:return
+        assessment=self.working_allocation or {}
+        row=next((r for r in assessment.get('rows',()) if r['asset']=='ETH'),{})
+        amount=row.get('working',0) if assessment.get('state')!='INVALID_DRAFT' else 0
+        self.mixer.controls['amount_eth'].update_default(amount)
 
     def _apply_plan(self):
         try:
@@ -258,6 +272,7 @@ class CoinCatApp:
 
     def _stop(self):
         self.running=False;self.cancel.set();self.generation+=1
+        if hasattr(self,'chart'):self.chart.cancel_pending()
         task=self._after.pop('scan',None)
         if task is not None:
             try:self.root.after_cancel(task)
@@ -289,6 +304,7 @@ class CoinCatApp:
                     for box in self.companion_boxes:box.configure(values=('',*available))
                     self.status.set(f'Connected · {len(available)} eligible direct-ETH companions'+
                         (' · Choose manually' if available else ' · NO QUALIFIED EVIDENCE; no fallback'))
+                    self.chart.refresh()
                 elif kind=='scan' and payload.get('state')!='CANCELLED':
                     self.last_result=payload;self._render(payload)
                     if time.time()-self.last_note_at>=180:
@@ -302,9 +318,12 @@ class CoinCatApp:
         excluded={r['asset'] for r in self.ledger.assets() if not r.get('enabled',1)}
         self.allocation_editor.snapshot(self.scanner.balances,self.scanner.account_at,time.time(),excluded)
         self.working_allocation=self.allocation_editor.assessment()
+        self._sync_eth_default()
 
     def _render(self,result):
         self._render_wallet()
+        if self.last_result is not result:return  # A changed default invalidates this queued plan.
+        self.chart.set_products([r['market']['pair'] for r in result['rows']]);self.chart.refresh(live=True)
         selected=self.growth_tree.selection();pairs={r['market']['pair'] for r in result['rows']}
         for item in self.growth_tree.get_children():
             if item not in pairs:self.growth_tree.delete(item)

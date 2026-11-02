@@ -335,10 +335,10 @@ class GrowthGUI(unittest.TestCase):
         self.app.mixer.controls['amount_eth'].set(D('.1'))
         self.app._apply_plan();return c,s
 
-    def test_small_logo_v95_three_tabs_six_faders_and_hover_coverage(self):
+    def test_small_logo_v95_four_tabs_six_faders_and_hover_coverage(self):
         self.assertIn('v95.0',self.root.title());self.assertIn('LIVE blocked',self.root.title())
         self.assertLessEqual(self.app.logo.width(),260)
-        self.assertEqual(len(self.app.tabs.tabs()),3)
+        self.assertEqual(len(self.app.tabs.tabs()),4)
         self.assertEqual(len(self.app.mixer.controls),6)
         self.assertIsNone(self.app.applied_config)
         widgets=[]

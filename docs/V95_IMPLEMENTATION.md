@@ -37,3 +37,12 @@ profit credited from touch/crossing. All hypothetical results compare with HOLD
 of the identical ETH proposal and retain native residuals. Quote age 30 seconds,
 spread 0.25%, single-decision span 12 seconds; overall/research book ceilings
 16/6 and original transport spacing/backoff remain unchanged.
+
+Follow-up scope: owner requested pointer-adjacent visible readout help, full
+working-ETH default, and a standard candlestick/time-range display above coins
+and research. Added coincat_chart.py and eleven focused regressions. Calendar/clock
+OHLC aggregation reads only existing public market_quotes; no API/history
+backfill, volume fabrication or financial/schema mutation. Manual mixer is a
+separate tab. Original 7eefd8a is the preserved checkpoint. The tested follow-up is prepared
+for the same previously authorized coincat-v95 GitHub branch. Exact source
+delivery is independently verified; native Windows follow-up remains pending.

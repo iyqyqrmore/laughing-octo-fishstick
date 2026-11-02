@@ -32,6 +32,7 @@ def make_report(app,*,now=None):
             'no USD/USDC bridges or automatic market expansion. Independent scenarios use identical ETH versus HOLD; '
             'never sum them as simultaneous deployments. Old USD/cycle libraries are secondary; old experiments do not run in ETH Growth.'),
         ('COVERAGE',dict(scan=result.get('scan','UNOBSERVED'),at=result.get('at','UNOBSERVED'),
+            chart_history=app.chart.diagnostics() if hasattr(app,'chart') else 'UNOBSERVED',
             state=result.get('state','UNOBSERVED'),quote_scheduling=result.get('quote_scheduling',{}),
             quote_errors=result.get('quote_errors',{}),fetch_ms=result.get('fetch_ms','UNOBSERVED'),
             price_integrity='BOUNDED_LOCAL_REST_OBSERVATIONS_ONLY',
