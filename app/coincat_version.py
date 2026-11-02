@@ -1,3 +1,3 @@
-"""CoinCat full-balance immediate scanner release identity."""
-VERSION = "91.0"
+"""CoinCat ETH Growth development-preview identity."""
+VERSION = "95.0"
 DISPLAY = "CoinCat v" + VERSION

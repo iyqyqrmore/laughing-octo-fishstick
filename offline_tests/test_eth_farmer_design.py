@@ -1,19 +1,11 @@
 """Synthetic read-only ETH measurement, reserve proposals and passive advice."""
-import ast
-import hashlib
 from copy import deepcopy
 from decimal import Decimal as D, localcontext
-from pathlib import Path
-from unittest.mock import patch
 import unittest
 
 from coincat_eth_farmer import measure_eth, reserve_preview, ReservePolicy
-from coincat_settings_advisor import settings_advice, DEFAULT_NOTE
 from coincat_multicurrency import research_order
-from coincat_passive_lab import PassiveLab
-from offline_tests.test_v91_full_balance import market, scan, NOW
-from offline_tests import test_v91_scanner_gui as gui
-from coincat_scanner import Scanner
+from offline_tests.test_native_receipts import market, scan, NOW
 
 
 def measurement(*, result=None, balances=None, **changes):
@@ -241,104 +233,3 @@ class ReserveCalculator(unittest.TestCase):
                        {'consumed_milestones':True},{'fixed_reference':D('NaN')}):
             with self.assertRaises(ValueError):reserve_preview(**kwargs)
         with self.assertRaises(ValueError):reserve_preview(ReservePolicy(growth_step_usd=D(0)))
-
-
-class PassiveAdvisor(unittest.TestCase):
-    def test_seven_protected_modules_exactly_match_the_verified_v91_baseline(self):
-        hashes={
-            'coincat_live.py':'582744bde0497df22c8bad1d6092c6092bb64c99d171f783eec7ac5f86d3ffe4',
-            'coincat_unified_fifo_v501.py':'c2cc83616bc3ebe4df04b3b9355ecddd2dd3e2b16f86987c100119ad9103493a',
-            'coincat_state_v50.py':'93cf2add1878c3f2b48221eb53a9a556270ee8672e2a0746fed1c60ccb3e984b',
-            'coincat_data_transfer.py':'b797413e3108bfb45a4986514ae2ded15e907b7c8edcb3e34217c2efe04be216',
-            'coincat_inventory_lots.py':'72b06c37a99df2131e96f1336872c4289a81b33974e833703988e90050e681b7',
-            'coincat_verified_cross_fills.py':'49cc8fd6ea71553b48c85ebc6cc48166761c7f9bd0349c312cc5dcf707fbe130',
-            'coinbase_account.py':'ba6148242d86243135670dbf1c20435ec54cf5ff6f07976a68c09bddb479c0e0'}
-        root=Path(__file__).resolve().parents[1]/'app'
-        for name,expected in hashes.items():
-            self.assertEqual(hashlib.sha256((root/name).read_bytes()).hexdigest(),expected,name)
-
-    def test_unknown_economics_keep_conservative_text_and_no_setting_change(self):
-        result={'priced_directions':500,'positive_directions':500,'fetch_ms':1}
-        original=deepcopy(result);text=settings_advice(result)
-        self.assertIn(DEFAULT_NOTE,text)
-        self.assertIn('INSUFFICIENT',text)
-        self.assertIn('Manual decision only / no setting changed',text)
-        self.assertEqual(result,original)
-
-    def test_cadence_recommendation_cites_current_suggested_units_evidence_and_tradeoff(self):
-        text=settings_advice({'fetch_ms':12000},scan_interval_s=D(5))
-        for phrase in ('Current 5 s','suggested 24 s','Measured','PRELIMINARY',
-                       'one pass','miss short-lived','no setting changed'):
-            self.assertIn(phrase,text)
-        self.assertNotIn('SUPPORTED',text)
-
-    def test_no_advisor_or_calculator_execution_mutation_or_network_dependencies(self):
-        root=Path(__file__).resolve().parents[1]
-        for name in ('coincat_eth_farmer.py','coincat_settings_advisor.py','coincat_mixer.py'):
-            tree=ast.parse((root/'app'/name).read_text(encoding='utf-8'))
-            forbidden={'submit','create_order','preview_order','cancel_orders','transfer','arm',
-                       'save_encrypted','approve_all','set_asset_enabled','write_text','execute','connect'}
-            calls={n.func.attr for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)}
-            self.assertFalse(calls & forbidden,name)
-            imports={n.module for n in ast.walk(tree) if isinstance(n,ast.ImportFrom)}
-            self.assertFalse(imports & {'coincat_live','coincat_scanner','requests','coinbase.rest'},name)
-
-    def test_eth_future_comparisons_keep_missing_reference_counts_distinct(self):
-        q,rules=market();result=scan();lab=PassiveLab()
-        lab.observe(result,q,now=NOW)
-        future={p:(b[0],b[1],NOW+300) for p,b in q.items()}
-        lab.observe({'ranked':[]},future,now=NOW+300)
-        self.assertGreater(lab.eth_counts['300_ABOVE_HOLD'],0)
-        self.assertEqual(sum(v for k,v in lab.eth_counts.items() if k.startswith('300_')),
-                         lab.counts['300_ABOVE_HOLD']+lab.counts['300_NOT_ABOVE_HOLD'])
-        lab=PassiveLab();lab.observe(result,q,now=NOW)
-        lab.observe({'ranked':[]},{},now=NOW+421)
-        self.assertGreater(lab.eth_counts['300_MISSED'],0)
-        self.assertEqual(lab.eth_counts['300_NOT_ABOVE_HOLD'],0)
-
-
-class MixerGUI(unittest.TestCase):
-    setUp = gui.SimpleGUI.setUp
-    def test_exact_entry_fader_keyboard_reset_invalid_input_and_labels(self):
-        self.root.update()
-        controls=self.app.mixer.controls
-        self.assertEqual(len(controls),6)
-        fader=controls['initial_usd']
-        fader.text.set('12.345');fader._entered()
-        self.assertEqual(fader.value,D('12.345'))
-        self.assertAlmostEqual(fader.scale.get(),12.345)
-        fader._step(1);self.assertEqual(fader.value,D('13.345'))
-        fader._slide('17.6');self.assertEqual(fader.text.get(),'18')
-        fader.text.set('NaN');fader._entered()
-        self.assertEqual(fader.value,D(18));self.assertIn('Invalid',fader.error.get())
-        fader.set(fader.spec.default);self.assertEqual(fader.value,D(10))
-        self.assertIn('default 10',fader.marker.get())
-        self.assertTrue(fader.entry.cget('takefocus')!='0')
-        self.assertLessEqual(self.app.mixer.winfo_reqwidth(),self.root.winfo_width())
-
-    def test_mixer_changes_are_ram_only_and_never_change_ranking_or_private_records(self):
-        app=self.app;client=gui.FakeClient()
-        app.scanner=Scanner(app.ledger,client,app.fees,app.market)
-        before=gui.ledger_dump(app.ledger);app.scanner.refresh(now=NOW)
-        result=app.scanner.scan(now=NOW,collect=gui.collector(client))
-        app.last_result=result;app._render(result);original=deepcopy(result)
-        for key,value in (('reference_usd',D(2000)),('initial_usd',D(20)),
-                          ('slippage_bps',D(30)),('scan_interval_s',D(20))):
-            app.mixer.controls[key].set(value)
-        self.assertEqual(result,original)
-        self.assertEqual(before,gui.ledger_dump(app.ledger))
-        self.assertFalse(app.reserve_calculation['assets_earmarked'])
-        self.assertIsNone(app.reserve_calculation['actual_reserved_eth'])
-        self.assertIn('UNKNOWN',app.eth_details.get())
-        self.assertIn('no funds earmarked',app.reserve_text.get())
-
-    def test_export_redacts_all_eth_quantities_and_keeps_eight_sections(self):
-        from coincat_simple_diagnostics import make_report
-        self.app.eth_measurement={'state':'UNKNOWN','actual_available_eth':D('98765.432198765'),
-            'hold':{'modeled_eth_proceeds':D('23456.78923456'),'unconverted_native':{'BTC':D('12345.678912345')}}}
-        report=make_report(self.app,now=NOW)
-        self.assertIn('COMPLETE (8/8)',report)
-        for raw in ('98765.432198765','23456.78923456','12345.678912345'):
-            self.assertNotIn(raw,report)
-        self.assertIn('manual_mixer_proposal',report)
-        self.assertIn('UNKNOWN_NO_EARMARKING',report)

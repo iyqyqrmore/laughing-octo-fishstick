@@ -1,27 +1,41 @@
-CoinCat v91.0 — simplified full-balance scanner, October 29, 2026
+CoinCat v95.0 — ETH Growth development preview
 
-Base: daeff92135fba3d877cf74dcacb3eb6f6ce35ac8 (v90.1).
-Python 3.11.17, fresh isolated environment with 12 hash-locked runtime packages.
-All remaining package versions match the prior lock. No plotting/GPU libraries
-or external bot strategies are required.
+Source base: 8b5d2c168376d339f4ede372f24de3cff3667aaf.
+Preserved checkpoint archive exists outside the checkout; predecessor histories
+were not changed. No commit, push or environment publication was performed.
 
-Current validation: 72 distinct offline unittest cases with HTTP forbidden
-through discovery/execution; real Tk GUI exercises the complete synthetic
-account-to-pricing-to-display path, STOP/late-result handling and eight-section
-read-only diagnostics. Fresh-data/backup/no-overwrite and offline Ed25519/ECDSA
-SDK signing tests remain, alongside native quantity/replay/rollback, fee-once,
-full-size min/max/dust, tiny positive gain and consistent HOLD valuation cases.
-The final source archive is independently extracted and tested; source hashes,
-Python syntax, ZIP CRC/byte equality and an independent ZIP checksum are checked.
+ACTUAL BASELINE
+189 discovered / 189 distinct / 189 run, zero failures, errors or skips, before
+changes. HTTP forbidden. This is a fresh run, not the supplied historical count.
 
-The prior release's 449 cases included retired shadow/GPU/old-dashboard modes.
-They are not claimed as current v91 validation. See RETIRED_COMPONENTS.md for the
-explicit removal list and retained tests; old source remains in Git history.
-Protected production broker, FIFO, state, importer and lots match v90.1 bytes.
-Dependency declarations/lock intentionally changed to remove unused libraries.
+ACTUAL v95 CHECKOUT
+152 discovered / 152 distinct / 152 run. Zero failures, errors, skips or expected
+failures. HTTP forbidden throughout discovery/execution. Runtime: Linux,
+Python 3.11.17, SQLite 3.53.1, Tk/Tcl 9.0 with Xvfb. Hash-locked 12 dependencies.
+32 current growth/transport cases plus retained native, cycle, allocation,
+financial, installation/signing and backup/import regressions. Obsolete broad
+scanner, multi-horizon and dashboard contracts are retired, not skipped.
 
-Limits: no native Windows/DPAPI validation, real private keys, connected account
-calls, exchange fills, live-order settlement/recovery or profitability claims.
-Actual automatic swaps are not implemented. The unconditional production broker
-block remains and the new app has no order/preview adapter or mock ARM button.
-Current private_data/private_backups, tax basis and financial schemas remain.
+All 93 manifest source files passed SHA-256 verification. All shipped Python
+sources compile. First-statement LiveBlocked AST/runtime checks pass. Seventeen
+protected, canonical, quote-transport, cycle, allocation, broker and Windows-lock
+modules match the checkpoint byte for byte. git diff --check passed.
+
+Actual Tk checks cover mixer/exact fields/keyboard/reset, logo, help on all
+controls/readouts, tooltip callback cleanup, allocation editor/refresh, async
+scanning, STOP/stale queued-result rejection, plan invalidation and quantity-free
+eight-section export. GUI preview/diagnostic example use labeled SYNTHETIC data.
+
+ACCEPTANCE
+PASS — offline native arithmetic, eligibility/exclusion/precision guards, bounded
+quotes, fee-once scenario accounting, honest fill classifications and Linux GUI.
+NOT VERIFIED — connected account products/fees, fee currency, liquidity, real
+maker fills, realized profit, exchange-event timing, native Windows/Tk, DPAPI,
+launcher/resource acceptance and production settlement/restart recovery.
+BLOCKED — LIVE, order creation/edit/cancel, previews, transfers, automatic ARM,
+fund allocation, reserve/harvest and any financial record/lot/tax-basis mutation.
+
+The source ZIP excludes all private datasets/backups, uploads, keys, environments,
+logs and bytecode. Independent archive SHA-256 and extracted-source test output
+are delivered beside the ZIP. Tonight's local trial is read-only; see START_HERE.
+No positive market opportunity is required for software acceptance.

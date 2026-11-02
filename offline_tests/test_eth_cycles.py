@@ -1,7 +1,7 @@
 """Synthetic ETH-funded topology; all market directions, no trading claims."""
 import unittest
 from coincat_eth_cycles import eth_cycle_inventory
-from offline_tests.test_v91_full_balance import market
+from offline_tests.test_native_receipts import market
 
 
 def inventory(products,**changes):

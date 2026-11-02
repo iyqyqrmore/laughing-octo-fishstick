@@ -1,11 +1,9 @@
-CoinCat v91.0 — simplified full-balance immediate scanner
+CoinCat v95.0 — ETH Growth research preview
 
-Read START_HERE.md. Install into a separate source folder and preserve your
-working installation, private_data and private_backups. Use Windows Python 3.11.
-Run 02_SETUP_COINCAT.bat, then 03_VERIFY_COINCAT.bat, then follow the explicit
-fresh-data or verified-copy recovery path before 01_START_COINCAT.bat.
+Read START_HERE.md. Extract into a separate folder. Preserve your existing
+installation, private_data and private_backups. Use Windows Python 3.11.
+Run 02_SETUP_COINCAT.bat and 03_VERIFY_COINCAT.bat before local acceptance.
 
-One policy: greatest positive immediate after-cost USD advantage at full
-available source size. No portfolio cap, size fitting or profit floor.
-AI Lab is passive and reports every three minutes. Real swaps are unavailable
-until durable execution/accounting/recovery is integrated. LIVE stays blocked.
+ETH only, up to three manually approved direct-ETH companions. Six manual
+research faders; hover for detail. No orders or previews. No fill or ETH profit
+is established by a quote touch. This is a development preview.

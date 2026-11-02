@@ -31,3 +31,4 @@ private_backups/
 .coincat-v80-new-*/
 verification_reports/
 *.lnk
+.coincat-v95.0-new-*/

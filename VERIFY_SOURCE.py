@@ -1,4 +1,4 @@
-"""Standalone SHA-256 verification for CoinCat v91.0 source release; no network."""
+"""Standalone SHA-256 verification for CoinCat v95.0 source release; no network."""
 import hashlib, json, sys
 from pathlib import Path
 
@@ -7,7 +7,7 @@ def main():
     manifest=root/'SHA256_MANIFEST.json'
     try:data=json.loads(manifest.read_text(encoding='utf-8'))
     except (ValueError,OSError):return 2
-    if data.get('build')!='91.0-full-balance-immediate-read-only':return 3
+    if data.get('build')!='95.0-eth-growth-research-preview':return 3
     files=data.get('files')
     if not isinstance(files,dict) or not files:return 4
     fails=[]
@@ -15,9 +15,9 @@ def main():
         path=root/name
         if '..' in Path(name).parts or path.is_symlink() or not path.is_file():fails.append(name);continue
         if hashlib.sha256(path.read_bytes()).hexdigest()!=expected:fails.append(name)
-    print('CoinCat v91.0 source hashes checked:',len(files),'Failures:',len(fails))
+    print('CoinCat v95.0 source hashes checked:',len(files),'Failures:',len(fails))
     if fails:
         print('BLOCKED: Source files missing or changed; first discrepancies:',fails[:4]);return 5
-    print('PASS / RELEASE INTEGRITY ONLY; live trading still blocked')
+    print('PASS / SOURCE INTEGRITY ONLY; live trading still blocked')
     return 0
 if __name__=='__main__':sys.exit(main())

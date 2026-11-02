@@ -1,48 +1,23 @@
-# CoinCat v91.0 — full-balance immediate scanner
+# CoinCat v95.0 — ETH Growth research preview
 
-**Development overlay: ETH Farmer design preview.** See
-[ETH_FARMER_DESIGN.md](docs/ETH_FARMER_DESIGN.md) for read-only ETH measurements,
-the proposed reserve mixer and passive settings advisor. USD ranking and
-trading blocks are preserved. No financial policy is applied, no funds are
-reserved and no earned ETH is inferred. This is not a numbered v92 release.
+A small, read-only ETH maker study: ETH plus up to three manually approved
+companions with eligible authenticated direct ETH spot markets. No USD/USDC
+bridges, automatic coin selection, orders, previews, transfers or wallet posts.
 
-The [quote coverage follow-up](docs/QUOTE_COVERAGE.md) fills the existing request
-budget, schedules due research endpoints and reports current versus historical
-coverage. Incomplete coverage never means the whole market has no opportunity.
+Compare an immediate taker round trip with a patient post-only entry/exit
+hypothesis. Both use exact native quantities and the same initial ETH versus
+HOLD. The future exit is a target, not a forecast. Price touches are uncertain
+fills, never earned ETH. Account fee tier does not establish pair-specific fees
+or fee currency. Missing evidence yields **NO QUALIFIED EVIDENCE**.
 
-The [Research Scheduler & ETH Synchronization Patch](docs/RESEARCH_SCHEDULER_ETH_SYNC.md)
-adds capacity-based admission, protected hourly service, coordinated ETH quote
-groups and distinct per-horizon diagnostic counts. Limits, economics and trading
-blocks remain unchanged; account-wide ETH totals can still be UNKNOWN.
+The v95 screen has a small original CoinCat logo, six manual mixer faders with
+exact text entries, three companion selectors, a compact comparison table and
+mouse/keyboard hover details. Allocation and passive notes have separate tabs.
+The old broad scanner/dashboard and multi-horizon experiments were retired.
+Canonical financial modules and the secondary immediate-cycle calculator remain.
 
-The [working-allocation and diagnostics patch](docs/WORKING_ALLOCATION_DIAGNOSTICS.md)
-adds a local RAM-only draft worksheet, individual ETH conversion blockers and
-per-observation deadline evidence. Owner draft authorization requires separate
-verified reconciliation; no account funds are automatically assigned to CoinCat.
-
-The [Windows/editor and ETH-cycle checks](docs/WINDOWS_VERIFICATION_ALLOCATION_FIX.md)
-close disposable test database handles, preserve allocation edits through refresh,
-and check ETH-funded/ETH-ending topology for all approved market directions.
-Full-AVAILABLE working defaults remain unauthorized RAM proposals; cycle
-connectivity does not enable ETH-profit selection or establish executable profit.
-
-One policy: rank eligible direct swaps by their greatest positive immediate
-after-cost USD wallet advantage versus holding. Each proposal uses the full
-verified AVAILABLE source balance, with modeled fees and exchange rounding
-inside that balance. There are no portfolio budget controls, fractional size
-trials or $0.10 profit floor. Nonpositive routes remain HOLD.
-
-AI Lab is a passive observer. It reports findings in plain text every three
-minutes and never chooses trades or changes sizing. One screen provides key
-import, connection/refresh, start scanning, STOP and diagnostics, with views
-for available balances, ranked swaps and passive notes.
-
-**This build does not execute real swaps.** It displays positive estimates as
-unverified and makes no order calls. The production broker remains blocked
-pending durable order/fill accounting, reconciliation and restart recovery.
-The UI says this explicitly and does not offer a mock trading or ARM button.
-
-Read [START_HERE.md](START_HERE.md), [build details](docs/BUILD_V91.md) and
-[cleanup record](docs/RETIRED_COMPONENTS.md). Existing financial records,
-backup/import compatibility, tax basis and private data are preserved.
-Historical releases, shadow modes and GPU experiments remain in Git history.
+Read [START_HERE.md](START_HERE.md) for a separate Windows trial tonight and
+[docs/V95_RESEARCH.md](docs/V95_RESEARCH.md) for assumptions, evidence and limits.
+[VERIFICATION.txt](VERIFICATION.txt) records actual validation; Linux tests do not
+establish native Windows/DPAPI acceptance or profitability. This is a development
+preview, not an execution-ready release. Preserve private_data and private_backups.

@@ -76,7 +76,7 @@ class FullFuelReserveTests(unittest.TestCase):
         root=Path(__file__).resolve().parents[1]
         app=(root/'app/coincat_app.py').read_text(encoding='utf-8')
         researcher=(root/'app/coincat_multicurrency.py').read_text(encoding='utf-8')
-        self.assertIn('No automatic profit reserve or extra 10% BUY holdback',app)
+        self.assertIn('UNRECONCILED / RESEARCH ONLY',app)
         self.assertNotIn('available/BUFFER',researcher)
         self.assertNotIn('BUY reserves 10% of input-asset liquidity',researcher)
         self.assertIn('No extra 10% holding reserve',researcher)

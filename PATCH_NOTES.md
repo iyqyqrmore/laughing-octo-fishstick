@@ -1,18 +1,26 @@
-# CoinCat v91.0 — full-balance immediate policy and passive AI Lab
+# CoinCat v95.0 — ETH Growth development preview
 
-Based on v90.1 daeff92135fba3d877cf74dcacb3eb6f6ce35ac8.
+Replaces the broad dashboard and multi-horizon experiments with one direct-ETH
+research flow. ETH plus at most three manually selected companions; explicit
+working-ETH proposal; exact immediate taker benchmark versus a patient post-only
+maker hypothesis. Futures, bridges, invented listings and account-balance fallback
+are excluded. Current authenticated availability must be verified locally.
 
-- One full available proposal per direct direction; greatest positive immediate
-  USD W wins. No portfolio cap, smaller-size fitting, $0.10 floor or forecast gate.
-- Consistent wallet marks are chosen before profitability checks. Direct USD
-  sales cannot gain merely from using a lower indirect source-HOLD valuation.
-- Five simple controls; views for available portfolio, ranked swaps and passive
-  AI Lab notes every three minutes. STOP retains findings and rejects late work.
-- Retired redundant shadow/GPU/experiment modes, tests, launchers and dashboards.
-  Financial quantity/replay/rollback, backup and offline signing tests remain.
-- Eight current diagnostics replace eighteen mixed historical audit sections.
-- Reduced locked runtime dependencies from 25 to 12; all remaining versions kept.
+Six compact manual faders retain exact text input and keyboard operation. Small
+original CoinCat title artwork; concise table/readouts; delayed mouse and keyboard
+hover explanations. Allocation remains RAM-only. Changes invalidate pending
+analysis and require Apply again. STOP retains displayed findings and rejects
+queued results. Eight diagnostics sections match this build and redact quantities.
 
-Actual automatic trading remains unfinished. This build has no order submission
-adapter and retains unconditional LiveBlocked. It is a simplified decision and
-observation build, not a completed live-trading feature.
+No fake wallet gains: touch/crossing remains uncertain, fees are estimates with
+unknown debit currency/exceptions, native dust stays explicit, and no-fill,
+partial/unknown and expired observations cannot earn ETH. Full-fill calculations
+are conditional scenarios, not observed fills or realized profit.
+
+Retired experiment source/tests and redundant banner sizes are listed in
+[docs/V95_RETIRED.md](docs/V95_RETIRED.md). Core financial, recovery, allocation,
+transport and cycle regressions remain. Historical module/database names preserve
+compatibility; all active product labels/setup/diagnostics identify v95.0.
+
+Protected modules and real-order block unchanged. No commit/push, production
+publication, connected account/Windows acceptance or profitability claim.

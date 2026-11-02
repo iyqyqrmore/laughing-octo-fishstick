@@ -152,10 +152,9 @@ class WorkingAllocationEditor(ttk.Frame):
         self.dirty_fields.add(field)
         if (field in ('manual','protected') and 'working' not in self.dirty_fields and
                 self.selected_asset not in self.explicit_working):self._remaining_working()
-        had_authorization=self.authorization is not None
         self.authorization=None;self.confirmed.set(False)
         self.message.set('Unapplied edits retained. Apply selected draft before recording authorization.')
-        if had_authorization:self.on_change()
+        self.on_change()  # Invalidate queued research even before an edit is applied.
 
     def apply_selected(self):
         selected=self.tree.selection()

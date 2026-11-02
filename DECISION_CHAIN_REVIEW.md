@@ -1,37 +1,35 @@
-# v91.0 decision chain
+# CoinCat v95.0 decision chain
 
-Development overlay: read-only ETH measurements follow USD ranking, and passive
-settings advice follows observation. Neither changes selection or funding. The
-reserve mixer is a proposed calculator; actual earned/protected/working ETH
-allocation remains UNKNOWN. See docs/ETH_FARMER_DESIGN.md for precise scope.
+Explicit ETH modeling proposal → manual direct-ETH companions → authenticated
+eligible product rules → at most three shared bounded REST books → frozen quote
+and account-fee observations → immediate taker benchmark and independent maker
+hypothesis → passive uncertain-fill observations → quantity-free diagnostics.
 
-Verified available balances → authenticated eligible direct products → bounded
-fair public quote requests → one canonical full-native receipt per direction →
-one consistent source/destination USD mark policy → rank W descending → show
-best positive unverified estimate, otherwise HOLD. AI Lab observes afterward and
-never alters the decision, size, costs, funding or application settings.
+No broad USD scanner, future-horizon admission engine or cycle enumerator runs
+in this flow. Pure legacy USD/native and 3–5-leg cycle calculators remain secondary
+library capabilities; they never justify patient maker returns.
 
-W is output native quantity times its current USD mark minus the actual native
-source debit times its current USD mark. Remaining source is retained, so this
-is the same incremental wallet difference as valuing both complete portfolios.
-Fees/slippage are already embedded in the one canonical receipt; do not subtract
-them twice. Exchange rounding leaves explicitly reported native dust.
+The canonical Decimal receipt owns both legs, fee-once accounting, product
+minima/maxima/increments, source residuals and native dust. Maker uses exact limit
+prices with zero taker-slippage stress. Taker uses actual bid/ask plus explicitly
+assumed per-leg stress. Account maker/taker tiers come from the existing read-only
+SPOT transaction-summary provider. Quote-currency fee debit is a labeled scenario;
+actual fee currency and product-specific exceptions are NOT VERIFIED.
 
-CONSISTENT_WALLET_MARKS chooses shortest observed USD paths and conservative
-bid/inverse-ask proceeds without looking at candidate profitability. A direct
-USD market is permitted to mark that asset consistently, including for HOLD;
-source valuation must not be weakened via a lower indirect path to manufacture
-a gain on selling directly to USD. A non-USD conversion cannot serve as its own
-mark path. Stale, circular, missing, wide or unsynchronized frames are unpriced,
-not economic losses. Candidate-specific alternative-path retry remains future
-work; the scanner does not opportunistically select a favorable fallback.
+BUY entries rest below ask, SELL entries above bid. Entry offset and target are
+manual research controls. The rounded exit target is solved to meet the requested
+ETH percentage in the full-fill scenario after both fees. It is not a predicted
+price. Inverse ETH-base products use SELL entry and BUY return; labels show ETH
+per companion coin separately from actual product limit-price units.
 
-The former L hypothetical-liquidation comparison is available to canonical
-library callers but is not calculated or required by this owner's W-only
-policy. There is no portfolio budget, $0.10 floor, momentum history prerequisite,
-forward-profit override, synthetic qualification, RAM FIFO or simulated wallet.
-One full available quantity is reviewed; max/min failures never trigger a fit.
+HOLD always uses exactly the initial ETH, including unspent ETH. Non-ETH residue
+remains explicit; ETH subtotal is not a complete return when dust remains.
+No-fill retains the original ETH. Partial/unknown fills have no credited return.
+Worst-case full-entry coin exposure can be lost entirely; a real holding could
+outlast the observation horizon. Touches/crossings never establish fills.
 
-A positive estimate is not a fill or certified profit. Depth, fee currency and
-exchange event time remain unverified; the UI and diagnostics state this. Actual
-order submission remains blocked by the preserved production broker.
+Within a decision: quote age ≤30s, spread ≤0.25%, span ≤12s. A future independent
+exit decision has its own valid quote; it is intentionally separated in time.
+Frozen setups invalidate on draft/account/exclusion/rule/control/fee changes or
+missing/invalid observations. STOP cancels evaluation and rejects stale Tk results.
+LiveBroker.submit still raises unconditional LiveBlocked as its first statement.

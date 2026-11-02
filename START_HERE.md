@@ -1,65 +1,46 @@
-# CoinCat v91.0 setup and testing
+# CoinCat v95.0 — first read-only trial
 
-This successor checkout adds the **v92 native ETH-cycle dashboard preview**.
-Read [the patch notes](docs/V92_CONNECTED_CYCLE_PATCH.md) before use. The new
-ETH Cycles tab evaluates proposed working ETH in native units; it does not
-require USD conversion quotes or establish reconciled funding or earned income.
-Use a separate installation and preserve your current private records/backups.
+Keep the existing installation and all private records/backups. Extract v95 into
+a separate new folder. Never overlay the running installation or share one data
+folder between running versions. Use normal 64-bit Windows Python 3.11.
 
+1. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Inspect the exact
+   test counts, errors and skips. A failure blocks this preview's acceptance.
+2. For a new dataset only, run **04_FIRST_TIME_SETUP.bat** and confirm NEW data.
+   It refuses nonempty destinations and creates a verified independent initial
+   backup. A new key/dataset does not recover old trades or tax basis. Optional
+   recovery under tools copies a complete verified dataset into an empty
+   destination only; do not run it casually against your working installation.
+3. Run **01_START_COINCAT.bat**. Confirm **CoinCat v95.0**. Import the key JSON
+   locally on your PC, never into chat. Existing permission/DPAPI checks remain:
+   View + Trade, Transfer disabled. Trade permission does not enable orders.
+4. **Connect / refresh**. Companion choices come from authenticated direct ETH
+   spot products with explicit tradability, status and valid rules. Nothing is
+   preselected. BTC/SOL/ADA availability is NOT VERIFIED. If the list is empty,
+   stop with NO QUALIFIED EVIDENCE; there is no USD/USDC fallback.
+5. In **Allocation**, review ETH working/manual/protected proposals and exclusions.
+   Apply each edited row. These are RAM-only; a checkbox cannot reconcile funds.
+   Unassigned, excluded, manual and protected funds never supply this model.
+6. In **ETH Growth**, enter an explicit **Model ETH** amount (default zero) within
+   the working proposal, choose one to three companions, then **Apply research
+   plan**. Each companion is an independent scenario using the identical ETH
+   allocation; do not add the scenarios together as simultaneous funding.
+7. Leave target/entry offset/wait/cadence/taker stress at the initial research
+   defaults unless deliberately choosing another scenario. Hover labels, controls,
+   table rows or details for costs, native dust, timestamps and waiting risk.
+   Numeric text fields and keyboard arrows accompany the audio-mixer faders.
+8. **Start research**. Verify quote updates and fee evidence. Maker targets are
+   hypothetical, not forecasts; no-fill retains initial ETH. Partial/unknown fills
+   earn nothing in the app. Even a later target crossing remains uncertain.
+9. Test **STOP** promptly. Displayed findings should remain; no late queued result
+   should replace them. Change a control or allocation: the plan must invalidate
+   and require explicit Apply before restarting. Export v95 diagnostics while the
+   app is open. Exports have eight sections and omit private native quantities.
 
-This branch includes an **ETH Farmer development preview** on the preserved v91
-base. Read docs/ETH_FARMER_DESIGN.md and docs/ETH_DESIGN_VERIFICATION.md. Mixer
-reserve/reference values are proposed and RAM-only; they do not earmark funds.
-No keys or production data are needed for its synthetic tests. The v91 test
-count below describes the original release; the development count is recorded
-in ETH_DESIGN_VERIFICATION.md. Keep your working Windows installation separate.
-For the subsequent quote-scheduling patch and its evidence limits, also read
-docs/QUOTE_COVERAGE.md. Current and historical coverage counts are distinct;
-the old release's test count below is not the current development-suite count.
-The latest admission, hourly-fairness and coordinated ETH observation changes
-are documented in docs/RESEARCH_SCHEDULER_ETH_SYNC.md. This remains a read-only
-v91-based development branch, not an ETH-profit execution release.
-The focused working-fund draft editor and individual conversion/deadline evidence
-are described in docs/WORKING_ALLOCATION_DIAGNOSTICS.md. Drafts are RAM-only; owner
-authorization alone does not establish reconciliation or enable trading.
-See docs/WINDOWS_VERIFICATION_ALLOCATION_FIX.md for current default proposals,
-live-refresh editing, Windows test cleanup and ETH-funded cycle inventory. The
-current suite has more cases than historical v91; use its actual output below.
-
-1. Extract into a separate new source folder. Preserve your working installation,
-   private_data and private_backups. Do not overlay a running app or share one
-   dataset between running versions.
-2. Use normal Windows Python 3.11. Run 02_SETUP_COINCAT.bat, then
-   03_VERIFY_COINCAT.bat. Dependencies are hash locked; plotting and GPU training
-   are no longer part of this application. Expect 72 distinct offline tests.
-3. For a NEW dataset only, run 04_FIRST_TIME_SETUP.bat and explicitly confirm.
-   It refuses a nonempty destination and verifies an independent initial backup.
-   Optional existing-data recovery remains under tools and never merges or
-   overwrites a dataset. A fresh key/data setup does not recover old financial
-   history. Keep your old records and offline backups.
-4. Start with 01_START_COINCAT.bat. Import the CDP JSON key locally on your PC;
-   Windows DPAPI stores it for this user/machine. Never send the key in chat.
-   Existing permission checks require View/Trade with Transfer disabled; the
-   application still cannot submit orders.
-5. Connect / refresh, then Start scanning. Inspect the full available balances
-   and priced/eligible direction coverage. Existing explicit asset exclusions
-   are honored. There is no smaller-size fit search: product-size failures are
-   recorded and skipped, with rounding dust retained.
-6. Read the best currently priced immediate estimate and the ranked alternatives.
-   W must be positive; there is no absolute dollar floor. Fees, spread and the
-   0.15% modeled slippage reserve are included in the canonical receipt once.
-   Actual depth impact, execution fees and fills remain unverified.
-7. AI Lab writes passive notes about every three minutes. These are measured
-   proposal counts and later hypothetical price comparisons, not a trained
-   predictor, executed trades or realized profit. No AI recommendation gates
-   the scanner. Missing future observations expire as missed, not losses.
-8. STOP prevents subsequent scans and discards an in-flight scan result. Current
-   findings remain on screen. Export diagnostics while the app remains open;
-   the simplified report has eight current sections, replacing obsolete
-   shadow/pilot/GPU audits. Counts and notes are RAM-only across this session.
-
-REAL SWAPS REMAIN UNAVAILABLE. Completing actual automatic trading requires
-verified native fill/fee accounting, stable order identities, duplicate
-prevention and ambiguous-outcome restart recovery. This release does not remove
-the unconditional production order block or claim that risk acceptance supplies
-those missing capabilities.
+Tonight's goal is startup, data integrity, manual controls, hover usability and
+STOP—not a profit verdict. After code/local checks, collect 48–72h of read-only
+coverage, then optionally 2–4 weeks across independent regimes. RAM setups and
+counts disappear on restart; export before closing. Public quotes use the existing
+bounded local research store. Native Windows launcher, DPAPI, single-instance,
+cleanup and resource checks still need local evidence. Source restoration and
+environment publication are separate; no old publication success is asserted.

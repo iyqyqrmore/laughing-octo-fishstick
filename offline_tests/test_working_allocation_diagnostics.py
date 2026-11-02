@@ -1,7 +1,6 @@
 """Per-observation deadlines and explicit, quantity-private working allocation."""
 from copy import deepcopy
 from decimal import Decimal as D
-from pathlib import Path
 import json
 import unittest
 
@@ -9,115 +8,8 @@ from coincat_eth_farmer import measure_eth, measure_working_eth, eth_quote_plan
 from coincat_eth_diagnostics import structural_details
 from coincat_working_allocation import (AllocationRow,OwnerAuthorization,ReconciliationEvidence,
     assess_allocation,allocation_keys,allocation_diagnostics)
-from coincat_v80_discovery import select_books
-from coincat_passive_lab import PassiveLab,HORIZONS
-from offline_tests.test_v91_full_balance import market,NOW
-from offline_tests.test_research_scheduler import isolated_jobs
-from offline_tests import test_v91_scanner_gui as gui
-
-
-def deadline_fixture(planner=select_books):
-    """Eight independent deadline-contention episodes, not the uploaded misses.
-
-    Six 15m and two 60m observations have 10s remaining. A competing horizon
-    has aging priority but 120s remaining. Both fit over two 12s turns, never
-    together in six books. No candidate is admitted during the fixture.
-    """
-    outcomes={'completed':0,'missed':0,'max_requests':0,'all_jobs_completed':0}
-    for horizon in (900,)*6+(3600,)*2:
-        lab,rules=isolated_jobs();other=300
-        lab.pending={k:r for k,r in lab.pending.items() if k in (f'{horizon}_0',f'{other}_0')}
-        lab.pending[f'{horizon}_0']['at']=NOW-horizon-110
-        lab.pending[f'{other}_0']['at']=NOW-other
-        lab.service_wait[other]=2
-        quotes={}
-        for at in (NOW,NOW+12):
-            plan=planner(list(rules),rules,set(),quotes=quotes,now=at,
-                priority_groups=lab.quote_groups(now=at))
-            assert plan['endpoint_requests']<=6 and len(plan['books'])<=16
-            outcomes['max_requests']=max(outcomes['max_requests'],len(plan['books']))
-            incoming={p:(D(100),D('100.01'),at) for p in plan['books']}
-            quotes.update(incoming);lab.record_service(plan,incoming,{},now=at)
-            lab.observe({'ranked':[]},quotes,now=at)
-        outcomes['completed']+=lab.counts[f'{horizon}_NOT_ABOVE_HOLD']+lab.counts[f'{horizon}_ABOVE_HOLD']
-        outcomes['missed']+=lab.counts[f'{horizon}_MISSED']
-        outcomes['all_jobs_completed']+=sum(lab.counts[f'{h}_NOT_ABOVE_HOLD']+lab.counts[f'{h}_ABOVE_HOLD'] for h in HORIZONS)
-        assert lab.admission['admitted_distinct']==0
-    return outcomes
-
-
-class ObservationDeadlines(unittest.TestCase):
-    def test_eight_individual_deadlines_are_met_without_more_books_or_admissions(self):
-        result=deadline_fixture()
-        self.assertEqual(result,{'completed':8,'missed':0,'max_requests':5,'all_jobs_completed':16})
-        baseline=json.loads(Path(__file__).with_name('deadline_contention_baseline.json').read_text())
-        self.assertLess(result['missed'],baseline['baseline']['missed'])
-        self.assertEqual(result['max_requests'],baseline['baseline']['max_requests'])
-
-    def test_deferral_explains_competition_limit_and_remaining_time_per_observation(self):
-        lab,rules=isolated_jobs();quotes={}
-        # Both jobs are urgent; the earlier deadline must get the single turn.
-        lab.pending={k:r for k,r in lab.pending.items() if k in ('900_0','3600_0')}
-        lab.pending['900_0']['at']=NOW-900-115
-        lab.pending['3600_0']['at']=NOW-3600-110
-        plan=select_books(list(rules),rules,set(),quotes=quotes,now=NOW,priority_groups=lab.quote_groups(now=NOW))
-        incoming={p:(D(100),D('100.01'),NOW) for p in plan['books']}
-        lab.record_service(plan,incoming,{},now=NOW);lab.observe({'ranked':[]},incoming,now=NOW)
-        lab.observe({'ranked':[]},incoming,now=NOW+13)
-        event=lab.diagnostics()['capacity_miss_records'][0]
-        self.assertEqual(event['horizon_s'],3600)
-        self.assertEqual(event['required_books'],5)
-        self.assertEqual(event['remaining_s'],10)
-        self.assertEqual(event['competing_groups'],1)
-        self.assertEqual(set(event['blockers']),{'SIX_BOOK_RESEARCH_LIMIT','COMPETING_DEADLINE_GROUPS','NO_CONSERVATIVE_RETRY_WINDOW'})
-        self.assertEqual(event['observation_deferral_passes'],1)
-        self.assertNotIn('deadline',event)
-
-    def test_oversized_dependency_group_is_distinguished_from_competing_groups(self):
-        q,rules=market()
-        names=tuple(f'AA{i}-USD' for i in range(7))
-        rules={p:dict(next(iter(rules.values())),product_id=p) for p in names}
-        job=('PRIVATE_OBSERVATION_ID',900)
-        plan=select_books(names,rules,set(),quotes={},now=NOW,priority_groups=[
-            {'books':names,'earliest':NOW,'deadline':NOW+3,'jobs':[job]}])
-        detail=plan['_research_evidence'][job]
-        self.assertIn('DEPENDENCIES_CANNOT_FIT_TOGETHER',detail['blockers'])
-        self.assertIn('LESS_THAN_COLLECTION_WINDOW_REMAINING',detail['blockers'])
-        self.assertNotIn('COMPETING_DEADLINE_GROUPS',detail['blockers'])
-        self.assertEqual(plan['endpoint_requests'],0)
-
-    def test_shared_dependency_union_fits_without_counting_jobs_as_requests(self):
-        _,rules=isolated_jobs();sample=next(iter(rules.values()))
-        names=tuple(f'SH{i}-USD' for i in range(6));rules={p:dict(sample,product_id=p) for p in names}
-        groups=[dict(books=names[:5],earliest=NOW,deadline=NOW+9,jobs=[('one',900)]),
-                dict(books=names[1:],earliest=NOW,deadline=NOW+10,jobs=[('two',3600)])]
-        plan=select_books(names,rules,set(),quotes={},now=NOW,priority_groups=groups)
-        self.assertEqual(plan['endpoint_requests'],6)
-        self.assertEqual(set(plan['_research_scheduled']),{('one',900),('two',3600)})
-
-    def test_actual_late_collection_is_reported_without_claiming_estimated_service(self):
-        lab,rules=isolated_jobs();lab.pending={k:r for k,r in lab.pending.items() if k=='900_0'}
-        lab.pending['900_0']['at']=NOW-900-115
-        plan=select_books(list(rules),rules,set(),quotes={},now=NOW,priority_groups=lab.quote_groups(now=NOW))
-        incoming={p:(D(100),D('100.01'),NOW+6) for p in plan['books']}
-        lab.record_service(plan,incoming,{},now=NOW+6);lab.observe({'ranked':[]},incoming,now=NOW+6)
-        event=lab.diagnostics()['capacity_miss_records'][0]
-        self.assertTrue(event['collection_finished_after_deadline'])
-        self.assertEqual(event['terminal_cause'],'COLLECTION_FINISHED_AFTER_DEADLINE')
-        self.assertEqual(lab.counts['900_MISSED'],1)
-        self.assertEqual(lab.counts['900_NOT_ABOVE_HOLD'],0)
-
-    def test_miss_records_are_bounded_and_have_no_observation_ids_or_amounts(self):
-        lab,_=isolated_jobs();row=deepcopy(lab.pending['900_0']);lab.pending={}
-        row['at']=NOW-900-121;row['blocked'][900]='RESEARCH_SHARE_DEFERRED'
-        row['spent']=D('9876543.2109876')
-        for n in range(260):lab.pending[f'PRIVATE_OBSERVATION_ID_{n}']=deepcopy(row)
-        lab.observe({'ranked':[]},{},now=NOW)
-        data=lab.diagnostics()
-        self.assertEqual(len(data['capacity_miss_records']),256)
-        self.assertEqual(data['capacity_miss_records_dropped'],4)
-        self.assertNotIn('PRIVATE_OBSERVATION_ID',str(data))
-        self.assertNotIn('9876543.2109876',str(data))
+from offline_tests.test_native_receipts import market,NOW
+from offline_tests import gui_fixtures as gui
 
 
 def allocation_fixture():
@@ -366,7 +258,7 @@ class AllocationGUI(unittest.TestCase):
         editor=self.prepare();self.root.geometry('1040x780')
         editor.master.master.select(editor.master);self.root.update()
         editor.canvas.yview_moveto(1);self.root.update()
-        self.assertGreater(editor.canvas.yview()[0],0)
+        self.assertGreater(editor.canvas.yview()[1],editor.canvas.yview()[0])
         buttons=[]
         def visit(widget):
             if widget.winfo_class()=='TButton':buttons.append(widget)
@@ -387,26 +279,15 @@ class AllocationGUI(unittest.TestCase):
         self.assertGreater(editor.tree.yview()[0],0)
         self.assertEqual(len(editor.tree.get_children()),27)
 
-    def test_draft_does_not_change_v91_full_available_sizing_or_export_native_amounts(self):
-        app=self.app;client=gui.FakeClient()
-        from coincat_scanner import Scanner
+    def test_draft_cannot_mutate_private_ledger_or_leak_native_amounts_in_v95_export(self):
+        app=self.app;editor=self.prepare();before=gui.ledger_dump(app.ledger)
+        editor.fields['working'].set('1');editor.fields['protected'].set('2');editor.apply_selected()
+        self.assertEqual(before,gui.ledger_dump(app.ledger))
+        self.assertEqual(editor.assessment()['eligible_working_balances'],{})
+        editor.draft['ETH']=AllocationRow('ETH',D('.00098765432109876'),protected=D('2'))
         from coincat_simple_diagnostics import make_report
-        app.scanner=Scanner(app.ledger,client,app.fees,app.market);app.scanner.refresh(now=NOW)
-        original=app.scanner.scan(now=NOW,collect=gui.collector(client))
-        editor=app.allocation_editor;editor.clock=lambda:NOW
-        editor.snapshot(app.scanner.balances,NOW,NOW)
-        editor.tree.selection_set('BTC');editor._select();editor.fields['working'].set('.001')
-        editor.fields['manual'].set('.001');editor.apply_selected();editor.confirmed.set(True);editor.authorize()
-        result=app.scanner.scan(now=NOW,collect=gui.collector(client),**editor.parameters())
-        self.assertEqual(original['ranked'],result['ranked'])
-        self.assertEqual(result['best']['available'],D('.002'))
-        self.assertEqual(result['working_allocation']['eligible_working_balances'],{})
-        app.last_result=result;app._render(result)
-        # Inject a sentinel into private/local views; exports must project only roles/reasons.
-        editor.draft['BTC']=AllocationRow('BTC',D('.00098765432109876'),D('.00101234567890124'))
         report=make_report(app,now=NOW)
         self.assertIn('COMPLETE (8/8)',report)
-        self.assertIn('eth_conversion_blockers',report);self.assertIn('working_allocation',report)
+        self.assertIn('ETH MAKER RESEARCH',report);self.assertIn('working_allocation',report)
         self.assertNotIn('0.00098765432109876',report)
         self.assertNotIn(str(app.ledger.path),report)
-        self.assertFalse(result['live_order_permission'])

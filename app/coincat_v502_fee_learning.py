@@ -73,9 +73,10 @@ class FeeLearning:
             row=db.execute('SELECT captured_at,maker_fraction,taker_fraction FROM account_fee_tier WHERE rowid=1').fetchone()
         if not row:return {'state':'NO_ACCOUNT_FEE_EVIDENCE','fresh':False,'maker':None,'taker':None}
         ts,maker,taker=row
-        age=max(0,now-int(ts))
-        return {'state':'ACCOUNT_TIER_VERIFIED' if age<=self.ttl else 'STALE_ACCOUNT_FEE_TIER',
-                'fresh':age<=self.ttl,'age_s':age,'maker':Decimal(maker),'taker':Decimal(taker),
+        age=now-int(ts)
+        return {'state':'ACCOUNT_TIER_VERIFIED' if 0<=age<=self.ttl else 'STALE_ACCOUNT_FEE_TIER',
+                'fresh':0<=age<=self.ttl,'age_s':age,'captured_at':int(ts),
+                'maker':Decimal(maker),'taker':Decimal(taker),
                 'source':'AUTHENTICATED_SPOT_TRANSACTION_SUMMARY'}
 
     def due(self,*,now=None):
