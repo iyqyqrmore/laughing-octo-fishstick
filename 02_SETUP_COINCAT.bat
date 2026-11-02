@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-echo CoinCat v95.0 development preview - read-only ETH maker research
+echo CoinCat v100.0 development preview - read-only ETH maker research
 if exist ".venv\Scripts\python.exe" goto packages
 py -3.11 -m venv ".venv"
 if errorlevel 1 (

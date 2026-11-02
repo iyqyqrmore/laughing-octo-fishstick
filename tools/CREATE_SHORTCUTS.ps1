@@ -3,7 +3,7 @@
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $icon = Join-Path $root 'app\CoinCat50.ico'
 $items = @(
-  @{Title='CoinCat v95 - START.lnk'; File='app\coincat_start.py'; Gui=$true}
+  @{Title='CoinCat v100 - START.lnk'; File='app\coincat_start.py'; Gui=$true}
 )
 $shell = New-Object -ComObject WScript.Shell
 foreach ($item in $items) {
@@ -20,7 +20,7 @@ foreach ($item in $items) {
     }
     $shortcut.WorkingDirectory = $root
     $shortcut.IconLocation = "$icon,0"
-    $shortcut.Description = 'CoinCat v95.0 ETH Growth research, live Coinbase POST blocked'
+    $shortcut.Description = 'CoinCat v100.0 ETH Growth research, live Coinbase POST blocked'
     $shortcut.Save()
     Write-Host "Created $($item.Title)"
 }

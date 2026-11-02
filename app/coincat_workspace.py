@@ -7,7 +7,7 @@ from coincat_allocation_editor import WorkingAllocationEditor
 from coincat_chart import QuoteChart
 from coincat_hover import Hover,help_tree
 from coincat_mixer import ResearchMixer
-from coincat_theme import apply_theme,BG,TEXT,MUTED
+from coincat_theme import apply_theme,BG,TEXT
 from coincat_version import DISPLAY
 from coincat_watchlist import WATCH_PAIRS
 
@@ -15,24 +15,41 @@ from coincat_watchlist import WATCH_PAIRS
 def build_workspace(app):
     root=app.root;apply_theme(root)
     shell=ttk.Frame(root,padding=10);shell.pack(fill='both',expand=True)
-    header=ttk.Frame(shell);header.pack(fill='x',pady=(0,7))
-    app.logo=tk.PhotoImage(file=str(Path(__file__).with_name('coincat_logo_banner_520.png'))).subsample(4)
-    logo=ttk.Label(header,image=app.logo);logo.pack(side='left',padx=(0,10))
-    Hover(logo,DISPLAY+' · Original CoinCat artwork. Seven-market read-only ETH study.')
-    ttk.Label(header,text=DISPLAY+' / ETH workspace',style='Title.TLabel').pack(side='left')
-    badge=ttk.Label(header,text='RESEARCH ONLY  ·  LIVE BLOCKED',foreground='#eab86b');badge.pack(side='right')
+    # The owner-selected upper-right header space holds the larger cutout banner.
+    top=ttk.Frame(shell);top.pack(fill='x',pady=(0,7))
+    top.columnconfigure(1,weight=1);top.rowconfigure(0,minsize=160)
+    header=ttk.Frame(top);header.grid(row=0,column=0,sticky='nw',padx=(0,12))
+    ttk.Label(header,text=DISPLAY+' / ETH workspace',style='Title.TLabel',wraplength=410).pack(anchor='w')
+    badge=ttk.Label(header,text='RESEARCH ONLY  ·  LIVE BLOCKED',foreground='#eab86b');badge.pack(anchor='w',pady=(2,6))
     Hover(badge,'Real order submission is unconditionally blocked. Quotes and hypothetical setups never create Coinbase orders or verified profit.')
     if sys.platform=='win32':root.iconbitmap(str(Path(__file__).with_name('CoinCat50.ico')))
-    actions=ttk.Frame(shell);actions.pack(fill='x',pady=(0,5))
+    actions=ttk.Frame(header);actions.pack(fill='x',pady=(0,5))
     for label,command,tip in (
         ('Import key JSON',app._import_key,'Import locally on this PC. Never send Coinbase keys to chat. Existing DPAPI and permission checks remain.'),
         ('Connect / refresh',app._connect,'Read current account, authenticated product rules and fee evidence. Only the approved seven products can receive research quotes.'),
         ('Export diagnostics',app._export,'Export all eight redacted sections. No balances, native amounts, receipts, private paths, account IDs or keys.')):
         button=ttk.Button(actions,text=label,command=command);button.pack(side='left',padx=(0,6));Hover(button,tip)
-    status=ttk.Label(shell,textvariable=app.status,style='Muted.TLabel',wraplength=1250);status.pack(anchor='w')
+    status=ttk.Label(header,textvariable=app.status,style='Muted.TLabel',wraplength=410);status.pack(anchor='w')
     Hover(status,lambda:app.status.get()+'. Source preview only. No orders, transfers or automatic funding changes.')
-    observation=ttk.Label(shell,textvariable=app.observation_text,wraplength=1250);observation.pack(anchor='w',pady=(2,6))
+    observation=ttk.Label(header,textvariable=app.observation_text,wraplength=410);observation.pack(anchor='w',pady=(2,0))
     Hover(observation,'Current recovery state and last-good observation age. STOP cancels queued research/retries. Historical evidence is not current pricing.')
+    banner=ttk.Frame(top);banner.grid(row=0,column=1,sticky='nsew')
+    # Trim only transparent display padding; the packaged RGBA artwork is intact.
+    source=tk.PhotoImage(file=str(Path(__file__).with_name('coincat_logo_transparent.png')),format='png')
+    app._logo_source=tk.PhotoImage(width=source.width(),height=445)
+    app._logo_source.tk.call(app._logo_source,'copy',source,'-from',0,145,source.width(),590)
+    app.logo=app._logo_source.subsample(3)
+    app.logo_label=ttk.Label(banner,image=app.logo,anchor='center')
+    app.logo_label.place(relx=.5,rely=.5,anchor='center')
+    Hover(app.logo_label,DISPLAY+' · Larger CoinCat artwork with true alpha transparency in the upper workspace header.')
+    app._logo_scale=3
+    def fit_logo(event):
+        import math
+        scale=max(3,math.ceil(app._logo_source.width()/max(1,event.width-8)))
+        if scale!=app._logo_scale:
+            app._logo_scale=scale;app.logo=app._logo_source.subsample(scale)
+            app.logo_label.configure(image=app.logo)
+    banner.bind('<Configure>',fit_logo)
     app.tabs=ttk.Notebook(shell);app.tabs.pack(fill='both',expand=True)
     growth=ttk.Frame(app.tabs,padding=6);mixer_tab=ttk.Frame(app.tabs,padding=8)
     allocation=ttk.Frame(app.tabs);lab=ttk.Frame(app.tabs,padding=8)
@@ -149,6 +166,13 @@ def build_workspace(app):
     ttk.Checkbutton(monitor_bar,text='Local monitor',variable=app.monitor_enabled,command=app._monitor_changed).pack(side='left')
     monitor_label=ttk.Label(monitor_bar,textvariable=app.monitor_text);monitor_label.pack(side='left',padx=12)
     Hover(monitor_label,'Local redacted snapshot writing, not an automatic assistant connection. The separately configured helper has no control or update channel.')
+    adaptive=ttk.LabelFrame(lab,text='Adaptive ETH Research',padding=10);adaptive.pack(fill='x',pady=(0,10))
+    app.adaptive_label=ttk.Label(adaptive,textvariable=app.adaptive_text,wraplength=850)
+    app.adaptive_label.pack(anchor='w')
+    Hover(app.adaptive_label,'Conditional research only. HOLD is the default; no predictive improvement has been demonstrated. '
+        'The separate offline harness supports explicit simulated fills, a shared paper budget and fixed-horizon outcomes. '
+        'Normal scanning creates no inventory or reservations. Missing sized depth, fee currency or native-residue valuation means UNKNOWN. '
+        'A 15% alert is a review proposal only, never an automatic liquidation policy.')
     app.lab_text=tk.Text(lab,wrap='word',font=('Segoe UI',10),state='disabled',height=7,
         background=BG,foreground=TEXT,insertbackground=TEXT,relief='flat')
     app.lab_text.pack(fill='both',expand=True)

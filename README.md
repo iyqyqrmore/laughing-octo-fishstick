@@ -1,31 +1,26 @@
-# CoinCat v95.0 — ETH Growth research preview
+# CoinCat v100.0 — Adaptive ETH Research
 
-A small, read-only ETH maker study: ETH plus up to four manually approved
-companions with eligible authenticated direct ETH spot markets. No USD/USDC
-bridges, automatic coin selection, orders, previews, transfers or wallet posts.
+A read-only seven-market research build. ETH is the initial working asset and the
+success unit. Live order submission remains unconditionally blocked.
 
-Compare an immediate taker round trip with a patient post-only entry/exit
-hypothesis. Both use exact native quantities and the same initial ETH versus
-HOLD. The future exit is a target, not a forecast. Price touches are uncertain
-fills, never earned ETH. Account fee tier does not establish pair-specific fees
-or fee currency. Missing evidence yields **NO QUALIFIED EVIDENCE**.
+The existing patient maker comparisons, native-price quote chart, manual mixer,
+allocation proposal, STOP/recovery and local monitor are preserved. The larger
+alpha-transparent CoinCat banner occupies the upper header space to the right
+of the title and connection controls.
 
-The v95 screen has a small original CoinCat logo and a stored-quote candlestick
-chart beside the ETH engine controls, with compact activity below. Separate
-Manual mixer, Allocation and Research notes tabs keep the screen compact. Six
-manual faders have exact text entries; modeling ETH defaults to full working ETH
-after carve-outs. Pointer-adjacent hover details stay bounded and scroll when long.
-The old broad scanner/dashboard and multi-horizon experiments were retired.
-Canonical financial modules and the secondary immediate-cycle calculator remain.
+Adaptive ETH Research adds bounded listed directions, conditional native-cost
+paths, one shared simulated funding/reservation contract, fixed-horizon HOLD
+comparisons and a separate paper ETH scoreboard. The app displays a read-only
+summary using existing scans. It does **not** seed BTC, settle paper trades,
+create predictions or automatically run hypothetical branches. The pure API and
+explicit offline example are documented in [docs/V100_RESEARCH.md](docs/V100_RESEARCH.md).
 
-Read [START_HERE.md](START_HERE.md) for a separate Windows trial tonight and
-[docs/V95_RESEARCH.md](docs/V95_RESEARCH.md) for assumptions, evidence and limits.
-[VERIFICATION.txt](VERIFICATION.txt) records actual validation; Linux tests do not
-establish native Windows/DPAPI acceptance or profitability. This is a development
-preview, not an execution-ready release. Preserve private_data and private_backups.
+There is **NO DEMONSTRATED EDGE**. Missing depth, exact fee currency, synchronized
+quotes or residue valuation means recoverable paper ETH is **UNKNOWN**. A touch
+is not a fill. Independent counterfactuals cannot be added as a funded portfolio.
+No Coinbase One fee waiver, maker rebate or forced liquidation is assumed.
 
-The continuity hotfix keeps relevant per-market setups through temporary quote
-and fee gaps, adds bounded read-only reconnection and labels last-good data by
-its age at display/export. Unrelated assets no longer reset ETH research. Read
-[the hotfix record](docs/V95_CONTINUITY_HOTFIX.md) and the supervised local steps
-in START_HERE.md before another overnight observation.
+Read [START_HERE.md](START_HERE.md) before installing into a separate folder.
+[VERIFICATION.txt](VERIFICATION.txt) records this build's actual checks and limits;
+[the independent feedback](docs/ADAPTIVE_ETH_CODEX_FEEDBACK.md) explains objections
+and the next small research step. No running PC or private dataset was changed.

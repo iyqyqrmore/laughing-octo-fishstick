@@ -1,4 +1,4 @@
-"""Synthetic account/quote fixtures and deterministic Tk lifetime for v95 tests."""
+"""Synthetic account/quote fixtures and deterministic Tk lifetime for v100 tests."""
 from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory

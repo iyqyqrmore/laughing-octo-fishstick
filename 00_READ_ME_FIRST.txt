@@ -1,9 +1,16 @@
-CoinCat v95.0 — ETH Growth research preview
+CoinCat v100.0 — Adaptive ETH Research
 
-Read START_HERE.md. Extract into a separate folder. Preserve your existing
-installation, private_data and private_backups. Use Windows Python 3.11.
-Run 02_SETUP_COINCAT.bat and 03_VERIFY_COINCAT.bat before local acceptance.
+Read START_HERE.md. Extract source into a separate folder; never overlay a running
+installation or share its private_data between app processes. Preserve all private
+records and backups. This is Python source, not an EXE or a live trading release.
 
-ETH only, up to three manually approved direct-ETH companions. Six manual
-research faders; hover for detail. No orders or previews. No fill or ETH profit
-is established by a quote touch. This is a development preview.
+Run 02_SETUP_COINCAT.bat then 03_VERIFY_COINCAT.bat using Windows Python 3.11.
+Only initialize NEW data after explicit confirmation in an empty destination.
+
+New: bounded conditional adaptive ETH research, larger transparent header artwork,
+v100 diagnostics and monitor v2. Normal app scanning does not seed BTC or settle
+paper trades. HOLD / NO DEMONSTRATED EDGE and UNKNOWN are valid research outcomes.
+The optional offline demo requires --synthetic. It cannot establish actual profit.
+
+Live submission remains unconditionally blocked. No order/preview/transfer calls,
+automatic ARM, financial mutations, installed-PC changes or cloud publication.

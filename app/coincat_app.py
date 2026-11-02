@@ -1,8 +1,7 @@
-"""CoinCat v95: a small ETH Growth research shell. Live orders stay blocked."""
+"""CoinCat v100: a small ETH Growth research shell. Live orders stay blocked."""
 from datetime import datetime,timezone
 from pathlib import Path
 from queue import Queue,Empty
-import sys
 import threading
 import math
 import time
@@ -44,6 +43,7 @@ class CoinCatApp:
         self.observation_text=tk.StringVar(value='STOPPED · No completed research observation')
         self.funding_text=tk.StringVar(value='Working proposal: unset · Protected ETH: unverified')
         self.evidence_text=tk.StringVar(value='Fees: unobserved · Fills: unverified · Actual profit: not established')
+        self.adaptive_text=tk.StringVar(value='HOLD · NO DEMONSTRATED EDGE\nNo hypothetical inventory initialized. Recoverable ETH: UNKNOWN.')
         self.detail_text=tk.StringVar(value='Select a market for details. Hover any control or result for help.')
         self.portfolio_view=PortfolioView();self.portfolio_result={}
         self.eth_held_text=tk.StringVar(value='Unobserved');self.basket_text=tk.StringVar(value='Unpriced')
@@ -336,6 +336,12 @@ class CoinCatApp:
                 ' · Fill evidence: unverified · Actual profit: not established')
             self._render_rows(self.last_result,view)
             self._select_row()
+        adaptive=(self.last_result or {}).get('adaptive',{})
+        names=', '.join(r['target'] for r in adaptive.get('candidates',())) or 'Await eligible markets'
+        self.adaptive_text.set('HOLD · NO DEMONSTRATED EDGE · '+self.recovery.state+
+            '\nSource ETH; conditional next assets: '+names+
+            '\nBTC → SOL requires an explicit hypothetical BTC position. No paper inventory initialized.'+
+            '\nAfter-cost recoverable paper ETH: UNKNOWN · Forecast confidence: UNVALIDATED · Verified fills: 0')
         self._update_market_view(now)
 
     def _render_wallet(self):
@@ -456,8 +462,8 @@ class CoinCatApp:
         self.monitor.stop(final)
 
     def _export(self):
-        path=filedialog.asksaveasfilename(title='Save v95 diagnostics',defaultextension='.txt',
-            initialfile='CoinCat_v95_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
+        path=filedialog.asksaveasfilename(title='Save v100 diagnostics',defaultextension='.txt',
+            initialfile='CoinCat_v100_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
         if path:
             try:Path(path).write_text(make_report(self),encoding='utf-8')
             except OSError as exc:messagebox.showerror('Diagnostics',f'Export failed ({type(exc).__name__}).')

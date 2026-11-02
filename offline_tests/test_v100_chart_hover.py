@@ -14,7 +14,7 @@ from coincat_hover import popup_geometry,visible_bounds
 from coincat_live_forward_store import ForwardStore
 from coincat_working_allocation import AllocationRow
 from offline_tests import gui_fixtures as fixtures
-from offline_tests.test_v95_eth_growth import prepare,run_growth
+from offline_tests.test_v100_eth_growth import prepare,run_growth
 from offline_tests.test_native_receipts import NOW
 
 BASE=1700000040  # Past UTC minute boundary, synthetic prices only.

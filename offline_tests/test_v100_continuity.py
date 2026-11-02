@@ -19,7 +19,7 @@ from coincat_simple_diagnostics import make_report
 from coincat_v701_transport import QuoteErrors
 from coincat_working_allocation import AllocationRow
 from offline_tests import gui_fixtures as fixtures
-from offline_tests.test_v95_eth_growth import prepare,run_growth,modeled,GrowthClient
+from offline_tests.test_v100_eth_growth import prepare,run_growth,modeled,GrowthClient
 from offline_tests.test_native_receipts import NOW
 
 

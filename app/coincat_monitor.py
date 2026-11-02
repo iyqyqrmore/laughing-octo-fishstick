@@ -12,15 +12,16 @@ import time
 import uuid
 
 from coincat_version import DISPLAY
+from coincat_adaptive_eth import public_summary as adaptive_public,validate_public
 
-SCHEMA='coincat-monitor/v1'
+SCHEMA='coincat-monitor/v2'
 MAX_SNAPSHOT=32768
 HISTORY_BYTES=2*1024*1024
 HISTORY_FILES=4
 COUNTS=('setups','invalidated','unpriced_episodes','resumed_episodes','fee_changes',
         'expired','entry_touches_uncertain','target_touches_uncertain')
 STATES={'STOPPED','RUNNING','RETRYING','PAUSED_NEEDS_ATTENTION','UNKNOWN'}
-SETUP_STATES={'UNOBSERVED','SETUP_ACTIVE_OBSERVABLE','SETUP_ACTIVE_UNPRICED','SETUP_EXPIRED','UNKNOWN'}
+SETUP_STATES={'NO_SETUP_UNPRICED','UNOBSERVED','SETUP_ACTIVE_OBSERVABLE','SETUP_ACTIVE_UNPRICED','SETUP_EXPIRED','UNKNOWN'}
 STAGES={'PERMISSIONS','BALANCES','CATALOG','FEE_TIER','PUBLIC_QUOTE','LOCAL_PUBLIC_QUOTE_STORE','UNKNOWN'}
 ERRORS={'Timeout','ReadTimeout','ConnectTimeout','SSLError','ConnectionError','HTTPError',
         'SQLiteError','ValueError','LiveBlocked','QuoteUnavailable','QuoteDeferred','FeeRefreshDeferred','UnexpectedError','UNKNOWN'}
@@ -99,6 +100,7 @@ def capture(app,*,session,sequence,manifest_sha256=None,now=None,lifecycle='OPEN
             retry_attempt=_count(recovery.get('retry_attempt')),retry_in_s=_number(recovery.get('retry_in_s')),
             interruptions=_count(recovery.get('scan_interruptions')),recoveries=_count(recovery.get('recovered_periods')),
             last_failure=last_failure),products=products,
+        adaptive=adaptive_public(result.get('adaptive')),
         observations={k:_count(result.get('study_counts',{}).get(k,0)) for k in COUNTS})
     validate(snapshot)
     return snapshot
@@ -112,7 +114,7 @@ def validate(value):
         if raw is not None and (type(raw) not in (int,float) or _number(raw) is None):raise ValueError('INVALID_MONITOR_NUMBER')
     def count(raw):
         if raw is not None and _count(raw) is None:raise ValueError('INVALID_MONITOR_COUNT')
-    exact(value,'schema version session sequence manifest_sha256 captured_at lifecycle companions health products observations')
+    exact(value,'schema version session sequence manifest_sha256 captured_at lifecycle companions health products observations adaptive')
     if value['schema']!=SCHEMA or value['version']!=DISPLAY:raise ValueError('INVALID_MONITOR_VERSION')
     if not isinstance(value['session'],str) or not re.fullmatch(r'[0-9a-f]{32}',value['session']):raise ValueError('INVALID_MONITOR_SESSION')
     if type(value['sequence']) is not int or not 1<=value['sequence']<=2**53:raise ValueError('INVALID_MONITOR_SEQUENCE')
@@ -142,6 +144,7 @@ def validate(value):
         for key in ('quote_at','entry_at','expiry_at'):number(product[key])
         reasons=product['reasons']
         if not isinstance(reasons,list) or len(reasons)>16 or any(r!=_reason(r) for r in reasons):raise ValueError('INVALID_MONITOR_REASONS')
+    validate_public(value['adaptive'])
     exact(value['observations'],' '.join(COUNTS))
     for raw in value['observations'].values():count(raw)
     return value

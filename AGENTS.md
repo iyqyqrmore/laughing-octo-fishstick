@@ -1,66 +1,66 @@
-# Codex instructions — CoinCat v95.0
+# Codex instructions — CoinCat v100.0
 
-Read START_HERE.md, DECISION_CHAIN_REVIEW.md and docs/V95_RESEARCH.md. Use this
-isolated checkout; no worktrees unless asked. User authorized v95 simplification,
-obsolete experiment/test cleanup, manual mixer controls, logo and hover help.
-The implementation/change record is docs/V95_IMPLEMENTATION.md; retirement list
-is docs/V95_RETIRED.md. Preserve prior checkpoint history; no commit/push or
-publication unless separately requested.
+Read START_HERE.md, DECISION_CHAIN_REVIEW.md, docs/V100_RESEARCH.md,
+docs/V100_WORKSPACE.md and docs/V100_MONITOR.md. Use this checkout, no worktrees
+unless requested. The owner explicitly authorized a clean v100 build, redundant
+code/text cleanup, larger transparent upper-header logo, verification, commit
+and push on November 2, 2026. This does not authorize deployment or execution.
 
-ETH Growth is read-only: ETH funding/success unit, at most four explicit manually
-approved companions (BTC, ADA, LINK, SOL) using actual eligible authenticated direct ETH spot products.
-The owner now explicitly restricts active observation/history to ADA-ETH, ETH-BTC,
-LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC and ADA-BTC. Six books per pass remain the cap;
-four direct ETH anchors and rotating BTC cross-pairs cover all seven over time.
-BTC cross-pairs are observation-only until usable inventory and an explicit funded
-strategy exist. ETH is the sole initial funding source; never pre-credit companion
-inventory from an uncertain fill or treat independent comparisons as joint budgets.
-No USD/USDC bridges, automatic expansion, scanner funding fallback, fee fallback,
-fake fills, realized ETH credit, reserve movement, AI settings or auto-ARM.
-Patient maker returns cannot be justified with synchronous multi-leg prices.
-Keep the secondary cycle calculator/tests and protected financial compatibility.
+Only ADA-ETH, ETH-BTC, LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC and ADA-BTC may receive
+active research quotes/history. Five assets: ETH, BTC, ADA, LINK, SOL. ETH is the
+only initial funding source. No USD/USDC bridges, alternate products, automatic
+selection, startup BTC seed, fee fallback, quote-touch fills, realized ETH credit,
+reserve harvesting or auto ARM. Direct maker scenarios remain independent
+comparisons; never sum their full-wallet amounts as concurrent funding.
 
-LiveBroker.submit must retain unconditional first-statement LiveBlocked. No cloud
-orders, create/edit/cancel/transfer endpoints or new authenticated preview traffic.
-Preserve coincat_live.py, coincat_unified_fifo_v501.py, coincat_state_v50.py and
-coincat_data_transfer.py. Do not mutate financial records, schemas, allocations,
-tax basis, lots, settings or credentials. Keep private_data/private_backups and
-Windows DPAPI/single-instance behavior. Fresh data requires empty destination and
-explicit confirmation. Never request keys in chat.
+Adaptive ETH research is pure/conditional. Normal UI scanning calls only the
+quantity-free observation summary; it creates no ResearchFunds or ForwardStudy.
+Only explicit offline SIMULATED_ASSUMPTION events can advance paper inventory.
+One budget cannot fund competing reservations; unknown/partial fills remain
+locked. Fixed-horizon forward observations never select the best later exit or
+establish predictive improvement. HOLD and NO DEMONSTRATED EDGE are the default.
+Missing depth/fee units/residue valuation means UNKNOWN. A drawdown alert is
+review-only and opt-in for offline callers, never a forced sale or loss limit.
 
-Use canonical Decimal receipts, fees once, native units, actual rules, exclusions,
-source residuals and explicit unknowns. Owner proposal is not reconciled settlement.
-Retain freshness 30s/spread 0.25%/per-decision span 12s; overall/research ceilings
-16/6, 0.2s GET spacing, collection deadlines and server backoff. Maker limits have
-no automatic taker slippage. Account tier does not prove fee currency/exceptions.
-Touch/crossing/high is not a fill. Missing evidence/zero positives is valid research.
-STOP invalidates queued results; editing controls or allocations invalidates the
-exact applied research plan. Hover help must remain available on mouse and focus.
+LiveBroker.submit must retain unconditional first-statement LiveBlocked. Preserve
+coincat_live.py, coincat_unified_fifo_v501.py, coincat_state_v50.py,
+coincat_data_transfer.py and protected key/lot/lock code. No create/edit/cancel,
+transfers, new authenticated previews, financial schema/record/lot/basis changes,
+real allocations, risk-setting changes or credential requests. Preserve
+private_data/private_backups and DPAPI/single-instance behavior. Fresh setup
+requires explicit confirmation and an empty destination.
 
-Python 3.11 and hash-locked dependencies. Forbid HTTP during test discovery and
-execution. Run focused cases, full suite, actual Tk/STOP/mixer/hover/export checks,
-protected-file byte checks and extracted-source verification. Never weaken economic
-or financial assertions. Retain the UTF-8 Snowball compatibility regression.
-Report exact runtime/counts/skips and distinguish Linux from native Windows.
-Package source only, regenerated SHA256_MANIFEST.json and independent ZIP checksum;
-exclude private data/backups, uploaded diagnostics/keys, virtual environments,
-logs and bytecode. All eight v95 export sections must redact native quantities,
-receipts, account IDs, private paths and authorization/evidence references.
+Canonical Decimal receipts, fees once, actual rules, native dust and exclusions
+remain binding. Retain secondary pure cycle/native financial compatibility and
+all financial assertions. Historical module/DB names are compatibility identifiers,
+not dependencies on old installation folders. No alternate receipt calculator.
 
-Owner's follow-up explicitly authorizes a full working-ETH GUI default (after
-manual/protected/excluded carve-outs), pointer-near bounded/scrollable help and
-a candlestick view of retained quote history above coins/research. Preserve custom
-amounts until Reset. The latest seven-market request expands the ETH companion
-limit to four. Chart data is sampled
-midpoint OHLC, not trade OHLC, volume, fill evidence or a strategy input. Keep
-all historical reads cancellable/read-only, gaps explicit, controls fit on screen,
-and existing book/request/storage limits unchanged. See START_HERE defaults.
+Preserve 30s age / 0.25% spread / 12s decision span, 16 total / 6 research books,
+four workers, 0.2s GET spacing, six-second collection deadline, provider backoff,
+hourly fee refresh, two-hour TTL and at least ten-minute failed-fee retry. Four
+ETH anchors plus two rotating BTC cross-pairs do not guarantee seven synchronized
+books. Never use cached/deferred books as a new combined executable decision.
 
-Current owner-authorized work is the dark spot-style workspace, strict seven-market
-scope and truthful watched-basket/counter display. Keep the local read-only helper.
-No new commit/push/deletion/publication/deployment without fresh owner authorization.
-Preserve the continuity hotfix in V95_CONTINUITY_HOTFIX.md, including typed ETH-only
-per-market research identity, original setup expiry through gaps, monotonic bounded
-read retries, STOP generations, stage-only sanitized failures and export-time
-freshness. Whole-account allocation/reconciliation contracts remain independent
-and unchanged; no research key can authorize settlement or execution.
+Preserve ETH-only continuity identity and original expiry through quote/fee gaps,
+bounded monotonic retries, sanitized stage errors and STOP/late Tk generation
+rejection. Unrelated balances and display controls must not reset ETH setups.
+Existing manual controls/defaults and exact custom amounts remain. Chart OHLC
+uses sampled midpoints, not exchange trades, volume, fill evidence or signals.
+
+Python 3.11, hash-locked dependencies, disposable synthetic state. HTTP must be
+forbidden during test discovery and execution. Run focused tests, full suite,
+actual Tk/STOP/mixer/hover/export/monitor checks, protected-file byte checks,
+source hashes, source-only packaging and independent extracted-source validation.
+Preserve the Snowball UTF-8 regression. Report counts/runtime/skips and distinguish
+Linux fixtures from native Windows/DPAPI/connected account evidence.
+
+Eight diagnostics themes and monitor v2 are quantity-free strict allowlists.
+Reject unknown fields at every monitor nesting level. Do not export balances,
+receipts, authorization references, account IDs, private paths or raw errors.
+NO_SETUP_UNPRICED is a legitimate state; QUOTE_WIDE is a pricing blocker, not a
+fill or a continuity failure. No monitor command/update channel.
+
+Source packages include regenerated SHA256_MANIFEST.json and an independent ZIP
+checksum; exclude private records/backups, reports/uploads, monitor files/tokens,
+keys, virtual environments, logs and bytecode. Further publication/deployment or
+later strategy/execution changes require their own owner authorization.

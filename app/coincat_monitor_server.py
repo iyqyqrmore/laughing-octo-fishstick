@@ -14,15 +14,15 @@ from coincat_monitor import monitor_directory,status
 
 HTML='''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CoinCat v95 · Monitor</title><link rel="stylesheet" href="/monitor.css"></head>
-<body><main><h1>CoinCat <small>v95 · Monitor</small></h1>
+<title>CoinCat v100 · Monitor</title><link rel="stylesheet" href="/monitor.css"></head>
+<body><main><h1>CoinCat <small>v100 · Monitor</small></h1>
 <p>Read-only app health · Trading blocked · Fills and profit unverified</p>
 <h2 id="state">Connecting…</h2><p id="message"></p>
 <div class="cards"><section><span>Last good scan</span><strong id="scan">—</strong></section>
 <section><span>Account / fees now</span><strong id="fees">—</strong></section>
 <section><span>Recovery</span><strong id="retry">—</strong></section></div>
 <table><thead><tr><th>Market</th><th>Quote age</th><th>Setup</th><th>Observation gaps</th></tr></thead><tbody id="markets"></tbody></table>
-<p id="counts"></p><button id="download">Save redacted snapshot</button>
+<p id="counts"></p><h2>Adaptive ETH Research</h2><p id="adaptive"></p><button id="download">Save redacted snapshot</button>
 <details><summary>Technical detail</summary><pre id="detail"></pre></details>
 <p class="note">The helper records while this chat is inactive. An assistant reads it only during an active session with private access configured.
 App updates use a separate source build and restart.</p></main><script src="/monitor.js"></script></body></html>'''
@@ -35,6 +35,7 @@ JS='''"use strict";
 let token=location.hash.slice(1), latest=null;
 history.replaceState(null,"",location.pathname);
 const put=(id,text)=>document.getElementById(id).textContent=text;
+const reasonText={QUOTE_WIDE:"Spread exceeds 0.25%; no current pricing",QUOTE_STALE:"Quote older than 30 seconds",QUOTE_NOT_RETURNED:"No quote returned",QUOTE_FUTURE:"Future-dated quote rejected",ACCOUNT_FEE_TIER_UNAVAILABLE:"Fresh fee evidence unavailable"};
 const age=x=>x===null||x===undefined?"Unobserved":x<0?"Future timestamp":x<60?Math.round(x)+" s":x<3600?Math.round(x/60)+" min":(x/3600).toFixed(1)+" h";
 async function refresh(){
  try{
@@ -49,13 +50,14 @@ async function refresh(){
   const body=document.getElementById("markets");body.replaceChildren();
   if(s)for(const p of s.products){
    const current=a.products.find(x=>x.pair===p.pair),tr=document.createElement("tr");
-   for(const text of [p.pair,age(current.quote_age_s)+(current.quote_within_age_limit?"":" · stale / unobserved"),current.current_setup_state,p.reasons.join(", ")||"None at capture"]){const td=document.createElement("td");td.textContent=text;tr.appendChild(td);}body.appendChild(tr);
+   for(const text of [p.pair,age(current.quote_age_s)+(current.quote_within_age_limit?"":" · stale / unobserved"),(current.current_setup_state==="NO_SETUP_UNPRICED"?"No valid first setup":current.current_setup_state),p.reasons.map(x=>reasonText[x]||x).join(", ")||"None at capture"]){const td=document.createElement("td");td.textContent=text;tr.appendChild(td);}body.appendChild(tr);
   }
   put("counts",s?"Setups "+s.observations.setups+" · Gap episodes "+s.observations.unpriced_episodes+" · Resumptions "+s.observations.resumed_episodes+" · Uncertain entry touches "+s.observations.entry_touches_uncertain:"");
+  put("adaptive",s?s.adaptive.decision+" · NO DEMONSTRATED EDGE · Recoverable paper ETH: UNKNOWN · No app-created paper positions or verified fills":"No current research snapshot");
   put("detail",JSON.stringify(latest,null,2));
- }catch(e){latest=null;put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
+ }catch(e){latest=null;put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
 }
-document.getElementById("download").addEventListener("click",()=>{if(!latest)return;const u=URL.createObjectURL(new Blob([JSON.stringify(latest,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download="CoinCat_v95_Monitor_Snapshot.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});
+document.getElementById("download").addEventListener("click",()=>{if(!latest)return;const u=URL.createObjectURL(new Blob([JSON.stringify(latest,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download="CoinCat_v100_Monitor_Snapshot.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});
 refresh();setInterval(refresh,5000);
 '''
 
@@ -155,7 +157,7 @@ def main(argv=None):
         server=MonitorServer(args.directory,port=args.port,tailnet_name=args.tailscale_name)
     except (OSError,ValueError):
         print('Monitor could not start. Check that its port is free and support_monitor is writable.');return 2
-    print('CoinCat v95 read-only monitor: http://127.0.0.1:'+str(args.port)+'/')
+    print('CoinCat v100 read-only monitor: http://127.0.0.1:'+str(args.port)+'/')
     print('No app commands. Ctrl+C stops this helper; CoinCat research continues.')
     if args.tailscale_name:
         print('Private HTTPS hostname configured. Tailscale Serve and cloud VPN access must be set up separately.')

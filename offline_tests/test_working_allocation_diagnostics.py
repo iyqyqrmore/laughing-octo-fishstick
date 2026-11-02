@@ -320,7 +320,7 @@ class AllocationGUI(unittest.TestCase):
         self.assertGreater(editor.tree.yview()[0],0)
         self.assertEqual(len(editor.tree.get_children()),27)
 
-    def test_draft_cannot_mutate_private_ledger_or_leak_native_amounts_in_v95_export(self):
+    def test_draft_cannot_mutate_private_ledger_or_leak_native_amounts_in_v100_export(self):
         app=self.app;editor=self.prepare();before=gui.ledger_dump(app.ledger)
         editor.fields['working'].set('1');editor.fields['protected'].set('2');editor.apply_selected()
         self.assertEqual(before,gui.ledger_dump(app.ledger))

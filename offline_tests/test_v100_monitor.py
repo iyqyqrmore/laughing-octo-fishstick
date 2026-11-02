@@ -18,7 +18,7 @@ from coincat_recovery import Recovery
 from coincat_simple_diagnostics import make_report
 from offline_tests import gui_fixtures as fixtures
 from offline_tests.test_native_receipts import NOW
-from offline_tests.test_v95_eth_growth import prepare,run_growth
+from offline_tests.test_v100_eth_growth import prepare,run_growth
 
 SECRET='PRIVATE_NATIVE_QUANTITY_9876543.210987654321'
 

@@ -19,7 +19,7 @@ from coincat_watchlist import WATCH_PAIRS,eligible_watchlist,schedule_books
 from coincat_working_allocation import AllocationRow
 from offline_tests import gui_fixtures as fixtures
 from offline_tests.test_native_receipts import NOW
-from offline_tests.test_v95_eth_growth import prepare
+from offline_tests.test_v100_eth_growth import prepare
 
 
 def network(folder):

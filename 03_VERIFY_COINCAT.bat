@@ -4,7 +4,7 @@ cd /d "%~dp0"
 if not exist ".venv\Scripts\python.exe" (echo Run 02_SETUP_COINCAT.bat first.&pause&exit /b 2)
 set "PYTHONPATH=%~dp0app;%~dp0"
 set "COINCAT_DATA_DIR=%TEMP%\CoinCat_Verify_Disposable_%RANDOM%%RANDOM%"
-echo CoinCat v95.0: SHA256 preview verification plus isolated source tests.
+echo CoinCat v100.0: SHA256 preview verification plus isolated source tests.
 "%~dp0.venv\Scripts\python.exe" -B VERIFY_SOURCE.py
 if errorlevel 1 goto fail
 echo Verifying Python source syntax against the installed Windows interpreter...

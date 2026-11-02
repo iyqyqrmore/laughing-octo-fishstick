@@ -1,4 +1,4 @@
-"""Eight v95 diagnostic sections. Strict quantity-free projections only."""
+"""Eight v100 diagnostic sections. Strict quantity-free projections only."""
 from contextlib import closing
 from datetime import datetime,timezone
 import sqlite3
@@ -6,6 +6,7 @@ import time
 from coincat_version import DISPLAY
 from coincat_live import TERMINAL
 from coincat_eth_maker import public_summary
+from coincat_adaptive_eth import public_summary as adaptive_public
 from coincat_working_allocation import allocation_diagnostics
 from coincat_continuity import freshness,age
 
@@ -79,7 +80,8 @@ def make_report(app,*,now=None):
             reconciliation='NOT VERIFIED',reserve='PROPOSED_CALCULATOR_ONLY_NO_EARMARKING',
             preferences='RAM_ONLY',sqlite_integrity=ledger_state,local_unresolved_orders=pending,
             financial_mutations='NONE_BY_RESEARCH',earned_eth='NOT_ESTABLISHED')),
-        ('PASSIVE RESEARCH',dict(observations=result.get('study_counts',{}),
+        ('PASSIVE RESEARCH',dict(adaptive_eth=adaptive_public(result.get('adaptive')),
+            observations=result.get('study_counts',{}),
             current_continuity=scanner.maker_study.diagnostics() if scanner is not None else 'UNOBSERVED',
             guidance='Manual controls only. No AI settings, pricing, funding, ARM or execution authority.',
             fill_evidence='TOUCH_OR_CROSSING_IS_NOT_A_FILL',hypothetical_full_fills=0,

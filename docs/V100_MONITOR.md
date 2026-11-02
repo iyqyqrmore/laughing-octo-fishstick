@@ -1,4 +1,4 @@
-# CoinCat v95 local helper
+# CoinCat v100 local helper
 
 The owner authorized a read-only helper for observing the running app and chose
 their existing Tailscale network. This build adds local monitoring and a private
@@ -83,7 +83,7 @@ independently between chats. No unattended AI process or remote shell is install
 
 ## Stored data and limits
 
-The app projects a fixed schema on its Tk thread every five seconds. It includes
+The app projects a v2 fixed schema on its Tk thread every five seconds. It includes
 version/manifest identifier, random session ID, sequence, timestamps, connection,
 retry stage/class, last-good ages, selected public symbols, at most four ETH products,
 original entry/expiry timestamps and eight observation counters. There are no
@@ -116,3 +116,18 @@ bounded history, sharing-lock/disk failure, STOP/close and plan preservation, to
 origin and protocol rejection. Protocol unit tests use in-memory requests with no
 HTTP network. Native Windows browser/Tailscale/ACL/cloud access remains a separate
 acceptance step. Existing research limits, fees, funding and order blocks remain.
+
+## v100 monitor contract
+
+The helper page, download name, launcher output and snapshot version identify
+CoinCat v100.0. Schema coincat-monitor/v2 adds a bounded Adaptive ETH Research
+subsection with approved product IDs, reason classifications and HOLD / NO
+DEMONSTRATED EDGE. Paper positions and verified fills remain zero in app scans;
+recoverable paper ETH is UNKNOWN. These are controlled labels/counts, never
+account quantities. Old build/schema snapshots and extra nested fields are
+rejected. Restart both app and helper from this build after installation.
+
+NO_SETUP_UNPRICED is admitted and shown as “No valid first setup.” QUOTE_WIDE
+is explained as spread above 0.25%, so a rejected initial setup is not mislabeled
+UNKNOWN. Existing unknown-field redaction and quote/fee age checks remain strict.
+No new endpoint, control channel, token access or remote deployment is added.

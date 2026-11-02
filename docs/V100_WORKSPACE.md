@@ -1,10 +1,11 @@
-# Seven-market spot workspace
+# CoinCat v100.0 seven-market spot workspace
 
 The owner requested a Coinbase-style chart/control/activity arrangement and named
 exactly seven spot products: ADA-ETH, ETH-BTC, LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC,
 ADA-BTC. The owner clarified that ETH is currently the only funding source and
-that BTC is an ETH companion. No purchases, transfers, account changes, execution
-enablement, source push or deployment were requested by this layout change.
+that BTC is an ETH companion. The current owner request authorizes the v100 source
+build and push; it does not authorize purchases, transfers, account changes,
+execution enablement or deployment to the running PC.
 
 ## What the layout does
 
@@ -19,7 +20,7 @@ watch row changes only the chart. Manual mixer, Allocation and Research notes
 remain separate top-level tabs. The same six exact manual faders remain; the
 right-hand amount/target/offset fields share those controls. Editing still
 requires Apply. Scrollable right controls, pointer/focus hover, STOP, local
-monitor and original CoinCat logo remain available.
+monitor and larger transparent CoinCat logo remain available.
 
 The Open orders view says CoinCat orders are zero because submission is blocked,
 and explicitly says the Coinbase account order feed is not loaded. It does not
@@ -111,3 +112,12 @@ STOP, chart and Windows compatibility regressions remain.
 Native Windows display/DPI, connected eligible markets/fees and Tailscale remain
 local acceptance steps. No actual order, fill, realized gain, connected private
 read, deployment or environment publication is established by Linux fixtures.
+
+## v100 additions
+
+The transparent RGBA banner now occupies the upper-header space to the right of
+the title and connection controls. It scales with the available width; no small
+old banner is loaded. The chart and seven-market workspace remain below.
+Research notes adds the read-only Adaptive ETH Research summary. Scanner,
+diagnostics and monitor share one bounded quantity-free projection; no new
+polling source, paper funding or prediction fitting is enabled.

@@ -1,6 +1,6 @@
-# CoinCat v95.0 — first read-only trial
+# CoinCat v100.0 — first read-only trial
 
-Keep the existing installation and all private records/backups. Extract v95 into
+Keep the existing installation and all private records/backups. Extract v100 into
 a separate new folder. Never overlay the running installation or share one data
 folder between running versions. Use normal 64-bit Windows Python 3.11.
 
@@ -11,7 +11,7 @@ folder between running versions. Use normal 64-bit Windows Python 3.11.
    backup. A new key/dataset does not recover old trades or tax basis. Optional
    recovery under tools copies a complete verified dataset into an empty
    destination only; do not run it casually against your working installation.
-3. Run **01_START_COINCAT.bat**. Confirm **CoinCat v95.0**. Import the key JSON
+3. Run **01_START_COINCAT.bat**. Confirm **CoinCat v100.0**. Import the key JSON
    locally on your PC, never into chat. Existing permission/DPAPI checks remain:
    View + Trade, Transfer disabled. Trade permission does not enable orders.
 4. **Connect / refresh**. Companion choices come from authenticated direct ETH
@@ -41,10 +41,10 @@ folder between running versions. Use normal 64-bit Windows Python 3.11.
    earn nothing in the app. Even a later target crossing remains uncertain.
 9. Test **STOP** promptly. Displayed findings should remain; no late queued result
    should replace them. Change a control or allocation: the plan must invalidate
-   and require explicit Apply before restarting. Export v95 diagnostics while the
+   and require explicit Apply before restarting. Export v100 diagnostics while the
    app is open. Exports have eight sections and omit private native quantities.
 
-Tonight's goal is startup, data integrity, manual controls, hover usability and
+The first supervised trial's goal is startup, data integrity, manual controls, hover usability and
 STOP—not a profit verdict. After code/local checks, collect 48–72h of read-only
 coverage, then optionally 2–4 weeks across independent regimes. RAM setups and
 counts disappear on restart; export before closing. Public quotes use the existing
@@ -55,10 +55,10 @@ environment publication are separate; no old publication success is asserted.
 Optional read-only helper: enable **Local monitor** in **Research notes**, then
 run **tools\START_LOCAL_MONITOR.bat**. It opens a local health dashboard and keeps
 redacted bounded history. Existing older app processes need a source update and
-restart first. See [docs/V95_MONITOR.md](docs/V95_MONITOR.md) for local testing and
+restart first. See [docs/V100_MONITOR.md](docs/V100_MONITOR.md) for local testing and
 private Tailscale setup. Coinbase keys never enter this helper or its snapshots.
 
-## Tonight's defaults
+## Initial research defaults
 
 | Control | Default |
 |---|---|
@@ -93,7 +93,7 @@ remain observations awaiting usable inventory and a separately funded strategy.
 Watched-basket change is a midpoint reference before exit fees, unadjusted for
 deposits/withdrawals/manual trading; other portfolio assets remain unvalued.
 Scans/setups are research counters, never verified fills or assumed bot profit.
-See [docs/V95_MARKET_WORKSPACE.md](docs/V95_MARKET_WORKSPACE.md).
+See [docs/V100_WORKSPACE.md](docs/V100_WORKSPACE.md).
 
 Tooltips now open near the pointer, flip above it near an edge, fit the visible
 window/monitor work area and scroll when detailed text is long. Move into the
@@ -133,3 +133,23 @@ single-instance protection, mouse/scroll/STOP and clean close on the PC.
 Proceed to 48–72h only after supervised continuity/recovery checks pass. The
 strategy's costs, actual fills and profitability remain separate unanswered
 questions. Do not relax freshness, spread, synchronization or fee requirements.
+
+## Adaptive ETH Research
+
+In Research notes, the compact read-only summary shows HOLD and NO DEMONSTRATED
+EDGE, eligible conditional ETH directions and current quote/funding blockers.
+Normal scanning never seeds BTC or creates simulated holdings. After-cost paper
+ETH stays UNKNOWN. A local quote touch cannot settle a paper position.
+
+For an intentionally fictitious, offline worked example only:
+
+```text
+.venv\Scripts\python.exe -B tools\ADAPTIVE_ETH_DEMO.py --synthetic
+```
+
+Read docs/V100_RESEARCH.md for the conditional APIs and their limits. The example
+uses toy prices/depth/fees, shows a losing BTC → SOL comparison and performs no
+network request or private-data access. It does not set your research allocations.
+The new larger transparent banner sits in the upper area beside the title/actions.
+Diagnostics and the separate local helper must both come from the v100 source;
+old monitor snapshots are rejected rather than silently accepted as current.

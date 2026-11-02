@@ -1,47 +1,44 @@
-# CoinCat v95.0 decision chain
+# CoinCat v100.0 decision chain
 
-Explicit ETH modeling proposal → manual direct-ETH companions → authenticated
-eligible product rules → approved seven-market scope with at most six REST books
-per pass (four ETH anchors plus rotating BTC cross-pairs) → frozen quote
-and account-fee observations → immediate taker benchmark and independent maker
-hypothesis → passive uncertain-fill observations → quantity-free diagnostics.
+Explicit RAM working-ETH proposal → manually approved ETH companions → eligible
+seven-product catalog → existing bounded quote collection → frozen account fee
+and native rules → independent patient maker studies → uncertain passive
+observations → eight-section redacted diagnostics and local monitor.
 
-No broad USD scanner, future-horizon admission engine or cycle enumerator runs
-in this flow. Pure legacy USD/native and 3–5-leg cycle calculators remain secondary
-library capabilities; they never justify patient maker returns.
+The adaptive app hook observes only topology and quote/fee blockers from this
+pass. It creates no reservations, fills, seeds or predictors. BTC cross-pairs
+remain account-unfunded observations. A possible graph edge is not an order or
+permission to spend ETH as BTC. Existing quote chart/reference basket never
+becomes after-cost recoverable ETH or earnings.
 
-The canonical Decimal receipt owns both legs, fee-once accounting, product
-minima/maxima/increments, source residuals and native dust. Maker uses exact limit
-prices with zero taker-slippage stress. Taker uses actual bid/ask plus explicitly
-assumed per-leg stress. Account maker/taker tiers come from the existing read-only
-SPOT transaction-summary provider. Quote-currency fee debit is a labeled scenario;
-actual fee currency and product-specific exceptions are NOT VERIFIED.
+Separate offline callers may explicitly initialize one hypothetical working-ETH
+slice using the existing allocation contract. reserve locks that source budget;
+only an exact SIMULATED_ASSUMPTION event matching the frozen canonical receipt
+credits the next simulated asset. No-fill releases a known untouched reserve;
+partial/uncertain outcomes keep the entire reserve locked. There is no production
+settlement, unknown-outcome resolution or restart recovery in this contract.
 
-BUY entries rest below ask, SELL entries above bid. Entry offset and target are
-manual research controls. The rounded exit target is solved to meet the requested
-ETH percentage in the full-fill scenario after both fees. It is not a predicted
-price. Inverse ETH-base products use SELL entry and BUY return; labels show ETH
-per companion coin separately from actual product limit-price units.
+Immediate conditional paths use one synchronized frozen frame and canonical
+native receipts for every leg, each fee once. All residuals remain. Missing
+sized depth, fee debit units or non-ETH residue valuation keeps conservative
+recoverable ETH UNKNOWN even when an ETH subtotal is modeled.
 
-HOLD always uses exactly the initial ETH, including unspent ETH. Non-ETH residue
-remains explicit; ETH subtotal is not a complete return when dust remains.
-No-fill retains the original ETH. Partial/unknown fills have no credited return.
-Worst-case full-entry coin exposure can be lost entirely; a real holding could
-outlast the observation horizon. Touches/crossings never establish fills.
+The separate forward study freezes an uncertain signal, entry assumptions,
+source slice, exit condition and horizon. HOLD and rotation use the same future
+frame and funding size. The first observation at/after the horizon is final
+(with a fixed 30-second observation window); missing/late evidence is unknown
+or missed, never replaced by a later favorable exit. Intermediate adverse and
+underwater exposure remains visible. Cases are independent counterfactuals,
+not concurrent funded positions; they never credit ResearchFunds.
 
-Within a decision: quote age ≤30s, spread ≤0.25%, span ≤12s. A future independent
-exit decision has its own valid quote; it is intentionally separated in time.
-Frozen setups invalidate on relevant ETH funding, selected eligibility/rules,
-applied controls or verified fee changes. Unrelated account changes do not reset
-them. Missing/invalid observations pause the original clock. Monotonic bounded
-read-only recovery never infers touches through gaps; STOP cancels retries and
-evaluation and rejects stale Tk results. Last-good prices/fees have explicit
-export-time validity labels.
-LiveBroker.submit still raises unconditional LiveBlocked as its first statement.
+The paper scoreboard compares the whole simulated wallet against exactly its
+initial ETH, using conservative synchronized direct ETH exits. Real account ETH
+is a separate optional fresh read-only input. No quantity is exported publicly.
+A midpoint basket, quote touch, prediction, deposit or manual conversion cannot
+create verified profit. Verified fills stay zero; realized earnings NOT ESTABLISHED.
+Optional drawdown alerts are review-only; no forced liquidation or recovery promise.
 
-BTC is an ETH companion through ETH-BTC. BTC cross-pairs connect companions but
-cannot spend ETH directly or spend an assumed prior fill. This build models up
-to four independent ETH-funded comparisons; cross-pairs remain observations.
-Watched-basket midpoint change is a display reference before exit fees, with
-external/manual flows unadjusted. It never becomes a verified trading-profit
-counter. Portfolio holdings outside the watch network stay explicitly unvalued.
+Every current decision retains 30s freshness, 0.25% spread and 12s span; maker
+entry and its future target are separate decisions. Continuity identity, original
+expiry, provider backoff and STOP generations are unchanged. LiveBroker.submit
+still raises LiveBlocked unconditionally as its first statement.

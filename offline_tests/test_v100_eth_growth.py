@@ -1,4 +1,4 @@
-"""v95 direct-ETH economics, uncertain fills, read-only integration and real Tk."""
+"""v100 direct-ETH economics, uncertain fills, read-only integration and real Tk."""
 from copy import deepcopy
 from dataclasses import replace
 from decimal import Decimal as D
@@ -318,7 +318,7 @@ class ReadOnlyGrowth(unittest.TestCase):
             self.assertEqual(s.sequence,0);self.assertIsNone(s.last_result)
             self.assertEqual(s.maker_study.counts,{})
 
-    def test_quantity_free_diagnostics_match_v95_no_legacy_claims(self):
+    def test_quantity_free_diagnostics_match_v100_no_legacy_claims(self):
         with TemporaryDirectory() as folder:
             ledger,c,s=prepare(folder);result=run_growth(s,c)
             sentinel='0.1234567890987654321'
@@ -327,7 +327,7 @@ class ReadOnlyGrowth(unittest.TestCase):
             app=SimpleNamespace(scanner=s,last_result=result,ledger=ledger,connected=True,
                 running=False,busy=False,last_error=None)
             report=make_report(app,now=NOW)
-            for text in ('CoinCat v95.0','COMPLETE (8/8)','ETH MAKER RESEARCH','NOT_ESTABLISHED','BLOCKED_UNCONDITIONALLY'):
+            for text in ('CoinCat v100.0','COMPLETE (8/8)','ETH MAKER RESEARCH','NOT_ESTABLISHED','BLOCKED_UNCONDITIONALLY'):
                 self.assertIn(text,report)
             for text in (sentinel,str(ledger.path),"'receipts':",'91.0','best_advantage_usd'):
                 self.assertNotIn(text,report)
@@ -344,9 +344,11 @@ class GrowthGUI(unittest.TestCase):
         self.app.mixer.controls['amount_eth'].set(D('.1'))
         self.app._apply_plan();return c,s
 
-    def test_small_logo_v95_four_tabs_six_faders_and_hover_coverage(self):
-        self.assertIn('v95.0',self.root.title());self.assertIn('LIVE blocked',self.root.title())
-        self.assertLessEqual(self.app.logo.width(),260)
+    def test_large_transparent_logo_v100_four_tabs_six_faders_and_hover_coverage(self):
+        self.assertIn('v100.0',self.root.title());self.assertIn('LIVE blocked',self.root.title())
+        self.assertGreaterEqual(self.app.logo.width(),400)
+        self.assertLessEqual(self.app.logo.width(),750)
+        self.assertTrue(self.app._logo_source.transparency_get(0,0))
         self.assertEqual(len(self.app.tabs.tabs()),4)
         self.assertEqual(len(self.app.mixer.controls),6)
         self.assertIsNone(self.app.applied_config)

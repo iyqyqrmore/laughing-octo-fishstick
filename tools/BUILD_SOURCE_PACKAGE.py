@@ -1,4 +1,4 @@
-"""Regenerate the v95 manifest and optional source-only ZIP; no private inputs."""
+"""Regenerate the v100 manifest and optional source-only ZIP; no private inputs."""
 import argparse
 import hashlib
 import json
@@ -28,9 +28,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
-    data=dict(build='95.0-eth-growth-research-preview',
-        description='ETH-only direct-pair maker research; no execution or financial writes.',
-        base_commit='6175dffbddb9dd007088c127aa792d8e95629fca',
+    data=dict(build='100.0-adaptive-eth-read-only',
+        description='Seven-market conditional adaptive ETH research; no execution or financial writes.',
+        base_commit='40bdac5df0c29a9571acc5fe118dd4d8190bf54a',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))
@@ -39,7 +39,7 @@ def main():
         if path==ROOT or ROOT in path.parents:raise ValueError('Keep package outside source checkout')
         with zipfile.ZipFile(path,'w',compression=zipfile.ZIP_DEFLATED) as archive:
             for name in names+['SHA256_MANIFEST.json']:
-                archive.write(ROOT/name,'CoinCat_v95/'+name)
+                archive.write(ROOT/name,'CoinCat_v100/'+name)
         digest=hashlib.sha256(path.read_bytes()).hexdigest()
         path.with_suffix(path.suffix+'.sha256').write_text(digest+'  '+path.name+'\n',encoding='utf-8')
         print('Source ZIP:',path.name,'SHA256',digest)

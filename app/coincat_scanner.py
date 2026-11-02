@@ -1,4 +1,4 @@
-"""Read-only v95 direct-ETH observer with staged, attributed observations."""
+"""Read-only v100 direct-ETH observer with staged, attributed observations."""
 import time
 from copy import deepcopy
 from coincat_live import LiveBroker
@@ -8,6 +8,7 @@ from coincat_eth_maker import MakerStudy,select_markets,model_market
 from coincat_continuity import eth_funding,research_identity,quote_reason
 from coincat_recovery import read_call,ReadFailure,public_quote_failure
 from coincat_watchlist import WATCH_PAIRS,eligible_watchlist,schedule_books
+from coincat_adaptive_eth import Frame,observation_summary
 
 
 class Scanner:
@@ -124,6 +125,7 @@ class Scanner:
         result=dict(at=now,mode='ETH_GROWTH',scan=self.sequence+1,rows=rows,
             state='RESEARCH_ONLY' if any(r.get('current_estimate_available') for r in rows) else 'NO_QUALIFIED_EVIDENCE',
             market_selection=selection,study_counts=study.statistics(),study_continuity=study.diagnostics(),
+            adaptive=observation_summary(Frame(now,scoped,self.rules,incoming,tier,excluded),funding_ok=funding_ok),
             fee_evidence=tier,allocation_state='UNRECONCILED / RESEARCH ONLY',working_allocation=allocation,
             quote_scheduling=dict(requested_books=len(books),research_books=len(books),request_limit=16,
                 research_limit=6,quote_span_s=max(stamps)-min(stamps) if stamps else None,
