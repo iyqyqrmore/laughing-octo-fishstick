@@ -1,3 +1,28 @@
+# CoinCat v1.02 global paper decision chain
+
+Fresh working ETH proposal → explicit 50% slice once / opt-in / applied global
+settings → accepted current native frame plus separate fresh ETH-USD reference →
+canonical native receipts and original ETH attribution → fee-unit/depth/residue/
+exit/precision/eligibility validation → strict conditional global USD floor →
+transactional latest-version/source-cap recheck → LIMIT/POST_ONLY reservation →
+explicit seeded simulated venue events → canonical partial/terminal settlement →
+immutable pinned-version ETH-return slice report and whole-portfolio HOLD view.
+UNKNOWN blocks every new entry. Current normal BBO inputs lack required evidence
+and therefore normally HOLD. Modeled return targets never establish qualification.
+Conservative taker-stress exit valuation never dispatches a taker order.
+
+Apply appends a bounded immutable version and cannot alter orders/funds/limits.
+At safe review, retain a still-qualifying unfilled order at its original price
+or cancel/reconcile before replacement; partials preserve known fills and fees.
+Source caps, remaining campaign budget/deadline and original session horizon
+remain binding. No target-driven size increase or forced underwater liquidation.
+Restart never resumes; old records/base configurations remain in Research Archive.
+AI Lab cannot apply settings. USD cannot fund/trade/chart or enter the native
+history/graph. Safe diagnostics/monitor export only allowlisted counts/labels.
+See docs/GLOBAL_PAPER_V1_02.md for limitations and current acceptance steps.
+
+The following text describes the retained preceding policy/research contracts.
+
 # CoinCat v1.01 decision chain
 
 Current Auto Paper path: explicit working-ETH slice/session opt-in -> frozen

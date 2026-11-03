@@ -10,6 +10,7 @@ from coincat_recovery import read_call,ReadFailure,public_quote_failure
 from coincat_watchlist import WATCH_PAIRS,eligible_watchlist,schedule_books
 from coincat_adaptive_eth import Frame,observation_summary
 from coincat_research_journal import JournalError,public_status as journal_public
+from coincat_global_paper import USD_PAIR
 import sqlite3
 
 
@@ -50,7 +51,8 @@ class Scanner:
         return {'balances':dict(balances),'catalog_count':len(catalog),'at':self.account_at}
 
     def scan_growth(self,config,*,now=None,collect=None,cancel=None,allocation_draft=(),
-                    applied_eth_key=None,force_refresh=False):
+                    applied_eth_key=None,force_refresh=False,include_usd_reference=False):
+        if type(include_usd_reference) is not bool:raise ValueError('INVALID_REFERENCE_REQUEST')
         config.validate()
         stopped=lambda:cancel is not None and cancel.is_set()
         if stopped():return {'state':'CANCELLED'}
@@ -82,25 +84,28 @@ class Scanner:
         qualified,watch_rejects=eligible_watchlist(scoped,self.rules,excluded)
         if config.observe_watchlist:books,deferred=schedule_books(qualified,self.sequence)
         else:books=tuple(m['pair'] for m in selection['selected']);deferred=()
+        requested=books+(USD_PAIR,) if include_usd_reference else books
         snapshots,errors,elapsed=read_call('PUBLIC_QUOTE',SCOUT.collect if collect is None else collect,
-                                         books,fetch=fetch_snapshot)
+                                         requested,fetch=fetch_snapshot)
         if stopped():return {'state':'CANCELLED'}
         now=time.time() if fixed_now is None else now
         incoming={p:item.book() for p,item in snapshots.items() if p in books}
         watch_books={p:b for p,b in self.watch_books.items() if p in qualified}
         watch_books.update(incoming)
-        by_product=getattr(errors,'by_product',{})
-        if errors:
+        attributed_errors=getattr(errors,'by_product',{})
+        by_product={p:e for p,e in attributed_errors.items() if p in books}
+        native_errors=list(by_product.values()) if attributed_errors else list(errors)
+        if native_errors:
             attributed=[public_quote_failure(code,minimum_delay=max(0,BUDGET.blocked_until-time.monotonic()))
-                        for code in (list(by_product.values()) or list(errors))]
+                        for code in native_errors]
             denied=next((f for f in attributed if f['status'] in (401,403)),None)
             if denied is not None:raise ReadFailure(denied)
         # No returned observation plus explicit transport failures is an interrupted
         # scan, not a successful all-unpriced collection. Partial collections retain
         # per-market gaps and continue on their actually observed evidence.
-        if books and not incoming and errors:
+        if books and not incoming and native_errors:
             failures=[public_quote_failure(code,minimum_delay=max(0,BUDGET.blocked_until-time.monotonic()))
-                      for code in (list(by_product.values()) or list(errors))]
+                      for code in native_errors]
             detail=next((f for f in failures if not f['transient']),failures[0])
             raise ReadFailure(detail)
         stamps=[b[2] for b in incoming.values()]
@@ -126,13 +131,18 @@ class Scanner:
             h=study.active.get(row['market']['pair'])
             if h is not None:h['_asset']=row['market']['asset']
         frame=Frame(now,scoped,self.rules,incoming,tier,excluded)
+        reference_snapshot=snapshots.get(USD_PAIR) if include_usd_reference else None
+        usd_reference=None if reference_snapshot is None else dict(pair=reference_snapshot.pair,
+            source=reference_snapshot.source,bid=reference_snapshot.bid,ask=reference_snapshot.ask,
+            observed_at=reference_snapshot.observed_at)
         result=dict(at=now,mode='ETH_GROWTH',scan=self.sequence+1,rows=rows,
             state='RESEARCH_ONLY' if any(r.get('current_estimate_available') for r in rows) else 'NO_QUALIFIED_EVIDENCE',
             market_selection=selection,study_counts=study.statistics(),study_continuity=study.diagnostics(),
             adaptive=observation_summary(frame,funding_ok=funding_ok),research_frame=frame,
+            usd_reference=usd_reference,
             prospective_journal=journal_public(),
             fee_evidence=tier,allocation_state='UNRECONCILED / RESEARCH ONLY',working_allocation=allocation,
-            quote_scheduling=dict(requested_books=len(books),research_books=len(books),request_limit=16,
+            quote_scheduling=dict(requested_books=len(requested),research_books=len(books),reference_books=int(include_usd_reference),request_limit=16,
                 research_limit=6,quote_span_s=max(stamps)-min(stamps) if stamps else None,
                 approved_markets=list(WATCH_PAIRS),deferred_markets=list(deferred)),
             watched_markets=[dict(pair=p,book=watch_books.get(p),

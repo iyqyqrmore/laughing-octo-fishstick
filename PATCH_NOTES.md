@@ -1,3 +1,22 @@
+# CoinCat v1.02 — shared global paper settings
+
+Adds the whole-cent USD-equivalent ETH-return floor, approved initial working
+slice once, available-source percentage cap, immutable applied revisions and
+safe resting-order review. UNKNOWN blocks all new entries, including startup.
+The normal BBO feed lacks required sized exits/fee units and normally HOLDs.
+ETH-USD is a separate valuation GET only, within the unchanged collector limits.
+It never becomes a trading edge/history product. Native receipts/fees/residuals
+and actual terminal ETH-return slices remain separate from conditional estimates
+and whole-portfolio HOLD performance. No size increase or losing liquidation is
+triggered by a target change. All intents remain Limit + Post Only; live blocked.
+
+Auto Trader / Trading Settings / Allocation / Research Archive replace the old
+main navigation. Archived manual controls, records and shared financial code
+remain; logo/icon and dependency bytes are unchanged. The redacted monitor and
+eight diagnostics sections support the new policy/version/counts. See
+[docs/GLOBAL_PAPER_V1_02.md](docs/GLOBAL_PAPER_V1_02.md) and VERIFICATION.txt.
+Earlier ledgers below are historical, not v1.02 acceptance evidence.
+
 # CoinCat v1.01 — optional short-lived PAPER orders
 
 Adds SHORT_LIVED_ETH_V1 for explicitly selected new paper sessions: 120-second

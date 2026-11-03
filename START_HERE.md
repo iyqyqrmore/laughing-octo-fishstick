@@ -1,176 +1,76 @@
-# CoinCat v1.01 — first paper/read-only trial
+# CoinCat v1.02 — test in a separate installation
 
-After setup/source verification, first run `tools\RUN_PAPER_REPLAY.bat` with no
-account connection. Then follow [Auto Paper acceptance](docs/AUTO_PAPER_V1_01.md)
-for the seven-market/fourteen-view interface, explicit shared ETH budget and
-once-only kickoff. The normal scanner advances simulated orders only while the
-paper session is explicitly enabled; the read-only instructions below remain
-available independently. Real submission stays unconditionally blocked.
+Preserve the existing installation, private records and backups. Extract this
+source into a new folder; never overlay a running version or share its data
+folder between app processes. Use normal 64-bit Windows Python 3.11.
 
-Keep the existing installation and all private records/backups. Extract v1.01 into
-a separate new folder. Never overlay the running installation or share one data
-folder between running versions. Use normal 64-bit Windows Python 3.11.
+1. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Expect source
+   hashes, syntax verification and numbered isolated tests with elapsed times
+   and a 30-second heartbeat. Prior Windows runs took about 22 minutes; a slow
+   named test with heartbeats can still be working. Wait for the final COUNTS
+   and PASS/FAIL. Errors or failures block acceptance; report the exact traceback.
+   A host symlink capability skip is distinct from a test error.
+2. Run **tools\RUN_PAPER_REPLAY.bat** without an account connection. This is a
+   finite scripted toy-event lifecycle, not a market session or profit test.
+   Expect two terminal orders, four simulated fills, zero real orders/verified
+   exchange fills and exactly two fictitious SOL. It normally finishes far
+   sooner than full verification; do not leave it running overnight.
+3. For new data only, **04_FIRST_TIME_SETUP.bat** requires explicit confirmation
+   and an empty destination. A new dataset/key cannot recover old tax basis.
+   Existing verified recovery tools only copy to a separate empty destination.
+4. Launch **01_START_COINCAT.bat**; confirm **CoinCat v1.02** and LIVE blocked.
+   Check the larger transparent logo in the upper header. Import any key JSON
+   locally on the PC, never into chat. Existing DPAPI/permission checks remain.
+5. **Connect / refresh**, then inspect **Allocation**. Review/apply ETH working,
+   manual, protected and excluded proposals. These remain RAM proposals, not
+   real transfers or allocation reconciliation. Other balances cannot seed the
+   paper wallet. An unavailable catalog/fee/funding input means HOLD.
+6. Open **Trading Settings**. Start with minimum **$0.01**, initial **50% of
+   working ETH**, subsequent source **50%**, review **30s**, reconsider **120s**.
+   A custom initial ETH amount must be within the approved working percentage;
+   native minima block small orders instead of increasing size. Apply all
+   Trading Settings. The first eligible order can use that initial slice once,
+   without halving it again. One wallet serves all fourteen directions.
+7. In **Auto Trader**, explicitly opt in and press **Start Auto Paper Trader**.
+   Inspect shared holdings, available/reserved amounts, every market's native
+   bid/ask and direction reasons. **With the current BBO feed, expect zero new
+   orders and HOLD/UNKNOWN** because sized exits and verified fee-currency
+   evidence are missing. A fresh ETH-USD valuation reference cannot supply
+   those missing inputs. Do not loosen gates to force an order.
+8. Try the global $0.05/$0.10 presets or type a whole-cent target and Apply.
+   The applied summary must show the new version/floor across all directions.
+   Draft fields are not applied settings. Profit-only Apply preserves applied
+   capital percentages and timing, including any separate unapplied draft.
+   Existing orders keep original price/version/expiry and receive a safe review;
+   cancellation must reconcile before replacement. STOP retains reservations
+   and holdings; it does not confirm cancellation or liquidate inventory.
+9. Test **Pause**, **STOP**, clean close, relaunch and **Reconcile paper**.
+   A saved session restores RECONCILIATION_REQUIRED; reconciliation leaves
+   PAUSED. Pressing Start again is explicit; no new seed or baseline is created.
+   New paper session retains the old database and requires new opt-in/Apply.
+10. Export diagnostics while open. Confirm v1.02, COMPLETE (8/8), safe policy/
+    settings-version/completion counts, actual profit NOT ESTABLISHED. Do not
+    upload private paper/financial SQLite files, keys or monitor tokens.
 
-1. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Inspect the exact
-   test counts, errors and skips. A failure blocks this preview's acceptance.
-2. For a new dataset only, run **04_FIRST_TIME_SETUP.bat** and confirm NEW data.
-   It refuses nonempty destinations and creates a verified independent initial
-   backup. A new key/dataset does not recover old trades or tax basis. Optional
-   recovery under tools copies a complete verified dataset into an empty
-   destination only; do not run it casually against your working installation.
-3. Run **01_START_COINCAT.bat**. Confirm **CoinCat v1.01**. Import the key JSON
-   locally on your PC, never into chat. Existing permission/DPAPI checks remain:
-   View + Trade, Transfer disabled. Trade permission does not enable orders.
-4. **Connect / refresh**. Companion choices come from authenticated direct ETH
-   spot products with explicit tradability, status and valid rules. Nothing is
-   preselected. BTC/SOL/ADA availability is NOT VERIFIED. If the list is empty,
-   stop with NO QUALIFIED EVIDENCE; there is no USD/USDC fallback.
-5. In **Allocation**, review ETH working/manual/protected proposals and exclusions.
-   The view shows ETH and selected companions. **Show all balances** reveals other
-   holdings, including small residual balances; it does not change any amounts.
-   Apply each edited row. These are RAM-only; a checkbox cannot reconcile funds.
-   Unassigned, excluded, manual and protected funds never supply this model.
-6. **Manual mixer** starts with the defaults below. Model ETH automatically uses
-   the full ETH working proposal after connection, less manual/protected/excluded
-   amounts. A custom entry stays unchanged through refresh; Reset returns to the
-   latest full working default. In **ETH Growth**, choose one to four companions
-   in the right-hand ETH engine panel, then **Apply research plan**. Each companion is an independent scenario using the identical ETH
-   allocation; do not add the scenarios together as simultaneous funding.
-   Existing companion holdings are unnecessary for this ETH-funded model. A real
-   manual swap changes funding and requires a new Apply; it does not establish
-   maker-fill evidence for these research scenarios.
-7. Leave target/entry offset/wait/cadence/taker stress at the initial research
-   defaults unless deliberately choosing another scenario. Hover labels, controls,
-   table rows or details for costs, native dust, timestamps and waiting risk.
-   Numeric text fields and keyboard arrows accompany the audio-mixer faders.
-8. **Start research**. Verify quote updates and fee evidence. Maker targets are
-   hypothetical, not forecasts; no-fill retains initial ETH. Partial/unknown fills
-   earn nothing in the app. Even a later target crossing remains uncertain.
-9. Test **STOP** promptly. Displayed findings should remain; no late queued result
-   should replace them. Change a control or allocation: the plan must invalidate
-   and require explicit Apply before restarting. Export v1.01 diagnostics while the
-   app is open. Exports have eight sections and omit private native quantities.
+Enable **Local monitor** in **Research Archive → AI Lab / notes**, then run
+**tools\START_LOCAL_MONITOR.bat**. Confirm its v1.02 title, global paper policy
+and aggregate version/counts; no native amounts/settings/receipts are exported.
+Check missing-response/stale states clear earlier current claims. This helper
+is read-only and offers no trading/update channel. See docs/V100_MONITOR.md.
 
-The first supervised trial's goal is startup, data integrity, manual controls, hover usability and
-STOP—not a profit verdict. After code/local checks, collect 48–72h of read-only
-coverage, then optionally 2–4 weeks across independent regimes. RAM maker setups and
-counts disappear on restart; journal/paper records persist. Export before closing. Public quotes use the existing
-bounded local research store. Native Windows launcher, DPAPI, single-instance,
-cleanup and resource checks still need local evidence. Source restoration and
-environment publication are separate; no old publication success is asserted.
+Keep the first connected read-only session supervised for **60–120 minutes**.
+Check STOP during a request/retry, bounded reconnects, fresh account fee evidence,
+quote age/spread/gaps, small-window/DPI tooltips and clean shutdown. Preserve
+original expiries through outages. A network interruption must not invent fills
+or recreate a seed. Native Windows/DPAPI/single-instance and connected product/
+fee evidence require that PC's checks. Proceed to longer observation only after
+these pass; time running alone cannot demonstrate predictive improvement.
 
-Optional read-only helper: enable **Local monitor** in **Research notes**, then
-run **tools\START_LOCAL_MONITOR.bat**. It opens a local health dashboard and keeps
-redacted bounded history. Existing older app processes need a source update and
-restart first. See [docs/V100_MONITOR.md](docs/V100_MONITOR.md) for local testing and
-private Tailscale setup. Coinbase keys never enter this helper or its snapshots.
+The old **ETH Growth**, **Legacy scenario mixer**, journal and passive **AI Lab**
+are in Research Archive. Their independent hypothetical comparisons never fund
+a global paper intent. Existing manual entry/Reset/Apply, chart intervals and
+hover controls remain available. For archived workflows see docs/V100_RESEARCH.md,
+docs/V100_WORKSPACE.md, docs/PROSPECTIVE_JOURNAL.md and docs/AUTO_PAPER_V1_01.md.
 
-## Initial research defaults
-
-| Control | Default |
-|---|---|
-| Model ETH | Full available ETH working proposal after carve-outs/exclusions |
-| Entry offset | 0 bps |
-| ETH target | 0.25% hypothetical net-ETH target |
-| Wait limit | 24 hours |
-| Scan interval | 5 seconds after each pass |
-| Taker stress | 15 bps per benchmark leg |
-
-Entry offset is distance away from the best resting price: BUY below bid or,
-for an inverse ETH-base product, SELL above ask. 0 bps uses bid/ask respectively;
-10 bps is 0.10% farther away. A larger offset seeks a better entry but may never
-fill. Defaults are research scenarios, not recommendations for live orders.
-
-The ETH Growth chart sits above Coins & research. **Candle** selects 1s, 1m, 5m,
-15m, 1h, 4h, 1d, calendar month or year. **History** selects one minute, hour, day,
-month, year or All stored. The arrows page through time; Latest returns to now.
-Wheel changes candle interval. Wide ranges explicitly fit coarser candles to
-at most 500 bars. Hover shows sampled OHLC and observation count. There is no
-trade volume or invented candle in an empty interval. One-second candles cannot
-create observations between five-second scans. All stored reaches only the
-history actually present in this installation's public quote database.
-
-The latest spot-style workspace puts research controls on the right, and Research,
-Watchlist, Open orders and Portfolio below the chart. Only ADA-ETH, ETH-BTC,
-LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC and ADA-BTC may be observed or charted.
-BTC cross-pairs rotate through remaining research slots; the six-book cap stays.
-Chart prices now use the actual product quote currency (ETH-BTC is BTC per ETH).
-No companion purchase is needed for ETH-funded paper entries. BTC cross-pairs
-remain observations awaiting usable inventory and a separately funded strategy.
-Watched-basket change is a midpoint reference before exit fees, unadjusted for
-deposits/withdrawals/manual trading; other portfolio assets remain unvalued.
-Scans/setups are research counters, never verified fills or assumed bot profit.
-See [docs/V100_WORKSPACE.md](docs/V100_WORKSPACE.md).
-
-Tooltips now open near the pointer, flip above it near an edge, fit the visible
-window/monitor work area and scroll when detailed text is long. Move into the
-popup to use its scrollbar. Escape dismisses it. Windows monitor/DPI behavior
-of this follow-up still requires a native rerun.
-
-## Continuity hotfix acceptance — before another overnight run
-
-Use a separate source folder and preserve the installed application and private
-backups. This session has not deployed to your running PC or independently checked
-its installed hashes. Run 03_VERIFY_COINCAT.bat under Windows Python 3.11, inspect
-all counts/errors/skips and confirm source hashes. Recheck launch/DPAPI/local key,
-single-instance protection, mouse/scroll/STOP and clean close on the PC.
-
-1. Connect, confirm the current account fee observation and eligible ETH products,
-   Apply the exact research proposal and Start. Observe RUNNING for 60–120 minutes.
-2. In Allocation, enable **Show all balances** to edit/apply a non-ETH row: it must leave the ETH plan and original
-   setup time intact. Edit an ETH row or research setting: Apply must be required
-   again. Never change a real financial record for this acceptance check.
-3. Inspect per-market gap reasons (not returned/stale/wide/invalid/future/timeout/
-   connection/deferred). Gaps must say paused and retain entry/expiry, with no
-   new fill/profit. A returning quote must not fabricate touches during the gap.
-4. When feasible, temporarily disconnect network access for this read-only app
-   while supervised. Expect RETRYING with stage/class and a visible countdown;
-   restore connectivity before the next attempt. Expect one recovered period,
-   fresh quotes and unchanged relevant setup/expiry. Provider backoff may delay
-   recovery; fee refresh failures can wait at least ten minutes. Five unsuccessful
-   retries or authentication errors must pause for manual attention.
-5. Press STOP during a retry wait. It must cancel the countdown/scheduled retry,
-   retain findings and never restart itself. Reconnect/start manually. Export
-   diagnostics before closing. Never simulate the outage by altering keys, API
-   permissions, allocations, transfers or order settings.
-6. For deliberately old observations, verify STALE_LAST_OBSERVATION and fee
-   validity at export rather than trusting the earlier fresh-then flag. Export
-   must remain responsive offline and redact native quantities/receipts/IDs.
-
-Proceed to 48–72h only after supervised continuity/recovery checks pass. The
-strategy's costs, actual fills and profitability remain separate unanswered
-questions. Do not relax freshness, spread, synchronization or fee requirements.
-
-## Adaptive ETH Research
-
-In Research notes, the compact read-only summary shows HOLD and NO DEMONSTRATED
-EDGE, eligible conditional ETH directions and current quote/funding blockers.
-Research-only scanning never seeds BTC or creates simulated holdings; the
-separate Auto Paper opt-in is described in AUTO_PAPER_V1_01.md. After-cost paper
-ETH stays UNKNOWN. A local quote touch cannot settle a paper position.
-
-For an intentionally fictitious, offline worked example only:
-
-```text
-.venv\Scripts\python.exe -B tools\ADAPTIVE_ETH_DEMO.py --synthetic
-```
-
-Read docs/V100_RESEARCH.md for the conditional APIs and their limits. The example
-uses toy prices/depth/fees, shows a losing BTC → SOL comparison and performs no
-network request or private-data access. It does not set your research allocations.
-The new larger transparent banner sits in the upper area beside the title/actions.
-Diagnostics and the separate local helper must both come from the v1.01 source;
-old monitor snapshots are rejected rather than silently accepted as current.
-
-## Prospective-journal preview
-
-The owner authorized committing and pushing the journal preview based on commit
-1e0d88e. It has not been installed on the running PC. See
-docs/PROSPECTIVE_JOURNAL.md before trying it separately.
-Research notes offers Register hypothetical experiment and View registered
-experiments. Registration requires your own size, horizon, signal ID and explicit
-assumption; no experiment or seed starts automatically. Existing quotes update
-registered comparisons while research runs. STOP/restart gaps and missed horizons
-remain recorded. Current BBO/fee evidence cannot establish after-cost predictive
-edge: missing sized depth/fee units remain UNKNOWN. Do not upload the private
-experiment SQLite file; share the redacted eight-section diagnostic export.
+Read docs/GLOBAL_PAPER_V1_02.md for the exact qualification, partial-completion
+semantics and copyable discussion handoff. No real order can be submitted.

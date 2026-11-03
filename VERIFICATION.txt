@@ -1,3 +1,84 @@
+COINCAT v1.02 — GLOBAL PAPER SETTINGS SOURCE CANDIDATE
+Base: published bba4dfea67b45e6f4eff7f15b7ba4398ab486a08, separate coincat-v1.02.
+Previous coincat-v1.01 and coincat-v100 branches/installations are preserved.
+
+PERSONALLY EXECUTED CHECKS — NOVEMBER 3, 2026
+405 discovered / 405 distinct / 405 run, zero failures/errors/skips/expected
+failures in 42.386s. HTTP forbidden before discovery and throughout execution.
+Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 / Xvfb; same twelve locked
+dependencies. Thirty-one new global cases cover the working slice once, source
+caps, all-view floor, fees once, UNKNOWN startup, native minimum/precision,
+fresh approved USD separation, transactional latest-version/cap/fee rechecks,
+immutable history/proof, canceled partial returns below target, permanently
+UNKNOWN completion FX, original-version reporting, safe resting review, STOP,
+reservation locks, restart, redaction, legacy projection and new UI defaults.
+The full suite retains canonical financial/native assertions and legacy tests.
+
+Supplementary Linux Python 3.13.5 / SQLite 3.46.1 / Tk-Tcl 8.6: 67 core/actual
+GUI/restart tests pass, zero failures/errors/skips in 13.846s. This uses the same
+pure dependency directory for a Tk diagnostic, not supported-runtime or Windows
+acceptance. Native idle ThemeChanged/background errors are collected rather
+than filtered. Final extracted-source full-suite validation is delivered in
+its separate log beside the source ZIP; no native pass is inferred from it.
+
+Actual supplementary Tk 8.6 captures/checks at 1380x900 and 1040x780: new normal
+Start uses the working 50% slice once, BBO/UNKNOWN creates zero orders; a separate
+explicit synthetic depth/fee-unit/funding fixture exercises a qualified maker
+order; all fourteen views, native bid/ask, scrollable order/wallet/outcome detail,
+Trading Settings, archived chart and transparent header fit. The small-window
+check first exposed clipped book panes; compact controls/scrolling and shared
+bid/ask heading fix that. The original financial fixture remains unchanged.
+No connected depth/fee evidence or native Windows/DPI result is claimed.
+
+Actual Tk restart plus authenticated loopback monitor v3 acceptance passes:
+original wallet/order and global revision restore as RECONCILIATION_REQUIRED,
+without saved-opt-in resume. Eight-section diagnostics and cached heartbeat
+omit native amounts, targets, percentages, references, receipts, private paths,
+IDs and token. No paper SQLite polling during heartbeat/export. Real GET 200,
+missing-token 401, private-path 404 and POST 405 checks pass. STOP/final CLOSED
+snapshot, writer/server/GUI shutdown and unchanged financial fixture pass.
+Only explicit localhost HTTP was used; exchange HTTP stayed forbidden. Node
+syntax/DOM checks pass global policy/version/counts, missing/failed responses
+and clearing stale information. The helper offers no command/update channel.
+
+Declared offline replay passes: two terminal paper orders, four simulated fills,
+zero real orders/verified exchange fills, exactly two fictitious SOL retained
+through expiry, duplicate ignored and restart reconciliation leaves PAUSED.
+These are toy inputs, not global-floor performance or predictive evidence.
+The historical holdout tool still identifies its patient/short-lived policy;
+it is not a global USD-gate forward trial. NO DEMONSTRATED EDGE in all cases.
+
+17 protected broker/FIFO/state/import/key/lot/lock/native/transport/allocation/
+cycle modules are byte-identical to bba4dfe. Original transparent logo/icon and
+both dependency files are unchanged. LiveBroker.submit retains first-statement
+unconditional LiveBlocked. No real financial schema/record/lot/basis changes,
+account create/edit/cancel/preview/transfer calls, permissions or allocations.
+132 manifest source files plus SHA256_MANIFEST.json are packaged. Source-only
+ZIP/independent SHA256 and independently extracted hashes/full-suite/replay
+logs are delivered separately. Private records/backups, keys, uploads, monitor
+files/tokens, logs, environments and bytecode are excluded. git diff --check
+passes. These are personally run checks; no GitHub Actions result is asserted.
+
+LIMITS / WINDOWS GATE
+Current normal scanner has BBO, without required sized exits/verified fee units.
+Strict UNKNOWN therefore blocks initial and later global entries. Fresh ETH-USD
+is a reference only, never a trade/bridge/history product, and does not fill the
+missing inputs. Conditional admission/target estimates are not completed profit.
+Terminal partial ETH returns can finish below the minimum; they and remaining
+exposure stay recorded. Missing/late completion FX stays UNKNOWN permanently.
+Versioned Apply cannot rewrite orders, raise size, relax protection or liquidate
+losses. AI Lab is passive. Subscription costs remain separate/unmodeled.
+
+Native Windows Python 3.11, DPAPI, single-instance, DPI, connected product/fee/
+reference availability and 60–120-minute supervised read-only acceptance remain
+UNRUN for v1.02. Earlier owner-supplied native results belong to old builds.
+Follow START_HERE.md and docs/GLOBAL_PAPER_V1_02.md in a separate installation;
+full Windows verification may take 20+ minutes, inspect final COUNTS/errors.
+No installed-PC change, deployment, connected account mutation or live pilot.
+Actual profit NOT_ESTABLISHED; live execution remains unconditionally blocked.
+
+THE FOLLOWING LEDGERS ARE HISTORICAL CHECKPOINT EVIDENCE
+
 COINCAT v1.01 — OPTIONAL SHORT-LIVED PAPER POLICY CANDIDATE
 Base 5abbce56066f295708f73013a3d73602b8c91ab6, remote fetched/matched.
 The owner requested brief validity/fresh market decisions while pursuing ETH

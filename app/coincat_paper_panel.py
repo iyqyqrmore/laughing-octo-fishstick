@@ -1,6 +1,7 @@
 """Local-only simulated portfolio, seven BBO books and fourteen directional views."""
 from datetime import datetime,timezone
 from decimal import Decimal as D
+import sqlite3
 import time
 import tkinter as tk
 from tkinter import ttk
@@ -9,6 +10,7 @@ from coincat_hover import Hover
 from coincat_paper_policy import AutoConfig,POLICY,SHORT_POLICY,DIRECTIONS,KICKOFFS,MODELS,direction_defaults
 from coincat_paper_engine import PaperEngine
 from coincat_watchlist import WATCH_PAIRS
+from coincat_global_paper import GlobalSettings,settings_at
 
 DISCLOSURE=('Paper only. No demonstrated edge or guaranteed profit. Maker orders may never fill. '
     'Unfilled orders normally incur no execution fee; partials incur supported fees and change exposure. '
@@ -18,46 +20,70 @@ POLICY_LABELS={POLICY:'Patient target',SHORT_POLICY:'Short-lived / net ETH targe
 
 
 class PaperPanel(ttk.Frame):
-    def __init__(self,parent,app):
+    def __init__(self,parent,app,*,settings_parent=None,legacy_parent=None):
         super().__init__(parent,padding=8);self.app=app;self.books={};self.pages={};self.direction_pages={};self.tier={}
         self.direction_text={v['id']:tk.StringVar(value='Not funded · Paper session has not started.') for v in DIRECTIONS}
         self.direction_vars={key:{name:tk.BooleanVar(value=value) if name=='enabled' else tk.StringVar(value=str(value))
             for name,value in values.items()} for key,values in direction_defaults().items()}
         self.values={key:tk.StringVar(value=value) for key,value in (
-            ('amount_eth',''),('budget_percent','10%'),('kickoff','ETH_BTC'),('model','CONSERVATIVE_STRESS_V1'),
+            ('amount_eth',''),('budget_percent','50%'),('kickoff','ETH_BTC'),('model','CONSERVATIVE_STRESS_V1'),
             ('seed','1'),('review_s','30'),('cooldown_s','30'),('duration_hours','24'),('max_orders','16'),
             ('fee_ceiling_pct','2'),('fee_stress_bps','5'),('membership','Basic'))}
         self.values.update({key:tk.StringVar(value=value) for key,value in (
-            ('order_policy',POLICY_LABELS[POLICY]),('order_ttl_s','120'),('min_rest_s','30'),('reprice_bps','10'))})
+            ('order_policy',POLICY_LABELS[SHORT_POLICY]),('order_ttl_s','120'),('min_rest_s','30'),('reprice_bps','10'))})
+        self.global_values={key:tk.StringVar(value=value) for key,value in (
+            ('min_net_usd','0.01'),('source_pct','50'),('review_s','30'),('reconsider_s','120'))}
+        self.global_applied_draft=None;self.global_status=tk.StringVar(value='Apply Trading Settings before Start. UNKNOWN blocks new entries.')
+        self.applied_summary=tk.StringVar(value='No global settings applied. Fields below are drafts until Apply.')
+        self.legacy_controls=None
+        if legacy_parent is not None:
+            self.legacy_controls=ttk.Notebook(legacy_parent);self.legacy_controls.pack(fill='both',expand=True)
         self.opt_in=tk.BooleanVar(value=False);self.session_widgets=[];self.market_widgets=[];self.settings_window=None
         self.short_widgets=[]
         self.message=tk.StringVar(value='OFF · Select a paper allocation and explicitly opt in. No live orders.')
         self.score=tk.StringVar(value='Shared paper wallet: not funded. ETH HOLD baseline: unset. Actual profit: not established.')
         title=ttk.Label(self,text='AUTO MAKER ROTATION · PAPER ONLY · LIVE BLOCKED',style='Metric.TLabel')
         title.pack(anchor='w');Hover(title,DISCLOSURE)
-        first=ttk.Frame(self);first.pack(fill='x',pady=4)
-        check=ttk.Checkbutton(first,text='Auto-Start Maker Rotation — PAPER ONLY',variable=self.opt_in)
-        check.pack(side='left');self.session_widgets.append(check)
-        ttk.Label(first,text='Paper budget').pack(side='left',padx=(10,3))
-        percent=ttk.Combobox(first,textvariable=self.values['budget_percent'],values=('5%','10%','15%','20%','25%','Exact custom'),state='readonly',width=12)
+        self._global_controls(self,compact=True)
+        applied_label=ttk.Label(self,textvariable=self.applied_summary,wraplength=1100);applied_label.pack(anchor='w')
+        check=ttk.Checkbutton(self,text='I opt in to this bounded PAPER session',variable=self.opt_in)
+        check.pack(anchor='w');self.session_widgets.append(check)
+        controls_parent=self if settings_parent is None else settings_parent
+        if settings_parent is not None:
+            self._global_controls(settings_parent,compact=False)
+            ttk.Label(settings_parent,textvariable=self.global_status,wraplength=900).pack(anchor='w',pady=4)
+        first=ttk.Frame(controls_parent);first.pack(fill='x',pady=8)
+        ttk.Label(first,text='Initial paper ETH allocation').pack(side='left',padx=(0,3))
+        percent=ttk.Combobox(first,textvariable=self.values['budget_percent'],values=('5%','10%','15%','20%','25%','50%','Exact custom'),state='readonly',width=12)
         percent.pack(side='left');percent.bind('<<ComboboxSelected>>',lambda e:self.update_budget_default());self.session_widgets.append(percent)
         amount=ttk.Entry(first,textvariable=self.values['amount_eth'],width=16);amount.pack(side='left',padx=4)
         amount.bind('<KeyRelease>',lambda e:self.values['budget_percent'].set('Exact custom'));self.session_widgets.append(amount)
         ttk.Label(first,text='ETH · hypothetical working slice').pack(side='left')
-        Hover(amount,'Defaults to 10% of the fresh working ETH proposal; 5–25% or exact custom. '
+        Hover(amount,'Defaults to 50% of the fresh working ETH proposal after carve-outs. The first eligible order uses this slice once; it is not halved again. '
             'No real assets move. Native minima/caps govern; a small order is blocked rather than rounded up. '
             'All fourteen views share this single initial ETH slice.')
         actions=ttk.Frame(self);actions.pack(fill='x',pady=3)
         for label,command in (('Start Auto Paper Trader',app._start_auto_paper),('Pause paper',app._pause_paper),
                 ('STOP',app._stop),('Reconcile paper',app._reconcile_paper),('New paper session',app._new_paper_session),
-                ('Session settings…',self.settings),('History…',self.history)):
+                ('History…',self.history)):
             button=ttk.Button(actions,text=label,command=command);button.pack(side='left',padx=(0,4))
             Hover(button,'Paper session only. Start is explicit; saved opt-in does not resume after restart. '
                 'Pause/STOP preserve inventory and reservations; neither confirms cancellation or sells a holding. '
                 'Reconciliation leaves PAUSED. A new session retains the previous database and starts a separate baseline.')
-        self.message_label=ttk.Label(self,textvariable=self.message,wraplength=950)
-        self.message_label.pack(anchor='w',pady=(2,4))
-        scoreboard=ttk.Label(self,textvariable=self.score,wraplength=1120,style='Muted.TLabel');scoreboard.pack(anchor='w',pady=(0,5))
+        ttk.Button(controls_parent,text='Session protections / compatibility settings…',command=self.settings).pack(anchor='w',pady=5)
+        info=ttk.Frame(self);info.pack(fill='x',pady=4)
+        self.info_canvas=tk.Canvas(info,height=78,highlightthickness=0,background='#0b0f12')
+        self.info_canvas.pack(side='left',fill='x',expand=True)
+        info_scroll=ttk.Scrollbar(info,orient='vertical',command=self.info_canvas.yview);info_scroll.pack(side='right',fill='y')
+        self.info_canvas.configure(yscrollcommand=info_scroll.set)
+        info_body=ttk.Frame(self.info_canvas);info_window=self.info_canvas.create_window((0,0),window=info_body,anchor='nw')
+        info_body.bind('<Configure>',lambda e:self.info_canvas.configure(scrollregion=self.info_canvas.bbox('all')))
+        global_feedback=ttk.Label(info_body,textvariable=self.global_status,style='Muted.TLabel')
+        self.active_order=tk.StringVar(value='No active paper order. No completed ETH profit established.')
+        active_label=ttk.Label(info_body,textvariable=self.active_order,wraplength=1100);active_label.pack(anchor='w',pady=4)
+        self.message_label=ttk.Label(info_body,textvariable=self.message,wraplength=950)
+        scoreboard=ttk.Label(info_body,textvariable=self.score,wraplength=1120,style='Muted.TLabel');scoreboard.pack(anchor='w',pady=(0,5))
+        self.message_label.pack(anchor='w',pady=(2,4));global_feedback.pack(anchor='w')
         Hover(scoreboard,DISCLOSURE+' Marked ETH is a midpoint reference before exit costs. '
             'After-cost recoverable ETH remains UNKNOWN without sized exits, matched times, fee units and residue valuation. '
             'Underwater time/drawdown use observed samples, not continuous risk coverage.')
@@ -65,13 +91,107 @@ class PaperPanel(ttk.Frame):
         for pair in WATCH_PAIRS:
             page=ttk.Frame(self.market_tabs,padding=5);self.market_tabs.add(page,text=pair);self.pages[pair]=page
         self.market_tabs.bind('<<NotebookTabChanged>>',self._selected)
+        def resize_info(event):
+            self.info_canvas.itemconfigure(info_window,width=event.width)
+            for label in (global_feedback,active_label,self.message_label,scoreboard):label.configure(wraplength=max(300,event.width-8))
+        self.info_canvas.bind('<Configure>',resize_info)
+        def info_wheel(event):
+            steps=-1 if event.num==4 else 1 if event.num==5 else -int(event.delta/120)
+            if steps:self.info_canvas.yview_scroll(steps,'units')
+            return 'break'
+        for widget in (info_body,global_feedback,active_label,self.message_label,scoreboard,self.info_canvas):
+            for sequence in ('<MouseWheel>','<Button-4>','<Button-5>'):widget.bind(sequence,info_wheel,add='+')
         def resize(event):
             width=max(350,event.width-20)
-            self.message_label.configure(wraplength=width);scoreboard.configure(wraplength=width)
+            applied_label.configure(wraplength=width)
+            self.info_canvas.configure(height=max(75,min(160,event.height-460)))
         self.bind('<Configure>',resize)
         self._ensure_market(WATCH_PAIRS[0])
         if app.paper.config is not None:self.from_config(app.paper.config)
+        if app.paper.engine is not None:
+            applied=settings_at(app.paper.engine.private_state())
+            if applied is not None:
+                self.global_applied_draft=applied
+                for key,value in applied.frozen().items():
+                    if key in self.global_values:self.global_values[key].set(str(value))
+                self.global_status.set('Applied global settings v'+str(len(app.paper.engine.private_state()['auto']['global_history'])))
         self.refresh()
+
+    def _global_controls(self,parent,*,compact):
+        box=ttk.LabelFrame(parent,text='Auto Trader — Global Settings',padding=4 if compact else 8);box.pack(fill='x',pady=5)
+        row=ttk.Frame(box);row.pack(fill='x')
+        ttk.Label(row,text='Minimum completed-rotation net profit · USD draft').pack(side='left')
+        target=ttk.Entry(row,textvariable=self.global_values['min_net_usd'],width=10);target.pack(side='left',padx=6)
+        target.bind('<Return>',lambda e:self.apply_global_settings(profit_only=True))
+        ttk.Button(row,text='Apply profit target',padding=(6,2) if compact else None,
+            command=lambda:self.apply_global_settings(profit_only=True)).pack(side='left')
+        presets=ttk.Frame(box);presets.pack(fill='x',pady=(2 if compact else 5,0))
+        for value in ('0.01','0.05','0.10','0.25','0.50','1.00'):
+            ttk.Button(presets,text='$'+value,width=7,padding=(6,2) if compact else None,
+                command=lambda v=value:self._profit_preset(v)).pack(side='left',padx=(0,4))
+        Hover(target,'At least one whole USD cent, after native entry/exit costs and the original ETH baseline. '
+            'Missing approved USD, fee-unit, sized-exit or residual evidence means UNKNOWN and blocks new entries. '
+            'Changing this target never increases size or forces an underwater sale. Existing orders keep their original version/price and are reviewed before any replacement.')
+        if not compact:
+            for key,label in (('source_pct','Subsequent available source coin per order · % (maximum 50)'),
+                    ('review_s','Order review · seconds'),('reconsider_s','Reconsider unfilled orders · seconds')):
+                line=ttk.Frame(box);line.pack(fill='x',pady=5)
+                ttk.Label(line,text=label,width=63).pack(side='left')
+                ttk.Entry(line,textvariable=self.global_values[key],width=12).pack(side='left')
+            ttk.Label(box,text='Limit + Post Only · All 7 approved pairs / 14 directions · Basic: authenticated fees, no inferred rebate.\n'
+                'One shared paper wallet. Native minima, reserved funds, exits and session protections remain binding.\n'
+                'USD is a reference only. UNKNOWN blocks entry; conditional estimates are not completed profit.',wraplength=850).pack(anchor='w',pady=7)
+            buttons=ttk.Frame(box);buttons.pack(fill='x')
+            ttk.Button(buttons,text='Apply all Trading Settings',command=self.apply_global_settings).pack(side='left')
+            ttk.Button(buttons,text='Copy settings for Codex',command=self.copy_global_settings).pack(side='left',padx=6)
+
+    def _profit_preset(self,value):
+        self.global_values['min_net_usd'].set(value);self.apply_global_settings(profit_only=True)
+
+    def _global_draft(self):
+        from coincat_v80_immediate import exact
+        def integer(key):
+            value=exact(self.global_values[key].get())
+            if value!=value.to_integral_value():raise ValueError('INTEGER_GLOBAL_SETTING_REQUIRED')
+            return int(value)
+        current=None if self.app.paper.engine is None else settings_at(self.app.paper.engine.private_state())
+        choice=self.values['budget_percent'].get()
+        initial=current.initial_pct if current is not None else D(50) if choice=='Exact custom' else D(choice.rstrip('%'))
+        return GlobalSettings(D(self.global_values['min_net_usd'].get()),D(self.global_values['source_pct'].get()),
+            initial,integer('review_s'),integer('reconsider_s')).checked()
+
+    def apply_global_settings(self,*,profit_only=False):
+        try:
+            from dataclasses import replace
+            if profit_only:
+                current=None if self.app.paper.engine is None else settings_at(self.app.paper.engine.private_state())
+                baseline=current or self.global_applied_draft or GlobalSettings()
+                settings=replace(baseline,min_net_usd=D(self.global_values['min_net_usd'].get())).checked()
+            else:settings=self._global_draft()
+            if self.app.paper.engine is None:
+                self.global_applied_draft=settings
+                self.global_status.set('Trading Settings applied to next paper session · no wallet or order created')
+            else:
+                version=self.app.paper.apply_global(settings,at=time.time())
+                self.global_applied_draft=settings;self.app.paper_public=self.app.paper.public()
+                self.global_status.set('Applied settings v'+str(version)+' · existing orders keep their price/version and receive a safe review')
+            self.refresh()
+        except (ValueError,ArithmeticError,OSError,sqlite3.Error):
+            self.global_status.set('Settings not applied. Use whole USD cents ≥0.01, source ≤50%, valid timing and unchanged session funding. No order rewritten.')
+
+    def copy_global_settings(self):
+        try:settings=self._global_draft()
+        except (ValueError,ArithmeticError):self.global_status.set('Correct the draft settings before copying.');return
+        text=('CoinCat v1.02 proposed PAPER settings\nMinimum completed-rotation net profit: $'+format(settings.min_net_usd,'.2f')+
+            ' USD-equivalent\nInitial working ETH allocation: '+str(settings.initial_pct)+'% (once, not halved again)'+
+            '\nSubsequent available/unreserved source per order: up to '+str(settings.source_pct)+'%'+
+            f'\nReview {settings.review_s}s; reconsider {settings.reconsider_s}s.\n'+
+            'All 7 pairs / 14 directions. Limit + Post Only; no taker fallback. Basic; authenticated fees.\n'+
+            'Validate fresh approved USD, native fees/rules/precision, sized exits, ETH baseline and residues. UNKNOWN blocks new entries.\n'+
+            'Future intents use versioned applied settings; existing orders require safe review/cancel/reconciliation before replacement.\n'+
+            'AI Lab is passive. Live execution remains blocked.')
+        self.app.root.clipboard_clear();self.app.root.clipboard_append(text)
+        self.global_status.set('Draft settings copied locally. Copying does not apply them or create an order.')
 
     def update_budget_default(self):
         if self.app.paper.engine is not None:return
@@ -204,7 +324,8 @@ class PaperPanel(ttk.Frame):
             state=records[keys[0]];context=state['auto']
             detail.configure(state='normal');detail.delete('1.0','end')
             detail.insert('1.0',str(dict(wallet=state['wallet'],performance=context.get('performance'),
-                fixed_horizon=context.get('horizon'),last_reason=context.get('last_reason'),pending=context.get('pending'))))
+                fixed_horizon=context.get('horizon'),last_reason=context.get('last_reason'),pending=context.get('pending'),
+                global_settings_versions=context.get('global_history',[]),completed_eth_returns=context.get('completed_rotations',{}))))
             detail.configure(state='disabled')
         tree.bind('<<TreeviewSelect>>',selected)
         ttk.Button(body,text='Close',command=window.destroy).pack(anchor='e')
@@ -239,7 +360,7 @@ class PaperPanel(ttk.Frame):
         page.book_trees={}
         for label in ('Ask','Bid'):
             ttk.Label(book,text=label).pack(anchor='w')
-            tree=ttk.Treeview(book,columns=('price','size'),show='headings',height=1)
+            tree=ttk.Treeview(book,columns=('price','size'),show='headings' if label=='Ask' else '',height=1)
             base,quote=pair.split('-')
             tree.heading('price',text=quote+' per '+base);tree.heading('size',text='Observed size')
             tree.column('price',width=125,minwidth=70);tree.column('size',width=90,minwidth=65)
@@ -262,7 +383,13 @@ class PaperPanel(ttk.Frame):
             body.bind('<Configure>',lambda e,c=viewport:c.configure(scrollregion=c.bbox('all')))
             viewport.bind('<Configure>',lambda e,c=viewport,w=window:c.itemconfigure(w,width=e.width))
             frame.viewport=viewport
-            controls=ttk.Frame(body);controls.pack(fill='x',pady=4)
+            controls_parent=body
+            if self.legacy_controls is not None:
+                controls_parent=ttk.Frame(self.legacy_controls,padding=8)
+                self.legacy_controls.add(controls_parent,text=view['source']+' → '+view['target'])
+                ttk.Label(controls_parent,text='Legacy per-direction configuration. The applied global USD floor and source cap govern new global intents.',
+                    wraplength=750).pack(anchor='w',pady=5)
+            controls=ttk.Frame(controls_parent);controls.pack(fill='x',pady=4)
             enabled=ttk.Checkbutton(controls,text='Enabled',variable=self.direction_vars[view['id']]['enabled'])
             enabled.grid(row=0,column=0,sticky='w');self.market_widgets.append(enabled)
             for index,(name,label) in enumerate((('target_pct','Net ETH target %'),('entry_bps','Entry offset bps'),
@@ -297,13 +424,34 @@ class PaperPanel(ttk.Frame):
             self.tier=result.get('fee_evidence',{})
         state=manager.engine.private_state() if manager.engine is not None else None
         if state is None:
+            applied=self.global_applied_draft
             self.message.set('OFF · '+(manager.last_problem or 'Explicit paper opt-in and a fresh working ETH proposal are required.'))
             self.score.set('One shared paper wallet is not funded. No simulated orders. Actual profit NOT ESTABLISHED.')
+            self.active_order.set('No active paper order. UNKNOWN blocks entries; no completed ETH profit established.')
         else:
             context=state['auto'];performance=context['performance'];public=manager.public()
+            settings=settings_at(state)
+            applied=settings
             expiry=datetime.fromtimestamp(state['limits']['expires_at'],timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
-            self.message.set(public['state']+' · '+POLICY_LABELS[manager.config.policy]+' · '+context['last_reason']+' · '+manager.config.model+' · seed '+str(manager.config.seed)+
+            label='Global USD rotation v'+str(len(context['global_history'])) if settings else POLICY_LABELS[manager.config.policy]
+            self.message.set(public['state']+' · '+label+' · '+context['last_reason']+' · '+manager.config.model+' · seed '+str(manager.config.seed)+
                 ' · original expiry '+expiry+' · simulated venue / NO DEMONSTRATED EDGE')
+            current=next((o for o in state['orders'].values() if o['state'] not in ('FILLED','CANCELED','REJECTED')),None)
+            reports=context.get('completed_rotations',{})
+            last=next(reversed(reports.values()),None) if reports else None
+            result='No completed ETH-return slice'
+            if last is not None:
+                result=('Last completed paper ETH-return slice: '+last['state']+' · net USD '+(
+                    'UNKNOWN' if last['net_usd'] is None else format(last['net_usd'],'.8g'))+' vs $'+str(last['minimum_usd'])+
+                    ' minimum (order settings v'+str(last['policy_version'])+')')
+            if current is None:self.active_order.set('No active paper order · '+result)
+            else:
+                native=self.books.get(current['pair'],{}).get('book')
+                market='UNOBSERVED' if native is None else str(native[0])+' / '+str(native[1])
+                self.active_order.set(current['pair']+' '+current['side']+' · '+current['state']+
+                    ' · bid / ask '+market+' · limit '+str(current['limit_price'])+
+                    ' · age '+str(round(max(0,now-current['created_at'])))+'s · pinned settings v'+
+                    str(current.get('global_policy_version',0))+'\nReview: '+context['last_reason']+' · '+result)
             def compact(value):return 'UNKNOWN' if value is None else format(value,'.10g')
             wallet=' · '.join(f'{a}: total {compact(q)}, available '+compact(manager.engine.available(a))+', reserved '+
                 compact(manager.engine._held(state,a)) for a,q in state['wallet'].items() if q or a=='ETH')
@@ -317,6 +465,10 @@ class PaperPanel(ttk.Frame):
                 '\nMarked ΔETH '+compact(performance.get('midpoint_delta_eth'))+' · Max observed midpoint drawdown '+compact(performance.get('max_midpoint_drawdown_pct'))+'%'+
                 f" · Observed underwater {round(performance.get('observed_underwater_s',0))} s · Fees "+fee_text+
                 f" · Orders {public['orders']}/{state['limits']['max_orders']} · Paper fills {public['fills']} / non-fills {public['non_fills']} · Actual profit NOT ESTABLISHED")
+        self.applied_summary.set('No global settings applied. Fields are drafts until Apply.' if applied is None else
+            'Applied $'+format(applied.min_net_usd,'.2f')+' net floor · working ETH '+str(applied.initial_pct)+
+            '% once / source ≤'+str(applied.source_pct)+'% · review '+str(applied.review_s)+
+            's / reconsider '+str(applied.reconsider_s)+'s · Post Only · UNKNOWN blocks entries')
         for pair,page in self.pages.items():
             if not hasattr(page,'book_trees'):continue
             observed=self.books.get(pair,{})
@@ -345,7 +497,8 @@ class PaperPanel(ttk.Frame):
                             elif order['state'] not in ('FILLED','CANCELED','REJECTED'):
                                 heading+=f" · {round(max(0,order['expires_at']-now))}s left"
                         text+=f"\nPAPER {order['state']} · {order['side']} limit {order['limit_price']} · cumulative {order['filled_base']} / {order['base_size']} · reserve {order['reserved']} {order['source']}"
-                        text+=f"\nOrder age {round(max(0,now-order['created_at']))} s · modeled fee currency {pair.split('-')[1]} · next policy review in "+str(round(max(0,manager.config.review_s-(now-(state['auto']['last_review'] or now)))))+' s'
+                        interval=settings.review_s if settings else manager.config.review_s
+                        text+=f"\nOrder age {round(max(0,now-order['created_at']))} s · modeled fee currency {pair.split('-')[1]} · next policy review in "+str(round(max(0,interval-(now-(state['auto']['last_review'] or now)))))+' s'
                         text+=f" · order lifetime remaining {round(max(0,order['expires_at']-now))} s (expiry requests cancel)"
                         text+=' · venue '+state['auto']['venue'].get(order['reference'],{}).get('data_state','AWAITING_RECEIPT')
                 if row.get('plan'):
@@ -353,6 +506,13 @@ class PaperPanel(ttk.Frame):
                     required=row.get('required_eth')
                     target='conditional only' if required is None else 'approx '+format(required,'.10g')
                     text+='\nFee ceiling '+format(row['fee_fraction']*100,'.10g')+f"% · target ETH {target} · candidate is not reserved funding"
+                proof=row.get('qualification')
+                if proof:
+                    text+=('\nCompleted-rotation estimate '+proof['state']+' · conditional net USD '+(
+                        'UNKNOWN' if proof['net_usd'] is None else format(proof['net_usd'],'.10g'))+
+                        ' · minimum $'+str(proof['minimum_usd'])+' · not completed profit')
+                    target=row.get('target_exit')
+                    if target:text+='\nModeled return target '+target['pair']+' '+target['side']+' '+str(target['limit_price'])+' (not qualification)'
                 fee_at=self.tier.get('captured_at')
                 fee_age='UNOBSERVED' if fee_at is None else str(round(now-fee_at))+' s'
                 maker=self.tier.get('maker');rate='UNKNOWN' if not isinstance(maker,D) else format(maker*100,'.10g')+'%'

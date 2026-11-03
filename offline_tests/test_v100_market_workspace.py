@@ -161,7 +161,8 @@ class SpotWorkspaceGUI(unittest.TestCase):
 
     def test_chart_left_controls_right_and_activity_below_fit_minimum_window(self):
         app=self.app;self.root.geometry('1040x780');self.root.update()
-        self.assertEqual(len(app.tabs.tabs()),5);self.assertEqual(len(app.activity_tabs.tabs()),4)
+        self.assertEqual(len(app.tabs.tabs()),4);self.assertEqual(len(app.archive_tabs.tabs()),4)
+        self.assertEqual(len(app.activity_tabs.tabs()),4)
         self.assertEqual(len(app.companions),4);self.assertEqual(set(app.watch_tree.get_children()),set(WATCH_PAIRS))
         self.assertGreater(app.funding_label.winfo_rootx(),app.chart.winfo_rootx()+app.chart.winfo_width())
         self.assertGreater(app.growth_tree.winfo_rooty(),app.chart.winfo_rooty())

@@ -1,36 +1,37 @@
-# CoinCat v1.01 — Auto Maker Rotation, PAPER ONLY
+# CoinCat v1.02 — Global PAPER Trading Settings
 
-Start one bounded simulated ETH portfolio from the normal scanner workflow.
-Seven product tabs expose fourteen directions, with shared inventory/reservations,
-post-only paper orders, partial fills, patient ETH returns, qualified rotations,
-HOLD and persistent restart reconciliation. Default kickoff is the explicitly
-chosen ETH→BTC SELL; there is no requirement for a profitable cycle forecast.
-Automatic paper opt-in starts off. A saved checkbox never resumes on relaunch.
+One shared simulated wallet, seven product tabs and fourteen directions now use
+one adjustable **$0.01 minimum net USD-equivalent completed ETH-return target**.
+The first order can use the approved **50% of working ETH once**; subsequent
+orders use up to **50% of available, unreserved source inventory**, subject to
+native/session caps. Review is 30 seconds, unfilled-order reconsideration 120
+seconds. Every intent is Limit + Post Only. Real submission remains blocked.
 
-For a new paper session, **Session settings → Order policy → Short-lived / net
-ETH target** offers 120-second orders, bounded market-move cancellation and a
-fresh decision after confirmed cancellation. It keeps the net ETH target;
-unavailable targets mean HOLD with visible exposure/losses. Replacements use
-the existing order budget and retain the original campaign/session deadline.
-Patient target remains the default; existing sessions are not reconfigured.
+Auto Trader is the default page. Trading Settings holds the common target,
+source percentage and timing. Apply creates an immutable version for future
+intents. Existing orders keep their price, expiry and settings version; a safe
+review requests cancellation/reconciliation before any replacement. Target
+changes do not increase size, relax protection or force an underwater sale.
+The old mixer, chart, scenarios, journal and passive AI Lab remain in Research
+Archive. Historical records and the larger transparent header logo are retained.
 
-The existing chart, mixer, manual allocation, journal, read-only research, local
-monitor v3 and larger transparent upper-header logo remain. No actual orders,
-authenticated previews, transfers, financial records or real allocations change.
-LiveBroker.submit still raises LiveBlocked immediately.
+**UNKNOWN blocks every new global entry, including startup.** The current normal
+scanner supplies best bid/ask, not sized exits or verified fee-currency evidence.
+It therefore normally HOLDs with UNKNOWN under this policy. This release does
+not invent missing evidence or bypass the gate to make the paper trader active.
+A separate fresh ETH-USD public reference values USD only; it is never traded,
+used as a bridge or added to the research graph/history. Conservative exit
+valuation is a benchmark, never a taker-order fallback.
 
-The current data is BBO, without sized queue/depth. Simulated executions use
-clearly labeled seeded stress assumptions with delay, sustained strict quote
-penetration, synthetic queue depletion and partial/non-fill behavior. A touch
-alone never fills. This is an uncalibrated PAPER experiment, not exchange
-matching evidence or a demonstrated profitable predictor. Open marked losses,
-fees, idle/reserved funds, unknown valuations and missed horizons remain visible.
+Conditional opportunities, terminal completed ETH-return slices and whole-wallet
+performance against HOLD are separate. Fees, native rounding, residuals, missed
+fills, partials and open losses remain visible. A touch alone never fills.
+The seeded simulated venue is uncalibrated and provides no demonstrated edge,
+exchange fill proof or real account profit. Basic membership changes no fees.
 
-Read [START_HERE.md](START_HERE.md), then
-[the paper trial, defaults and policy](docs/AUTO_PAPER_V1_01.md).
-[Independent feedback](docs/AUTO_PAPER_FEEDBACK.md) explains the objections;
-[VERIFICATION.txt](VERIFICATION.txt) records actual checks and platform limits.
-The source base is published v100 commit ebe4fd7. The owner authorized committing
-and pushing the completed build as v1.01; installation and deployment remain separate.
-
-**Paper gains are simulated and never account profit. NO DEMONSTRATED EDGE.**
+Follow [START_HERE.md](START_HERE.md) and
+[the v1.02 policy and discussion handoff](docs/GLOBAL_PAPER_V1_02.md).
+[VERIFICATION.txt](VERIFICATION.txt) distinguishes actual offline checks from
+native Windows and connected evidence still required. Source is based on
+published v1.01 bba4dfe; earlier branches/installations remain separate.
+No installation, account mutation, deployment or live pilot is included.

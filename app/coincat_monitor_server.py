@@ -14,8 +14,8 @@ from coincat_monitor import monitor_directory,status
 
 HTML='''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CoinCat v1.01 · Monitor</title><link rel="stylesheet" href="/monitor.css"></head>
-<body><main><h1>CoinCat <small>v1.01 · Monitor</small></h1>
+<title>CoinCat v1.02 · Monitor</title><link rel="stylesheet" href="/monitor.css"></head>
+<body><main><h1>CoinCat <small>v1.02 · Monitor</small></h1>
 <p>Read-only app health · Trading blocked · Fills and profit unverified</p>
 <h2 id="state">Connecting…</h2><p id="message"></p>
 <div class="cards"><section><span>Last good scan</span><strong id="scan">—</strong></section>
@@ -45,7 +45,7 @@ async function refresh(){
   if(!r.ok)throw new Error("Read access unavailable. Reopen using the helper launcher.");
   latest=await r.json();put("state",latest.state.replaceAll("_"," "));
   const s=latest.snapshot,a=latest.ages;
-  put("message",s?"Snapshot "+new Date(s.captured_at*1000).toLocaleString()+" · Heartbeat "+age(a.heartbeat_s)+" ago":"Enable Local monitor in CoinCat’s Research notes tab.");
+  put("message",s?"Snapshot "+new Date(s.captured_at*1000).toLocaleString()+" · Heartbeat "+age(a.heartbeat_s)+" ago":"Enable Local monitor in Research Archive → AI Lab / notes.");
   put("scan",s?age(a.last_good_scan_s)+" ago · #"+(s.health.scan_number??"—"):"—");
   put("fees",s?(a.authenticated_fresh?"Account recent":"Account stale / unobserved")+" · "+(a.fee_valid_now?"Fees within TTL":"Fees stale / unobserved"):"—");
   put("retry",s?s.health.connection_state+(s.health.retry_in_s===null?"":" · Captured countdown "+age(s.health.retry_in_s)):"—");
@@ -57,11 +57,11 @@ async function refresh(){
   put("counts",s?"Setups "+s.observations.setups+" · Gap episodes "+s.observations.unpriced_episodes+" · Resumptions "+s.observations.resumed_episodes+" · Uncertain entry touches "+s.observations.entry_touches_uncertain:"");
   put("adaptive",s?s.adaptive.decision+" · NO DEMONSTRATED EDGE · Recoverable research ETH: UNKNOWN · Independent cases; no verified exchange fills":"No current research snapshot");
   put("journal",s?s.prospective_journal.state+" · Registered "+s.prospective_journal.registered+" · Waiting "+s.prospective_journal.waiting+" · Conditional adverse "+s.prospective_journal.adverse+" · Unknown "+s.prospective_journal.unknown+" · Missed horizons "+s.prospective_journal.missed_horizons+" · Unpriced open "+s.prospective_journal.unpriced_open_cases+" · No paper trades":"No current journal snapshot");
-  const p=s?.auto_paper;put("paper",p?p.state+" · "+p.policy+" · "+p.model+" · Paper orders "+p.orders+" · Simulated fills "+p.fills+" · Non-fills "+p.non_fills+" · NO DEMONSTRATED EDGE":"No current auto-paper snapshot");
+  const p=s?.auto_paper;put("paper",p?p.state+" · "+p.policy+" · "+p.model+" · Paper orders "+p.orders+" · Simulated fills "+p.fills+" · Non-fills "+p.non_fills+" · Applied settings v"+(p.settings_version??0)+" · Completed ETH-return slices "+(p.completed_rotations??0)+" / qualifying "+(p.qualifying_rotations??0)+" · UNKNOWN blocks new global entries · NO DEMONSTRATED EDGE":"No current auto-paper snapshot");
   put("detail",JSON.stringify(latest,null,2));
  }catch(e){latest=null;put("paper","Current paper status unavailable");put("journal","Current journal unavailable");put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
 }
-document.getElementById("download").addEventListener("click",()=>{if(!latest)return;const u=URL.createObjectURL(new Blob([JSON.stringify(latest,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download="CoinCat_v1.01_Monitor_Snapshot.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});
+document.getElementById("download").addEventListener("click",()=>{if(!latest)return;const u=URL.createObjectURL(new Blob([JSON.stringify(latest,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download="CoinCat_v1.02_Monitor_Snapshot.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});
 refresh();setInterval(refresh,5000);
 '''
 
@@ -161,7 +161,7 @@ def main(argv=None):
         server=MonitorServer(args.directory,port=args.port,tailnet_name=args.tailscale_name)
     except (OSError,ValueError):
         print('Monitor could not start. Check that its port is free and support_monitor is writable.');return 2
-    print('CoinCat v1.01 read-only monitor: http://127.0.0.1:'+str(args.port)+'/')
+    print('CoinCat v1.02 read-only monitor: http://127.0.0.1:'+str(args.port)+'/')
     print('No app commands. Ctrl+C stops this helper; CoinCat research continues.')
     if args.tailscale_name:
         print('Private HTTPS hostname configured. Tailscale Serve and cloud VPN access must be set up separately.')

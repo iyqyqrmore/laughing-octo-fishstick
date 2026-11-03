@@ -1,4 +1,4 @@
-"""Synthetic account/quote fixtures and deterministic Tk lifetime for v1.01 tests."""
+"""Synthetic account/quote fixtures and deterministic Tk lifetime for v1.02 tests."""
 from contextlib import closing,contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -81,3 +81,6 @@ class SimpleGUI(unittest.TestCase):
         self.temp=TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.env=patch.dict('os.environ',{'COINCAT_DATA_DIR':self.temp.name});self.env.start();self.addCleanup(self.env.stop)
         self.root,self.app=self.enterContext(gui_lifetime())
+        if getattr(self,'legacy_workspace',True):
+            self.app.tabs.select(self.app.tabs.tabs()[-1]);self.app.archive_tabs.select(self.app.research_page)
+            self.root.update_idletasks()

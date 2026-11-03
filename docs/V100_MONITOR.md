@@ -1,3 +1,11 @@
+Current v1.02: enable Local monitor in Research Archive → AI Lab / notes.
+The helper title/download use v1.02; monitor/v3 permits safe global policy,
+applied-version and completed/qualifying ETH-return-slice counts only. No native
+amount, target, percentage or receipt is exported. The exact legacy v1.01 paper
+projection remains readable; malformed or extra fields are rejected. Missing/
+failed responses clear current claims. See GLOBAL_PAPER_V1_02.md. The earlier
+read-only transport/privacy guidance below remains applicable.
+
 # CoinCat v1.01 local helper — monitor v3
 
 The optional strictly allowlisted auto_paper subsection adds state/model enums

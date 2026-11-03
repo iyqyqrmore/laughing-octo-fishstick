@@ -7,14 +7,17 @@ from pathlib import Path
 import sqlite3
 import uuid
 
-from coincat_adaptive_eth import recoverable_inventory
+from coincat_adaptive_eth import Frame,recoverable_inventory
 from coincat_paper_engine import PaperEngine,PaperLimits,PaperBlocked,TERMINAL
 from coincat_paper_policy import (AutoConfig,POLICY,SHORT_POLICY,POLICIES,MODELS,DIRECTIONS,candidates,
     select_candidate,paper_frame,reference_costs,eth_mark)
 from coincat_paper_venue import StressVenue
 from coincat_watchlist import WATCH_PAIRS
+from coincat_global_paper import (GLOBAL_POLICY,settings_at,effective_config,global_candidates,
+    initial_campaign,completed_reports,qualification,source_budget)
 
-PUBLIC_COUNTS=('orders','fills','non_fills','partials','gaps','enabled_views','reviews')
+PUBLIC_COUNTS=('orders','fills','non_fills','partials','gaps','enabled_views','reviews',
+    'settings_version','completed_rotations','qualifying_rotations')
 PUBLIC_STATES=('OFF','ACTIVE','PAUSED','RECONCILIATION_REQUIRED','EXPIRED','UNAVAILABLE','WAITING_FOR_FRAME')
 
 
@@ -23,7 +26,7 @@ def public_status(value=None):
     out={k:value.get(k,0) if type(value.get(k,0)) is int and 0<=value.get(k,0)<=1000000000 else 0 for k in PUBLIC_COUNTS}
     out.update(state=value.get('state') if value.get('state') in PUBLIC_STATES else 'OFF',
         model=value.get('model') if value.get('model') in MODELS else 'UNOBSERVED',
-        policy=value.get('policy') if value.get('policy') in POLICIES else POLICY,
+        policy=value.get('policy') if value.get('policy') in POLICIES+(GLOBAL_POLICY,) else POLICY,
         provider='SEEDED_BBO_STRESS_NOT_EXCHANGE_MATCHING',classification='SIMULATED_ASSUMPTION',
         valuation=value.get('valuation') if value.get('valuation') in ('PAPER_ETH_CASH','UNKNOWN') else 'UNKNOWN',
         actual_profit='NOT_ESTABLISHED',edge='NO_DEMONSTRATED_EDGE',live_permission=False)
@@ -31,9 +34,13 @@ def public_status(value=None):
 
 
 def validate_public(value):
-    if not isinstance(value,dict) or value!=public_status(value) or set(value)!=set(public_status()):
+    current=set(public_status());legacy=current-{'settings_version','completed_rotations','qualifying_rotations'}
+    if not isinstance(value,dict) or set(value) not in (current,legacy):
         raise ValueError('INVALID_AUTO_PAPER_PUBLIC_SCHEMA')
-    if any(type(value[k]) is not int for k in PUBLIC_COUNTS):raise ValueError('INVALID_AUTO_PAPER_PUBLIC_COUNT')
+    if value.get('policy')==GLOBAL_POLICY and set(value)!=current:raise ValueError('INVALID_AUTO_PAPER_PUBLIC_SCHEMA')
+    expected=public_status(value)
+    if value!={key:expected[key] for key in value}:raise ValueError('INVALID_AUTO_PAPER_PUBLIC_SCHEMA')
+    if any(type(value[k]) is not int for k in PUBLIC_COUNTS if k in value):raise ValueError('INVALID_AUTO_PAPER_PUBLIC_COUNT')
     if type(value['live_permission']) is not bool:raise ValueError('INVALID_AUTO_PAPER_PUBLIC_PERMISSION')
     return value
 
@@ -42,6 +49,7 @@ class AutoPaper:
     def __init__(self,directory,*,load=True):
         self.directory=Path(directory);self.engine=None;self.config=None;self.venue=None
         self.view_rows={};self.last_problem=None;self.session_id=None
+        self.latest_frame=None;self.latest_usd_reference=None
         if load:self._load()
 
     def _load(self):
@@ -64,7 +72,7 @@ class AutoPaper:
         except (ValueError,TypeError,KeyError,OSError,sqlite3.Error,ArithmeticError):
             self.last_problem='STORED_PAPER_SESSION_UNAVAILABLE_NO_REPLACEMENT'
 
-    def create(self,config,*,at,funding):
+    def create(self,config,*,at,funding,global_settings=None):
         if self.last_problem:raise PaperBlocked(self.last_problem)
         if self.engine is not None:raise PaperBlocked('EXISTING_PAPER_SESSION_USE_RESUME_OR_EXPLICIT_NEW')
         config=config.checked()
@@ -75,17 +83,41 @@ class AutoPaper:
         products=tuple(p for p in WATCH_PAIRS if any(v['pair']==p and config.directions[v['id']]['enabled'] for v in DIRECTIONS))
         limits=PaperLimits(products,{'ETH':config.amount_eth},1,config.max_orders,at+config.duration_s,config.fee_ceiling)
         engine=PaperEngine.from_proposal(self.directory/('paper_'+identity+'.sqlite3'),amount_eth=config.amount_eth,
-            limits=limits,at=at,simulation_ack='SIMULATION_ONLY',**funding)
+            limits=limits,at=at,simulation_ack='SIMULATION_ONLY',
+            working_fraction=None if global_settings is None else global_settings.checked().initial_pct/100,**funding)
         context=dict(schema=1,policy=config.policy,session=identity,config=config.frozen(),kickoff_reference=None,
             intent_meta={},venue={},pending=[],last_observed_at=None,last_review=None,last_order_at=None,
             reviews=0,last_reason='WAITING_FOR_FIRST_QUALIFYING_FRAME',performance={},history=[],detail_truncated=False,
             horizon=None,native_cap_rule='FIRST_CANONICAL_RECEIPT_CEILING_NEVER_FUNDS',pause_at=None,replacement_deadline=None,
             model_assumptions=StressVenue(config).assumptions())
         engine.checkpoint_context(context)
+        if global_settings is not None:engine.apply_global('initial_global_settings',global_settings,at=at,initial_slice=True)
         index=self.directory/'active_session.json';temporary=index.with_suffix('.tmp')
         temporary.write_text(json.dumps(dict(schema=1,session=identity)),encoding='utf-8');os.replace(temporary,index)
         self.engine=engine;self.config=config;self.venue=StressVenue(config);self.session_id=identity
         engine.start('explicit_session_start',at=at)
+
+    def apply_global(self,settings,*,at):
+        if self.engine is None:raise PaperBlocked('NO_PAPER_SESSION')
+        settings=settings.checked();state=self.engine.private_state();previous=settings_at(state)
+        if previous is not None and previous.frozen()==settings.frozen():return len(state['auto']['global_history'])
+        result=self.engine.apply_global('global_apply_'+str(self.engine._revision),settings,at=at)
+        self.view_rows={}
+        self.preview_global(at=at)
+        return result['version']
+
+    def preview_global(self,*,at):
+        if self.engine is None or self.latest_frame is None:return
+        previous=self.latest_frame;state=self.engine.private_state();settings=settings_at(state)
+        if settings is None:return
+        frame=Frame(at,previous._catalog,previous._rules,previous._quotes,previous._tier,previous._excluded,
+            _depth=previous._depth,_fee_units=previous._fee_units)
+        try:
+            cfg=effective_config(self.config,settings);planning=paper_frame(frame,cfg,planning=True)
+            current=next((o for o in state['orders'].values() if o['state'] not in TERMINAL),None)
+            self.view_rows=global_candidates(self.engine,planning,cfg,settings,self.latest_usd_reference,
+                kickoff=initial_campaign(state),review_reference=None if current is None else current['reference'])
+        except (ValueError,TypeError,KeyError,ArithmeticError):self.view_rows={}
 
     def new_session(self):
         if self.engine is not None and self.engine.private_state()['mode']=='ACTIVE':raise PaperBlocked('PAUSE_CURRENT_SESSION_FIRST')
@@ -93,6 +125,7 @@ class AutoPaper:
         # The previous database and its index remain until a new initialized
         # session is atomically selected. No record, loss or reservation is erased.
         self.engine=None;self.config=None;self.venue=None;self.view_rows={}
+        self.latest_frame=None;self.latest_usd_reference=None
 
     def start(self,*,at):
         if self.engine is None:raise PaperBlocked('NO_PAPER_SESSION')
@@ -168,11 +201,13 @@ class AutoPaper:
                 hold_eth=state['initial_eth'],metrics=deepcopy(performance) if frame.at-deadline<=30 else None)
         self.engine.checkpoint_context(context)
 
-    def on_frame(self,frame):
+    def on_frame(self,frame,*,usd_reference=None):
         if self.engine is None or self.last_problem:return
         state=self.engine.private_state();context=state['auto']
         last=context['last_observed_at']
         if last is not None and frame.at<=last:return
+        if context.get('global_history') and frame.at<context['global_history'][-1]['applied_at']:return
+        self.latest_frame=frame;self.latest_usd_reference=deepcopy(usd_reference)
         try:
             if self.config.frozen()!=context['config']:raise PaperBlocked('FROZEN_PAPER_POLICY_CHANGED')
             if self.venue.assumptions()!=context['model_assumptions']:raise PaperBlocked('FROZEN_PAPER_MODEL_CHANGED')
@@ -186,6 +221,12 @@ class AutoPaper:
             context['last_observed_at']=frame.at;self.engine.checkpoint_context(context)
             self._sample(frame)
             state=self.engine.private_state();context=state['auto']
+            if context.get('global_history'):
+                reports=completed_reports(state,frame,usd_reference)
+                if reports!=context.get('completed_rotations',{}):
+                    context['completed_rotations']=reports;self.engine.checkpoint_context(context)
+                if state['mode']=='ACTIVE':self._global_decision(frame,usd_reference)
+                return
             if state['mode']!='ACTIVE':return
             try:paper_frame(frame,self.config)
             except (ValueError,TypeError,KeyError,ArithmeticError):
@@ -291,13 +332,97 @@ class AutoPaper:
             try:self.engine.stop('attention_'+str(self.engine._revision),at=frame.at)
             except (ValueError,OSError,sqlite3.Error):pass
 
+    def _global_decision(self,frame,reference):
+        state=self.engine.private_state();context=state['auto'];settings=settings_at(state)
+        cfg=effective_config(self.config,settings);version=len(context['global_history'])
+        try:planning=paper_frame(frame,cfg,planning=True)
+        except (ValueError,TypeError,KeyError,ArithmeticError):
+            self._reason('WAITING_FRESH_NATIVE_QUOTES_AND_AUTHENTICATED_FEES');return
+        if context['last_review'] is not None and frame.at-context['last_review']<settings.review_s:return
+        context['last_review']=frame.at;context['reviews']+=1;self.engine.checkpoint_context(context)
+        current=next((o for o in state['orders'].values() if o['state'] not in TERMINAL),None)
+        parent=current or (list(state['orders'].values())[-1] if state['orders'] else None)
+        if parent is not None and parent['state']=='FILLED':parent=None
+        parent_meta={} if parent is None else context['intent_meta'].get(parent['reference'],{})
+        ceiling=None if parent is None or current is not None else {parent['source']:parent['source_budget']-parent['spent_source']}
+        self.view_rows=global_candidates(self.engine,planning,cfg,settings,reference,
+            kickoff=initial_campaign(state),budget_limits=ceiling,
+            review_reference=current['reference'] if current and current['state'] in ('OPEN','PARTIAL') else None)
+        if current is not None:
+            if current['state'] not in ('OPEN','PARTIAL'):
+                self._reason('GLOBAL_REVIEW_AWAIT_ORDER_OR_CANCEL_RECONCILIATION');return
+            reviews=context.setdefault('global_order_reviews',{})
+            if current.get('global_policy_version',0)!=version and reviews.get(current['reference'])!=version:
+                valid=False
+                if current['filled_base']==0:
+                    try:
+                        from coincat_paper_policy import receipt
+                        available=self.engine.available(current['source'])+current['reserved']
+                        maximum=source_budget(state,available,dict(source=current['source']),settings,
+                            initial=current.get('initial_slice_order',False))
+                        if current['reserved']<=maximum:
+                            plan=receipt(planning,current['pair'],current['side'],current['reserved'],
+                                current['limit_price'],planning.rates('MAKER'))
+                            valid=qualification(state,planning,plan,current['reserved'],reference,settings)['state']=='CONDITIONAL_QUALIFIED'
+                    except (ValueError,TypeError,KeyError,ArithmeticError):pass
+                reviews[current['reference']]=version
+                context['last_reason']='GLOBAL_REVISION_RETAIN_EXISTING_PRICE' if valid else 'GLOBAL_REVISION_CANCEL_RECONCILE_BEFORE_REPLACEMENT'
+                if not valid:
+                    self.engine.request_cancel('global_review_'+str(self.engine._revision),current['reference'],context_after=context)
+                    self.venue.advance(self.engine,frame);return
+                self.engine.checkpoint_context(context)
+            original=context['intent_meta'].get(current['reference'],{})
+            row=self.view_rows.get(original.get('direction'),{})
+            proposed=row.get('market_limit_price');accepted=context['venue'].get(current['reference'],{}).get('accepted_at')
+            if (current.get('global_policy_version',0)>0 and proposed is not None and accepted is not None and
+                    frame.at-accepted>=cfg.min_rest_s and abs(proposed-current['limit_price'])>=
+                    max(current['price_increment']*2,current['limit_price']*cfg.reprice_bps/10000)):
+                context['last_reason']='GLOBAL_MARKET_MOVE_CANCEL_THEN_FRESH_DECISION'
+                self.engine.request_cancel('global_move_'+str(self.engine._revision),current['reference'],context_after=context)
+                self.venue.advance(self.engine,frame)
+            else:self._reason('GLOBAL_REVIEW_RETAIN_ORIGINAL_ORDER_AND_RESERVATION')
+            return
+        if len(state['orders'])>=state['limits']['max_orders']:
+            self._reason('PAPER_ORDER_BUDGET_EXHAUSTED_HOLD_INVENTORY')
+            self.engine.stop('global_budget_'+str(self.engine._revision),at=frame.at);return
+        if parent is not None and frame.at>=parent_meta.get('campaign_deadline',parent['expires_at']):
+            for row in self.view_rows.values():
+                if row['source']==parent['source']:row.update(state='HOLD',reason='HOLD_ORIGINAL_CAMPAIGN_EXPIRED')
+        selected=select_candidate(self.view_rows)
+        if selected is None:
+            self._reason('GLOBAL_PROFIT_UNKNOWN_OR_BELOW_TARGET_HOLD');return
+        if context['last_order_at'] is not None and frame.at-context['last_order_at']<cfg.cooldown_s:
+            self._reason('PAPER_COOLDOWN');return
+        order_ref='a'+self.session_id[:12]+'_'+str(len(state['orders'])+1)
+        deadline=min(frame.at+cfg.directions[selected['id']]['wait_s'],state['limits']['expires_at']);root=order_ref
+        if parent is not None and parent['source']==selected['source']:
+            deadline=min(deadline,parent_meta.get('campaign_deadline',parent['expires_at']))
+            root=parent_meta.get('campaign_root',parent['reference'])
+        if context['kickoff_reference'] is None:context['kickoff_reference']=order_ref
+        context['intent_meta'][order_ref]=dict(direction=selected['id'],kind=selected['kind'],required_eth=selected.get('required_eth'),
+            reason=selected['reason'],campaign_deadline=deadline,campaign_root=root,global_policy_version=version)
+        context.update(last_order_at=frame.at,last_reason='GLOBAL_CONDITIONAL_OPPORTUNITY_NOT_COMPLETED_PROFIT')
+        try:
+            self.engine.place('intent_'+order_ref,reference=order_ref,pair=selected['pair'],side=selected['side'],
+                source_budget=selected['source_budget'],limit_price=selected['limit_price'],
+                expires_at=min(frame.at+settings.reconsider_s,deadline),frame=planning,context_after=context,
+                target_cap_from_receipt=True,global_policy_version=version,usd_reference=reference)
+        except PaperBlocked as error:
+            if str(error) in ('GLOBAL_PROFIT_NOT_QUALIFIED','GLOBAL_SOURCE_ALLOCATION_EXCEEDED','STALE_GLOBAL_POLICY_REFRESH_REQUIRED'):
+                self._reason('GLOBAL_ADMISSION_RECHECK_BLOCKED_NO_ORDER');return
+            raise
+        self.venue.advance(self.engine,frame)
+
     def public(self):
         if self.engine is None:return public_status({'state':'UNAVAILABLE' if self.last_problem else 'OFF'})
         state=self.engine.private_state();context=state['auto'];orders=list(state['orders'].values())
         mode='UNAVAILABLE' if self.last_problem else state['mode']
         if mode=='PAUSED' and context.get('horizon') is not None:mode='EXPIRED'
         return public_status(dict(state=mode,model=self.config.model,orders=len(orders),fills=state['simulated_fills'],
-            policy=self.config.policy,
+            policy=GLOBAL_POLICY if context.get('global_history') else self.config.policy,
+            settings_version=len(context.get('global_history',[])),
+            completed_rotations=len(context.get('completed_rotations',{})),
+            qualifying_rotations=sum(r['state']=='MET' for r in context.get('completed_rotations',{}).values()),
             non_fills=sum(o['state'] in ('CANCELED','REJECTED') and o['filled_base']==0 for o in orders),
             partials=sum(0<o['filled_base']<o['base_size'] for o in orders),
             gaps=sum(m['gaps'] for m in context['venue'].values()),reviews=context['reviews'],

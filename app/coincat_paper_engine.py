@@ -135,11 +135,19 @@ class PaperEngine:
         return cls(path,state,0)
 
     @classmethod
-    def from_proposal(cls,path,*,amount_eth,limits,at,simulation_ack,**proposal):
+    def from_proposal(cls,path,*,amount_eth,limits,at,simulation_ack,working_fraction=None,**proposal):
         funding=eth_funding(now=at,**proposal);amount=_positive(amount_eth)
         if not funding['valid'] or amount>funding['row'].get('working',D(0)):
             raise PaperBlocked('PAPER_WORKING_ETH_UNAVAILABLE')
-        return cls.create(path,initial_eth=amount,limits=limits,at=at,simulation_ack=simulation_ack)
+        if working_fraction is not None:
+            fraction=exact(working_fraction)
+            if not 0<fraction<=D('.5') or amount>funding['row']['working']*fraction:
+                raise PaperBlocked('PAPER_INITIAL_WORKING_SLICE_LIMIT')
+        engine=cls.create(path,initial_eth=amount,limits=limits,at=at,simulation_ack=simulation_ack)
+        if working_fraction is not None:
+            engine._apply('working_slice_confirmed',dict(kind='WORKING_SLICE_CAP',fraction=fraction),
+                lambda s:s.update(funding_working_eth=funding['row']['working'],funding_fraction=fraction))
+        return engine
 
     @classmethod
     def _read(cls,path):
@@ -197,6 +205,13 @@ class PaperEngine:
                 state.get('mode') not in ('PAUSED','ACTIVE','RECONCILIATION_REQUIRED')):
             raise PaperBlocked('INVALID_PAPER_STATE')
         limits=PaperLimits(**state['limits']).checked()
+        if 'funding_fraction' in state:
+            fraction=exact(state['funding_fraction']);working=exact(state['funding_working_eth'])
+            if not 0<fraction<=D('.5') or not 0<state['initial_eth']<=working*fraction:
+                raise PaperBlocked('INVALID_ORIGINAL_WORKING_SLICE')
+        if 'global_history' in state.get('auto',{}):
+            from coincat_global_paper import validate_history
+            validate_history(state['auto']['global_history'])
         if len(state['orders'])>limits.max_orders or len(state['fills'])>MAX_FILLS:
             raise PaperBlocked('PAPER_HISTORY_LIMIT')
         for asset,qty in state['wallet'].items():
@@ -206,6 +221,15 @@ class PaperEngine:
             ctx.prec=60
             identities=set()
             for ref,order in state['orders'].items():
+                version=order.get('global_policy_version',0)
+                if 'global_policy_version' in order:
+                    from coincat_global_paper import settings_at
+                    if type(version) is not int or version<1:raise PaperBlocked('INVALID_ORDER_POLICY_VERSION')
+                    applied=settings_at(state,version);proof=order.get('qualification',{})
+                    if (applied is None or not isinstance(proof,dict) or proof.get('state')!='CONDITIONAL_QUALIFIED' or
+                            proof.get('minimum_usd')!=applied.min_net_usd or proof.get('actual_profit_usd') is not None or
+                            type(order.get('initial_slice_order')) is not bool):
+                        raise PaperBlocked('INVALID_ORDER_POLICY_EVIDENCE')
                 if (order['reference']!=ref or order['pair'] not in limits.products or
                         order['side'] not in ('BUY','SELL')):raise PaperBlocked('PAPER_ORDER_INVALID')
                 base,quote=order['pair'].split('-')
@@ -269,6 +293,9 @@ class PaperEngine:
                         draft['auto']=deepcopy(context_after)
                     if not journal and {k:v for k,v in draft.items() if k!='auto'}!={k:v for k,v in before.items() if k!='auto'}:
                         raise PaperBlocked('CHECKPOINT_CANNOT_CHANGE_PAPER_FUNDS')
+                    if before.get('auto',{}).get('global_history') or draft.get('auto',{}).get('global_history'):
+                        from coincat_global_paper import validate_transition
+                        validate_transition(before,draft,payload.get('kind'))
                     self._invariants(draft)
             except (PaperBlocked,ValueError,TypeError,KeyError,ArithmeticError) as exc:
                 if not critical and not previous:raise
@@ -301,6 +328,29 @@ class PaperEngine:
         if context==self._state.get('auto'):return
         return self._apply('context_'+str(self._revision),{'kind':'AUTO_CONTEXT_CHECKPOINT'},
             lambda s:None,context_after=context,journal=False)
+
+    def apply_global(self,event_id,settings,*,at,initial_slice=False):
+        from coincat_global_paper import revision,settings_at
+        now=_at(at);settings=settings.checked()
+        def apply(s):
+            if now<s['last_at']:raise PaperBlocked('PAPER_TIME_MOVED_BACKWARDS')
+            context=s.get('auto')
+            if not isinstance(context,dict) or context.get('schema')!=1:raise PaperBlocked('AUTO_PAPER_CONTEXT_REQUIRED')
+            previous=settings_at(s)
+            if previous is not None and previous.initial_pct!=settings.initial_pct:
+                raise PaperBlocked('INITIAL_ALLOCATION_FROZEN_FOR_SESSION')
+            history=context.setdefault('global_history',[])
+            if initial_slice:
+                if history or s['orders'] or s.get('funding_fraction')!=settings.initial_pct/100:
+                    raise PaperBlocked('INITIAL_WORKING_SLICE_NOT_VERIFIED')
+                context['global_initial_slice']=True
+            else:context.setdefault('global_initial_slice',False)
+            history.append(revision(settings,len(history)+1,now))
+            context.update(last_review=None,last_reason='GLOBAL_SETTINGS_APPLIED_FUTURE_INTENTS')
+            s['last_at']=now
+            return dict(result='GLOBAL_SETTINGS_APPLIED',version=len(history))
+        return self._apply(event_id,dict(kind='APPLY_GLOBAL_PAPER_SETTINGS',settings=settings.frozen(),
+            at=now,initial_slice=initial_slice),apply)
 
     @staticmethod
     def _held(state,asset):
@@ -337,12 +387,13 @@ class PaperEngine:
         return self._apply(event_id,dict(kind='STOP',at=now),apply)
 
     def place(self,event_id,*,reference,pair,side,source_budget,limit_price,expires_at,frame,context_after=None,
-              target_cap_from_receipt=False):
+              target_cap_from_receipt=False,global_policy_version=0,usd_reference=None):
         reference=_id(reference);budget=_positive(source_budget);price=_positive(limit_price)
         expiry=_at(expires_at)
         payload=dict(kind='PLACE_INTENT',reference=reference,pair=pair,side=side,
             source_budget=budget,limit_price=price,expires_at=expiry,at=frame.at,
             target_cap_from_receipt=target_cap_from_receipt)
+        if global_policy_version:payload.update(global_policy_version=global_policy_version,usd_reference=deepcopy(usd_reference))
         def apply(s):
             if self._stale or s['mode']!='ACTIVE':raise PaperBlocked('PAPER_SESSION_NOT_ACTIVE')
             if frame.at<s['last_at']:raise PaperBlocked('PAPER_TIME_MOVED_BACKWARDS')
@@ -372,6 +423,26 @@ class PaperEngine:
                     book=(price,price,frame.at),product_rules=frame._rules,fee=fee,slip=D(0))
             receipt.pop('approx_usd_notional',None)
             receipt['fee_rate_source']='EXPLICIT_SIMULATION_INPUT_NOT_ACCOUNT_VERIFICATION'
+            proof=None
+            history=s.get('auto',{}).get('global_history',[])
+            if history:
+                from coincat_global_paper import settings_at,source_budget as global_budget,initial_campaign,qualification
+                if type(global_policy_version) is not int or global_policy_version!=len(history):
+                    raise PaperBlocked('STALE_GLOBAL_POLICY_REFRESH_REQUIRED')
+                if not s['auto']['config']['directions'][src+'_'+dst]['enabled']:
+                    raise PaperBlocked('GLOBAL_DIRECTION_DISABLED')
+                if fee!=s['limits']['max_fee_fraction']:
+                    raise PaperBlocked('GLOBAL_PLANNING_FEE_CEILING_REQUIRED')
+                if not set(frame._quotes)<=set(WATCH_PAIRS) or len(frame._quotes)>6:
+                    raise PaperBlocked('GLOBAL_FRAME_SCOPE_INVALID')
+                settings=settings_at(s)
+                available=s['wallet'].get(src,D(0))-held
+                initial=initial_campaign(s) and src=='ETH'
+                maximum=global_budget(s,available,dict(source=src),settings,initial=initial)
+                if budget>maximum:raise PaperBlocked('GLOBAL_SOURCE_ALLOCATION_EXCEEDED')
+                proof=qualification(s,frame,receipt,budget,usd_reference,settings)
+                if proof['state']!='CONDITIONAL_QUALIFIED':raise PaperBlocked('GLOBAL_PROFIT_NOT_QUALIFIED')
+            elif global_policy_version:raise PaperBlocked('GLOBAL_POLICY_NOT_APPLIED')
             if type(target_cap_from_receipt) is not bool:raise PaperBlocked('INVALID_PAPER_CAP_RULE')
             if target_cap_from_receipt and dst not in s['limits']['source_caps']:
                 # The opt-in controller freezes this rule at session creation.
@@ -384,6 +455,8 @@ class PaperEngine:
                 filled_base=D(0),spent_source=D(0),received_target=D(0),cancel_requested=False,
                 venue_order_id=None,base_increment=exact(rules['base_increment']),price_increment=tick,
                 plan_receipt=receipt)
+            if history:s['orders'][reference].update(global_policy_version=global_policy_version,qualification=proof,
+                initial_slice_order=initial)
             s['commands'].append(dict(command_id='place_'+reference,kind='PLACE_POST_ONLY',reference=reference,
                 pair=pair,side=side,base_size=receipt['gross_base_quantity'],limit_price=price,
                 status='UNSENT',classification='SIMULATED_ASSUMPTION'))

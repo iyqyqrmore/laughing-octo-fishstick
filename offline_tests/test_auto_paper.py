@@ -427,11 +427,13 @@ class AutoIntegration(unittest.TestCase):
 
 class PaperGUI(unittest.TestCase):
     setUp=fixtures.SimpleGUI.setUp
+    legacy_workspace=False
 
     def ready(self):
         app=self.app;_,client,scanner=prepare(self.temp.name);app.scanner=scanner;app.connected=True
         app.allocation_editor.clock=lambda:NOW
         with patch('coincat_app.time.time',return_value=NOW):app._render_wallet()
+        app.paper_panel.apply_global_settings()
         return app,client,scanner
 
     def test_seven_books_and_fourteen_populated_views_do_not_fetch_or_create_wallets(self):
@@ -460,7 +462,7 @@ class PaperGUI(unittest.TestCase):
 
     def test_default_percentage_changes_only_paper_draft_and_custom_is_preserved(self):
         app,_,_=self.ready();working=app._funding()['row']['working']
-        self.assertEqual(D(app.paper_panel.values['amount_eth'].get()),working*D('.1'))
+        self.assertEqual(D(app.paper_panel.values['amount_eth'].get()),working*D('.5'))
         app.paper_panel.values['budget_percent'].set('Exact custom');app.paper_panel.values['amount_eth'].set('.012345678901')
         app.paper_panel.update_budget_default()
         self.assertEqual(app.paper_panel.values['amount_eth'].get(),'.012345678901')
@@ -488,7 +490,7 @@ class PaperGUI(unittest.TestCase):
         self.assertIn('COMPLETE (8/8)',report);self.assertIn('auto_paper',report)
         self.assertNotIn('wallet',str(public_status({'wallet':'PRIVATE'})))
 
-    def test_actual_accepted_scan_starts_kickoff_with_no_extra_http_or_financial_writes(self):
+    def test_actual_bbo_scan_holds_for_unknown_without_http_or_financial_writes(self):
         app,client,scanner=self.ready();app.paper_panel.values['amount_eth'].set('.01');app.paper_panel.opt_in.set(True)
         f=frame();client.rules=f._rules
         client.q={p:(D(1),D('1.001'),NOW) for p in WATCH_PAIRS}
@@ -499,9 +501,8 @@ class PaperGUI(unittest.TestCase):
             result=scanner.scan_growth(app._paper_scan_config(),now=NOW,collect=fixtures.collector(client),
                 allocation_draft=app.allocation_editor.parameters()['allocation_draft'])
             app.jobs.put(('scan',generation,result,None));app._poll()
-        self.assertEqual(len(app.paper.engine.private_state()['orders']),1)
-        order=next(iter(app.paper.engine.private_state()['orders'].values()))
-        self.assertEqual((order['pair'],order['side']),('ETH-BTC','SELL'))
+        self.assertEqual(app.paper.engine.private_state()['orders'],{})
+        self.assertEqual(app.paper.engine.private_state()['auto']['last_reason'],'GLOBAL_PROFIT_UNKNOWN_OR_BELOW_TARGET_HOLD')
         self.assertEqual(client.calls,reads);self.assertEqual(fixtures.ledger_dump(app.ledger),before)
         self.assertLessEqual(result['quote_scheduling']['research_books'],6)
         self.assertEqual(result['quote_scheduling']['request_limit'],16)
@@ -519,6 +520,7 @@ class PaperGUI(unittest.TestCase):
 
     def test_short_order_settings_start_through_accepted_scan_and_keep_financial_records_unchanged(self):
         app,client,scanner=self.ready();panel=app.paper_panel;panel.settings()
+        panel.values['order_policy'].set('Patient target');panel._freeze()
         self.assertTrue(all('disabled' in w.state() for w in panel.short_widgets))
         panel.values['order_policy'].set('Short-lived / net ETH target');panel._freeze()
         self.assertTrue(all('disabled' not in w.state() for w in panel.short_widgets))
@@ -529,11 +531,12 @@ class PaperGUI(unittest.TestCase):
             app._start_auto_paper();result=scanner.scan_growth(app._paper_scan_config(),now=NOW,
                 collect=fixtures.collector(client),allocation_draft=app.allocation_editor.parameters()['allocation_draft'])
             app.jobs.put(('scan',app.generation,result,None));app._poll()
-        state=app.paper.engine.private_state();order=next(iter(state['orders'].values()))
-        self.assertEqual(state['auto']['policy'],SHORT_POLICY);self.assertEqual(order['expires_at'],NOW+120)
+        state=app.paper.engine.private_state()
+        self.assertEqual(state['auto']['policy'],SHORT_POLICY);self.assertEqual(state['orders'],{})
+        self.assertEqual(state['auto']['global_history'][-1]['settings']['reconsider_s'],120)
         self.assertEqual(client.calls,reads);self.assertEqual(fixtures.ledger_dump(app.ledger),before)
         snap=capture(app,session='a'*32,sequence=1,now=NOW);validate(snap)
-        self.assertEqual(snap['auto_paper']['policy'],SHORT_POLICY)
+        self.assertEqual(snap['auto_paper']['policy'],'GLOBAL_USD_ROTATION_V1')
         self.assertNotIn('campaign_root',str(snap));self.assertNotIn('order_ttl_s',str(snap))
         self.assertTrue(all('disabled' in w.state() for w in panel.session_widgets if w.winfo_exists()))
 

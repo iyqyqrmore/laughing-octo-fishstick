@@ -119,13 +119,13 @@ def receipt(frame,pair,side,budget,price,fee):
     return value
 
 
-def reference_costs(state):
+def _reference_ledger(state):
     """Attribute the original simulated ETH to known native receipts, not tax lots.
 
     Native debits/credits come from the engine's normalize_fill settlement. This
     does not calculate another receipt or touch financial cost-basis records.
     """
-    wallet={'ETH':state['initial_eth']};reference={'ETH':state['initial_eth']};realized=D(0);fees={}
+    wallet={'ETH':state['initial_eth']};reference={'ETH':state['initial_eth']};realized=D(0);fees={};completed={}
     with localcontext() as ctx:
         ctx.prec=60
         fills=sorted((f for f in state['fills'].values() if f['settled']),key=lambda f:f['settle_index'])
@@ -136,11 +136,21 @@ def reference_costs(state):
             reference[src]=reference.get(src,D(0))-allocation
             wallet[src]-=debit;wallet[dst]=wallet.get(dst,D(0))+credit
             reference[dst]=reference.get(dst,D(0))+(credit if dst=='ETH' else allocation)
-            if dst=='ETH':realized+=credit-allocation
+            if dst=='ETH':
+                realized+=credit-allocation
+                item=completed.setdefault(fill['reference'],dict(net_eth=D(0),allocation_eth=D(0),returned_eth=D(0),at=0))
+                item.update(net_eth=item['net_eth']+credit-allocation,allocation_eth=item['allocation_eth']+allocation,
+                    returned_eth=item['returned_eth']+credit,at=max(item['at'],fill['raw']['at']))
             currency=fill['raw']['fee_currency'];fees[currency]=fees.get(currency,D(0))+exact(fill['raw']['commission'])
         if any(wallet.get(a,D(0))!=state['wallet'].get(a,D(0)) for a in WATCH_ASSETS):
             raise ValueError('PAPER_REFERENCE_BALANCE_MISMATCH')
-    return reference,realized,fees
+    return reference,realized,fees,completed
+
+
+def reference_costs(state):return _reference_ledger(state)[:3]
+
+
+def realized_orders(state):return _reference_ledger(state)[3]
 
 
 def eth_mark(wallet,frame):

@@ -1,4 +1,30 @@
-# Codex instructions — CoinCat v1.01
+# Codex instructions — CoinCat v1.02
+
+Read docs/GLOBAL_PAPER_V1_02.md first. The owner requested shared whole-cent
+USD-equivalent completed-rotation settings, 50% working ETH initially and up to
+50% of available source afterward, 30s review / 120s reconsideration, all seven
+markets / fourteen directions, strict UNKNOWN admission and a simpler interface.
+The owner explicitly clarified that the first order uses the approved working
+slice once, without a second halving, and UNKNOWN blocks even initial entries.
+This request supersedes the earlier mandatory kickoff and main mixer layout
+for new global sessions. Existing frozen configurations and records remain.
+Profit-target application cannot increase size, relax protection or liquidate
+losses. Existing orders retain immutable price/version; safe cancel/reconcile
+precedes replacement. AI Lab is passive and never applies global settings.
+
+ETH-USD is now allowed solely as a separate public USD valuation reference.
+It is never an approved trading product, funding asset, chart/history product
+or research graph edge. The same bounded collector obtains at most six native
+books plus one reference under the existing 16-total / four-worker / 0.2s / 6s
+limits. Freshness/spread/decision span and failures remain binding. No invented
+depth/fee units are allowed. The normal BBO scanner cannot currently qualify
+these required inputs, so new global paper sessions HOLD with UNKNOWN. Exit
+taker-stress receipts value a conservative benchmark only; no taker order is
+ever dispatched. Completed paper ETH-return slices are distinct from estimated
+profit, intermediate gains and full-portfolio performance.
+
+Keep v1.01/v100 intact. v1.02 source is based on published bba4dfea67b45e6f4eff7f15b7ba4398ab486a08.
+No installation, connected account mutation, live permission or deployment.
 
 Read docs/AUTO_PAPER_V1_01.md, docs/AUTO_PAPER_FEEDBACK.md, START_HERE.md,
 DECISION_CHAIN_REVIEW.md, docs/V100_RESEARCH.md,

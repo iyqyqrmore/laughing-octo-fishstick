@@ -39,7 +39,7 @@ def main():
         exit_condition='COMPARE_AT_FIXED_HORIZON_WITHOUT_CLOSING',
         fill_state='SIMULATED_ASSUMPTION',slippage_bps=D(0))
     outcome=study.observe('btc-sol',observation(1800000060,D('.5')))
-    print('CoinCat v1.01 — SYNTHETIC / SIMULATED_ASSUMPTION ONLY')
+    print('CoinCat v1.02 — SYNTHETIC / SIMULATED_ASSUMPTION ONLY')
     print('Toy prices are not market quotes. Source BTC exists only after an explicit assumed ETH sale.')
     print('Frozen conditional BTC → SOL versus HOLD BTC at 60 seconds:',outcome['outcome'])
     print('No rotation was settled into the separate paper wallet:',funds.inventory())

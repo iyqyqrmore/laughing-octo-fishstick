@@ -1,18 +1,17 @@
-CoinCat v1.01 — Opt-in Auto Maker Rotation, PAPER ONLY
+CoinCat v1.02 — Global PAPER Trading Settings; LIVE BLOCKED
 
-Read START_HERE.md. Extract source into a separate folder; never overlay a running
-installation or share its private_data between app processes. Preserve all private
-records and backups. This is Python source, not an EXE or a live trading release.
+Read START_HERE.md. Extract into a separate folder and preserve installed data
+and backups. Run 02_SETUP_COINCAT.bat, 03_VERIFY_COINCAT.bat and the offline
+RUN_PAPER_REPLAY.bat before the supervised read-only trial.
 
-Run 02_SETUP_COINCAT.bat then 03_VERIFY_COINCAT.bat using Windows Python 3.11.
-Only initialize NEW data after explicit confirmation in an empty destination.
+Defaults: $0.01 net USD-equivalent completed ETH-return minimum; first working
+ETH slice 50% once; subsequent available source cap 50%; review 30s / reconsider
+120s. Apply Trading Settings, then opt in and Start Auto Paper Trader.
+UNKNOWN blocks all new entries. Current BBO feed lacks sized exits/verified fee
+units and normally HOLDs with no orders. No invented fill or profit. No edge.
 
-New: one persistent shared paper wallet, seven market tabs/fourteen directions,
-explicit once-only kickoff, patient maker returns and seeded stress scenarios.
-Read docs/AUTO_PAPER_V1_01.md for Start/Pause/STOP/recovery, model assumptions,
-limits and Windows acceptance. Opt-in is off; relaunch never resumes automatically.
-The larger transparent header, research/journal repair and monitor v3 remain.
-Missing depth/fee units/dust keeps recoverable ETH UNKNOWN. No demonstrated edge.
-
-Live submission remains unconditionally blocked. No order/preview/transfer calls,
-automatic ARM, financial mutations, installed-PC changes or deployment.
+Auto Trader / Trading Settings / Allocation / Research Archive. Old records,
+manual controls, large transparent logo and redacted monitor remain. Existing
+orders retain their versions and require safe cancel/reconciliation before
+replacement. See docs/GLOBAL_PAPER_V1_02.md. No installation, deployment,
+financial mutation or live execution is performed by this source package.

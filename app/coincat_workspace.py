@@ -52,10 +52,16 @@ def build_workspace(app):
             app.logo_label.configure(image=app.logo)
     banner.bind('<Configure>',fit_logo)
     app.tabs=ttk.Notebook(shell);app.tabs.pack(fill='both',expand=True)
-    growth=ttk.Frame(app.tabs,padding=6);mixer_tab=ttk.Frame(app.tabs,padding=8)
-    allocation=ttk.Frame(app.tabs);paper_tab=ttk.Frame(app.tabs);lab=ttk.Frame(app.tabs,padding=8)
-    for frame,label in ((growth,'ETH Growth'),(mixer_tab,'Manual mixer'),(allocation,'Allocation'),
-            (paper_tab,'Auto Paper Trader'),(lab,'Research notes')):app.tabs.add(frame,text=label)
+    paper_tab=ttk.Frame(app.tabs);trading=ttk.Frame(app.tabs,padding=8)
+    allocation=ttk.Frame(app.tabs);archive=ttk.Frame(app.tabs)
+    for frame,label in ((paper_tab,'Auto Trader'),(trading,'Trading Settings'),(allocation,'Allocation'),
+            (archive,'Research Archive')):app.tabs.add(frame,text=label)
+    app.archive_tabs=ttk.Notebook(archive);app.archive_tabs.pack(fill='both',expand=True)
+    growth=ttk.Frame(app.archive_tabs,padding=6);mixer_tab=ttk.Frame(app.archive_tabs,padding=8)
+    lab=ttk.Frame(app.archive_tabs,padding=8);legacy_paper=ttk.Frame(app.archive_tabs,padding=8)
+    for frame,label in ((growth,'ETH Growth'),(mixer_tab,'Legacy scenario mixer'),(lab,'AI Lab / notes'),
+            (legacy_paper,'Legacy paper settings')):app.archive_tabs.add(frame,text=label)
+    app.research_page=growth;app.lab_page=lab
     growth.columnconfigure(0,weight=1);growth.columnconfigure(1,weight=0,minsize=286)
     growth.rowconfigure(0,weight=1)
     left=ttk.Frame(growth);left.grid(row=0,column=0,sticky='nsew',padx=(0,8))
@@ -164,7 +170,8 @@ def build_workspace(app):
     wheel_bind(canvas)
     app.allocation_editor=WorkingAllocationEditor(allocation,app._allocation_changed)
     app.allocation_editor.canvas.configure(background=BG);app.allocation_editor.pack(fill='both',expand=True)
-    app.paper_panel=PaperPanel(paper_tab,app);app.paper_panel.pack(fill='both',expand=True)
+    app.paper_panel=PaperPanel(paper_tab,app,settings_parent=trading,legacy_parent=legacy_paper)
+    app.paper_panel.pack(fill='both',expand=True)
     monitor_bar=ttk.Frame(lab);monitor_bar.pack(fill='x',pady=(0,6))
     ttk.Checkbutton(monitor_bar,text='Local monitor',variable=app.monitor_enabled,command=app._monitor_changed).pack(side='left')
     monitor_label=ttk.Label(monitor_bar,textvariable=app.monitor_text);monitor_label.pack(side='left',padx=12)
@@ -191,5 +198,6 @@ def build_workspace(app):
         background=BG,foreground=TEXT,insertbackground=TEXT,relief='flat')
     app.lab_text.pack(fill='both',expand=True)
     app._note('Approved seven-market watch network. Independent ETH scenarios; BTC cross-pairs are observations. Fills and profit remain unverified.')
+    app.tabs.select(paper_tab)
     help_tree(shell,DISPLAY+' read-only research. Exact manual controls and native amounts stay local. '
         'Seven approved markets only; no automatic settings, funding, orders or code updates. Mouse and keyboard help remain available.')

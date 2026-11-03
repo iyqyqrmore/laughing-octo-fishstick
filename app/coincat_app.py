@@ -1,4 +1,4 @@
-"""CoinCat v1.01: a small ETH Growth research shell. Live orders stay blocked."""
+"""CoinCat v1.02: a small ETH Growth research shell. Live orders stay blocked."""
 from datetime import datetime,timezone
 from pathlib import Path
 from queue import Queue,Empty
@@ -272,22 +272,28 @@ class CoinCatApp:
         try:
             now=time.time()
             if self.paper.engine is None:
+                settings=self.paper_panel.global_applied_draft
+                if settings is None:raise ValueError('APPLY_GLOBAL_TRADING_SETTINGS_FIRST')
                 config=self.paper_panel.configuration()
                 if not config.opt_in:raise ValueError('PAPER_OPT_IN_REQUIRED')
                 if self.allocation_editor.dirty_fields:raise ValueError('APPLY_WORKING_DRAFT_FIRST')
                 self._stop()
                 proposal=dict(balances=dict(self.scanner.balances),balances_at=self.scanner.account_at,
                     draft=self.allocation_editor.parameters()['allocation_draft'],excluded=self.allocation_editor.excluded)
-                self.paper.create(config,at=now,funding=proposal)
+                self.paper.create(config,at=now,funding=proposal,global_settings=settings)
             else:
+                if not self.paper.engine.private_state()['auto'].get('global_history'):
+                    self.paper_panel.message.set('Apply Trading Settings to this saved paper session before Start. Existing records and orders are retained.');return
                 if self.paper.engine.private_state()['mode']=='RECONCILIATION_REQUIRED':
                     self.paper_panel.message.set('Reconcile paper first; successful reconciliation leaves PAUSED. Then press Start.');return
                 self._stop();self.paper.start(at=now)
             self.paper_observe=True;self.running=True;self.cancel=threading.Event();self.recovery.start()
+            self.paper_panel.global_status.set('Applied global settings v'+
+                str(len(self.paper.engine.private_state()['auto']['global_history']))+' · UNKNOWN blocks every new entry')
             self.paper_public=self.paper.public();self.paper_panel.refresh()
             self.status.set('RUNNING · Auto maker rotation PAPER ONLY · LIVE blocked');self._scan()
         except (ValueError,ArithmeticError,OSError,sqlite3.Error):
-            self.paper_panel.message.set('Paper start blocked. Check opt-in, fresh working ETH, exact size, settings, original expiry and saved-session recovery. No funds or orders reset.')
+            self.paper_panel.message.set('Paper start blocked. Apply Trading Settings; check opt-in, fresh working ETH, size ≤ approved working slice, original expiry and saved-session recovery. No funds or orders reset.')
 
     def _pause_paper(self):
         if self.closed:return
@@ -313,6 +319,8 @@ class CoinCatApp:
         except (ValueError,OSError,sqlite3.Error):
             self.paper_panel.message.set('The saved paper session needs review before starting another. No records replaced.');return
         self.paper_public=self.paper.public();self.paper_panel.opt_in.set(False)
+        self.paper_panel.global_applied_draft=None
+        self.paper_panel.global_status.set('New session: apply Trading Settings, then opt in and Start. Prior databases retained.')
         self.paper_panel.update_budget_default();self.paper_panel.refresh()
         self.paper_panel.message.set('New paper-session draft. Previous database retained; the new Start will create a separate ETH HOLD baseline.')
 
@@ -322,8 +330,10 @@ class CoinCatApp:
         config=self._paper_scan_config();cancel=self.cancel
         if config is None:return
         draft=self.allocation_editor.parameters()['allocation_draft'];funding_key=None if self.paper_observe else self.applied_eth_key
+        usd=bool(self.paper_observe and self.paper.engine is not None and
+            self.paper.engine.private_state()['auto'].get('global_history'))
         self._submit('scan',lambda:self.scanner.scan_growth(config,cancel=cancel,allocation_draft=draft,
-                     applied_eth_key=funding_key,force_refresh=force_refresh))
+                     applied_eth_key=funding_key,force_refresh=force_refresh,include_usd_reference=usd))
 
     def _retry(self):
         if self.closed or self.recovery.state!='RETRYING':return
@@ -391,7 +401,7 @@ class CoinCatApp:
                     # Only a current accepted Tk generation can mutate the paper
                     # wallet. The collector/worker has no paper order authority.
                     if self.last_result is payload and generation==self.generation and self.paper_observe:
-                        self.paper.on_frame(payload['research_frame'])
+                        self.paper.on_frame(payload['research_frame'],usd_reference=payload.get('usd_reference'))
                         self.paper_public=self.paper.public();self.paper_panel.refresh(payload)
                     if time.time()-self.last_note_at>=180:
                         self._note(payload['lab_note']);self.last_note_at=time.time()
@@ -598,8 +608,8 @@ class CoinCatApp:
         self.monitor.stop(final)
 
     def _export(self):
-        path=filedialog.asksaveasfilename(title='Save v1.01 diagnostics',defaultextension='.txt',
-            initialfile='CoinCat_v1.01_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
+        path=filedialog.asksaveasfilename(title='Save v1.02 diagnostics',defaultextension='.txt',
+            initialfile='CoinCat_v1.02_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
         if path:
             try:Path(path).write_text(make_report(self),encoding='utf-8')
             except OSError as exc:messagebox.showerror('Diagnostics',f'Export failed ({type(exc).__name__}).')

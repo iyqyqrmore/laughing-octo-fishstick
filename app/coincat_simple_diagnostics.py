@@ -1,4 +1,4 @@
-"""Eight v1.01 diagnostic sections. Strict quantity-free projections only."""
+"""Eight v1.02 diagnostic sections. Strict quantity-free projections only."""
 from contextlib import closing
 from datetime import datetime,timezone
 import sqlite3

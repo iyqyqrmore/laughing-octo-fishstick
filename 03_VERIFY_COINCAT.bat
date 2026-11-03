@@ -4,7 +4,7 @@ cd /d "%~dp0"
 if not exist ".venv\Scripts\python.exe" (echo Run 02_SETUP_COINCAT.bat first.&pause&exit /b 2)
 set "PYTHONPATH=%~dp0app;%~dp0"
 set "COINCAT_DATA_DIR=%TEMP%\CoinCat_Verify_Disposable_%RANDOM%%RANDOM%"
-echo CoinCat v1.01: SHA256 preview verification plus isolated source tests.
+echo CoinCat v1.02: SHA256 preview verification plus isolated source tests.
 echo [1/3] Checking source hashes...
 "%~dp0.venv\Scripts\python.exe" -u -B VERIFY_SOURCE.py
 if errorlevel 1 goto fail
