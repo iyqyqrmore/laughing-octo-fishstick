@@ -1,3 +1,44 @@
+PROSPECTIVE-JOURNAL PREVIEW — SOURCE COMMIT/PUSH AUTHORIZED
+Base: published v100.0 1e0d88e0161c98f3f1328eeb9a40ebffe9826467.
+The owner recommended persistent explicitly registered experiments before any
+predictor validation or automated paper execution. This candidate implements
+that local research increment, with no installed-PC or private-account changes.
+
+Focused journal checks: 21 passed, HTTP forbidden before discovery/execution.
+Includes immutable registration/restart, Decimal/frame round trips, adverse and
+missed horizons, no-fill/partial/unknown outcomes, explicit gap/truncation records,
+STOP rollback, storage/case bounds, duplicate/backdated rejection, refusal of an
+unrelated database, manual Tk controls/local view and existing-scan integration.
+Verified data copy retains the journal and preserves financial database bytes.
+
+Candidate final checkout: 272 discovered/distinct/run, zero failures/errors/
+skips/expected failures. All 116 source hashes and Python syntax pass. The 17
+protected/canonical/transport/lock/allocation/cycle files match published v100.0
+byte for byte; git diff --check passes. Final independently extracted-source
+results are delivered beside the separate candidate ZIP.
+Runtime: Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 / Xvfb; same 12
+hash-locked dependencies. No new dependency or exchange traffic.
+
+Separate actual Tk + authenticated loopback monitor v3 acceptance passes:
+registered-case count, strict redaction (no signal ID/size/token), eight sections,
+401/404/405 guards, STOP/final CLOSED snapshot and writer shutdown. Node JS
+syntax/DOM fixtures cover current/missing/failed responses and stale clearing.
+116 source files are included in the candidate manifest. Existing protected
+broker/FIFO/state/importer/key/lot/lock/native receipts/transport stay unchanged.
+Original quote, fee, budget, generation and backoff limits are retained.
+
+The owner's supplied Windows result belongs to PUBLISHED v100.0: 112 hashes,
+251 tests run / 250 passed / one synthetic-symlink capability skip, no failures
+or errors. Its diagnostic snapshot shows roughly 2h10 of retained setups without
+reported interruptions. Neither establishes this new candidate's native Windows,
+STOP/outage, connected-cost, predictive-edge or real-fill acceptance.
+These are local personally executed checks; no GitHub Actions confirmation is
+claimed. Current BBO/fee-tier evidence leaves after-cost outcomes UNKNOWN.
+NO DEMONSTRATED EDGE / no predictor / no automatic case creation or paper trades.
+LiveBroker.submit still unconditionally raises LiveBlocked as its first statement.
+
+THE FOLLOWING LEDGER BELONGS TO THE PRECEDING PUBLISHED v100.0 CHECKPOINT
+
 CoinCat v100.0 — Adaptive ETH Research verification
 
 BASE AND AUTHORIZATION

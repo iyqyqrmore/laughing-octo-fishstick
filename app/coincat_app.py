@@ -22,6 +22,10 @@ from coincat_recovery import Recovery,failure
 from coincat_monitor import MonitorPublisher
 from coincat_portfolio_view import PortfolioView
 from coincat_watchlist import WATCH_PAIRS
+from coincat_adaptive_eth import Frame
+from coincat_research_journal import ResearchJournal,register_from_eth,public_status as journal_public
+import sqlite3
+import uuid
 
 
 class CoinCatApp:
@@ -32,6 +36,8 @@ class CoinCatApp:
         self.data=data_root();self.ledger=LiveLedger(self.data/'CoinCat_Live_Orders.sqlite3')
         self.fees=FeeLearning(self.data/'research_data'/'CoinCat_Fee_Evidence_v502.sqlite3')
         self.market=ForwardStore(self.data/'research_data'/'CoinCat_Forward_Market.sqlite3',Retention())
+        try:self.journal=ResearchJournal(self.data/'research_data'/'CoinCat_Prospective_Experiments.sqlite3')
+        except (ValueError,OSError,sqlite3.Error):self.journal=None
         self.scanner=None;self.credentials=None;self.last_result=None;self.applied_config=None
         self.applied_eth_key=None;self.recovery=Recovery();self.retry_kind=None
         self.connected=False;self.running=False;self.closed=False;self.busy=False;self.generation=0
@@ -43,7 +49,8 @@ class CoinCatApp:
         self.observation_text=tk.StringVar(value='STOPPED · No completed research observation')
         self.funding_text=tk.StringVar(value='Working proposal: unset · Protected ETH: unverified')
         self.evidence_text=tk.StringVar(value='Fees: unobserved · Fills: unverified · Actual profit: not established')
-        self.adaptive_text=tk.StringVar(value='HOLD · NO DEMONSTRATED EDGE\nNo hypothetical inventory initialized. Recoverable ETH: UNKNOWN.')
+        self.adaptive_text=tk.StringVar(value='HOLD · NO DEMONSTRATED EDGE\nRegister explicit conditional cases in the journal. Recoverable ETH: UNKNOWN.')
+        self.journal_text=tk.StringVar(value='Journal empty · Register an explicit hypothetical experiment.' if self.journal else 'Journal unavailable · Existing research is unchanged.')
         self.detail_text=tk.StringVar(value='Select a market for details. Hover any control or result for help.')
         self.portfolio_view=PortfolioView();self.portfolio_result={}
         self.eth_held_text=tk.StringVar(value='Unobserved');self.basket_text=tk.StringVar(value='Unpriced')
@@ -215,7 +222,7 @@ class CoinCatApp:
         self.cancel=threading.Event();cancel=self.cancel
         def task():
             if cancel.is_set():return {'state':'CANCELLED'}
-            if self.scanner is None:self.scanner=Scanner(self.ledger,client_from_credentials(self.credentials),self.fees,self.market)
+            if self.scanner is None:self.scanner=Scanner(self.ledger,client_from_credentials(self.credentials),self.fees,self.market,journal=self.journal)
             return self.scanner.refresh(cancel=cancel,force_catalog=True)
         self._submit('connect',task)
 
@@ -340,9 +347,42 @@ class CoinCatApp:
         names=', '.join(r['target'] for r in adaptive.get('candidates',())) or 'Await eligible markets'
         self.adaptive_text.set('HOLD · NO DEMONSTRATED EDGE · '+self.recovery.state+
             '\nSource ETH; conditional next assets: '+names+
-            '\nBTC → SOL requires an explicit hypothetical BTC position. No paper inventory initialized.'+
+            '\nBTC → SOL requires an explicit conditional source assumption. No automatic paper trades.'+
             '\nAfter-cost recoverable paper ETH: UNKNOWN · Forecast confidence: UNVALIDATED · Verified fills: 0')
+        if self.last_result:
+            journal=journal_public(self.last_result.get('prospective_journal'))
+            self.journal_text.set('Journal '+journal['state']+f" · Registered {journal['registered']} · Waiting {journal['waiting']}"+
+                f"\nConditional favorable/adverse {journal['favorable']}/{journal['adverse']} · Unknown {journal['unknown']} · Missed {journal['missed_horizons']} · Unpriced open {journal['unpriced_open_cases']}"+
+                '\nNo paper trades · After-cost missing evidence remains UNKNOWN')
+            if journal['state']=='UNAVAILABLE':self.journal_text.set('Journal unavailable · No current experiment verdict; retained records are unchanged.')
+            if journal['state']=='STORAGE_LIMIT':self.journal_text.set('Journal storage limit · Writing paused; retained history is not deleted.')
         self._update_market_view(now)
+
+    def _open_experiment_dialog(self):
+        from coincat_experiment_dialog import ExperimentDialog
+        ExperimentDialog(self)
+
+    def _view_experiments(self):
+        from coincat_experiment_dialog import show_journal
+        return show_journal(self)
+
+    def _register_experiment(self,**values):
+        if (self.busy or not self.running or not self.connected or self.scanner is None or
+                self.recovery.state!='RUNNING' or self.journal is None or self.applied_config is None):
+            raise ValueError('JOURNAL_REQUIRES_FRESH_RUNNING_RESEARCH')
+        original=(self.last_result or {}).get('research_frame')
+        if not isinstance(original,Frame):raise ValueError('NO_ACCEPTED_RESEARCH_FRAME')
+        now=time.time();funding=self._funding()
+        if not funding['valid'] or not 0<values['initial_eth']<=funding['row'].get('working',0):
+            raise ValueError('WORKING_ETH_UNAVAILABLE')
+        if funding['key']!=self.applied_eth_key:raise ValueError('ETH_FUNDING_CHANGED_REAPPLY_REQUIRED')
+        frame=Frame(now,original._catalog,original._rules,original._quotes,original._tier,original._excluded)
+        result=register_from_eth(self.journal,uuid.uuid4().hex,frame=frame,
+            slippage_bps=self.applied_config.taker_slippage_bps,**values)
+        self.scanner.journal=self.journal
+        self.last_result['prospective_journal']=self.journal.summary()
+        self._update_freshness()
+        return result
 
     def _render_wallet(self):
         if self.scanner is None:return

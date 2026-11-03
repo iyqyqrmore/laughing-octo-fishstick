@@ -1,3 +1,15 @@
+# Prospective-journal preview — source push authorized
+
+Based on published v100.0 commit 1e0d88e. Adds explicit manual preregistration,
+a separate persistent conditional-experiment journal, original-deadline restart
+handling, adverse/no-fill/unknown/missed outcomes, a local view and quantity-free
+monitor v3 counts. Existing scans supply observations; no predictor, automatic
+case creation, paper execution, new HTTP load or financial change is enabled.
+See docs/PROSPECTIVE_JOURNAL.md for use, bounds and limits. Amount, horizon,
+signal and entry assumption remain explicit owner choices.
+
+The published v100.0 release notes below describe the prior pushed checkpoint.
+
 # CoinCat v100.0 — clean Adaptive ETH Research build
 
 Based on exact remote checkpoint 40bdac5df0c29a9571acc5fe118dd4d8190bf54a.

@@ -7,6 +7,7 @@ from coincat_version import DISPLAY
 from coincat_live import TERMINAL
 from coincat_eth_maker import public_summary
 from coincat_adaptive_eth import public_summary as adaptive_public
+from coincat_research_journal import public_status as journal_public
 from coincat_working_allocation import allocation_diagnostics
 from coincat_continuity import freshness,age
 
@@ -81,12 +82,13 @@ def make_report(app,*,now=None):
             preferences='RAM_ONLY',sqlite_integrity=ledger_state,local_unresolved_orders=pending,
             financial_mutations='NONE_BY_RESEARCH',earned_eth='NOT_ESTABLISHED')),
         ('PASSIVE RESEARCH',dict(adaptive_eth=adaptive_public(result.get('adaptive')),
+            prospective_journal=journal_public(result.get('prospective_journal')),
             observations=result.get('study_counts',{}),
             current_continuity=scanner.maker_study.diagnostics() if scanner is not None else 'UNOBSERVED',
             guidance='Manual controls only. No AI settings, pricing, funding, ARM or execution authority.',
             fill_evidence='TOUCH_OR_CROSSING_IS_NOT_A_FILL',hypothetical_full_fills=0,
             verified_fills=0,partial_fill_returns='UNVERIFIED_NO_CREDIT',actual_profit='NOT_ESTABLISHED',
-            observations_persisted='PUBLIC_QUOTES_ONLY; SETUPS_AND_COUNTS_RAM_ONLY')),
+            observations_persisted='PUBLIC_QUOTES_AND_EXPLICIT_PROSPECTIVE_CASES; MAKER_SETUPS_RAM_ONLY')),
         ('EXECUTION AND ACCEPTANCE',dict(LIVE='BLOCKED_UNCONDITIONALLY',
             broker_settlement_recovery='NOT VERIFIED',Windows_DPAPI='NOT VERIFIED_BY_CLOUD',
             GUI='LOCAL_ACCEPTANCE_REQUIRED',orders_submitted=0,previews_submitted=0,

@@ -28,9 +28,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
-    data=dict(build='100.0-adaptive-eth-read-only',
+    data=dict(build='100.0-adaptive-eth-journal-candidate',
         description='Seven-market conditional adaptive ETH research; no execution or financial writes.',
-        base_commit='40bdac5df0c29a9571acc5fe118dd4d8190bf54a',
+        base_commit='1e0d88e0161c98f3f1328eeb9a40ebffe9826467',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))

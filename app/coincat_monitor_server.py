@@ -22,7 +22,8 @@ HTML='''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <section><span>Account / fees now</span><strong id="fees">—</strong></section>
 <section><span>Recovery</span><strong id="retry">—</strong></section></div>
 <table><thead><tr><th>Market</th><th>Quote age</th><th>Setup</th><th>Observation gaps</th></tr></thead><tbody id="markets"></tbody></table>
-<p id="counts"></p><h2>Adaptive ETH Research</h2><p id="adaptive"></p><button id="download">Save redacted snapshot</button>
+<p id="counts"></p><h2>Adaptive ETH Research</h2><p id="adaptive"></p>
+<h2>Prospective experiment journal</h2><p id="journal"></p><button id="download">Save redacted snapshot</button>
 <details><summary>Technical detail</summary><pre id="detail"></pre></details>
 <p class="note">The helper records while this chat is inactive. An assistant reads it only during an active session with private access configured.
 App updates use a separate source build and restart.</p></main><script src="/monitor.js"></script></body></html>'''
@@ -53,9 +54,10 @@ async function refresh(){
    for(const text of [p.pair,age(current.quote_age_s)+(current.quote_within_age_limit?"":" · stale / unobserved"),(current.current_setup_state==="NO_SETUP_UNPRICED"?"No valid first setup":current.current_setup_state),p.reasons.map(x=>reasonText[x]||x).join(", ")||"None at capture"]){const td=document.createElement("td");td.textContent=text;tr.appendChild(td);}body.appendChild(tr);
   }
   put("counts",s?"Setups "+s.observations.setups+" · Gap episodes "+s.observations.unpriced_episodes+" · Resumptions "+s.observations.resumed_episodes+" · Uncertain entry touches "+s.observations.entry_touches_uncertain:"");
-  put("adaptive",s?s.adaptive.decision+" · NO DEMONSTRATED EDGE · Recoverable paper ETH: UNKNOWN · No app-created paper positions or verified fills":"No current research snapshot");
+  put("adaptive",s?s.adaptive.decision+" · NO DEMONSTRATED EDGE · Recoverable paper ETH: UNKNOWN · Independent cases; no automatic paper trades or verified fills":"No current research snapshot");
+  put("journal",s?s.prospective_journal.state+" · Registered "+s.prospective_journal.registered+" · Waiting "+s.prospective_journal.waiting+" · Conditional adverse "+s.prospective_journal.adverse+" · Unknown "+s.prospective_journal.unknown+" · Missed horizons "+s.prospective_journal.missed_horizons+" · Unpriced open "+s.prospective_journal.unpriced_open_cases+" · No paper trades":"No current journal snapshot");
   put("detail",JSON.stringify(latest,null,2));
- }catch(e){latest=null;put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
+ }catch(e){latest=null;put("journal","Current journal unavailable");put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
 }
 document.getElementById("download").addEventListener("click",()=>{if(!latest)return;const u=URL.createObjectURL(new Blob([JSON.stringify(latest,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download="CoinCat_v100_Monitor_Snapshot.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});
 refresh();setInterval(refresh,5000);

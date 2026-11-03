@@ -1,3 +1,8 @@
+Journal preview note: the persistent manually registered journal recommended
+below is implemented in docs/PROSPECTIVE_JOURNAL.md. The owner explicitly
+authorized committing and pushing this follow-up. The critique below belongs
+to the preceding v100.0 checkpoint; persistence adds no predictive-edge claim.
+
 # CoinCat v100.0 — independent technical feedback
 
 ## Verdict

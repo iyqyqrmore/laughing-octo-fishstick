@@ -24,14 +24,15 @@ class ReleaseCore(unittest.TestCase):
         for name in ('coincat_app.py','coincat_scanner.py','coincat_full_balance.py','coincat_eth_maker.py',
                      'coincat_chart.py','coincat_continuity.py','coincat_recovery.py',
                      'coincat_monitor.py','coincat_monitor_server.py','coincat_workspace.py',
-                     'coincat_watchlist.py','coincat_portfolio_view.py','coincat_theme.py','coincat_adaptive_eth.py'):
+                     'coincat_watchlist.py','coincat_portfolio_view.py','coincat_theme.py','coincat_adaptive_eth.py',
+                     'coincat_research_journal.py','coincat_experiment_dialog.py'):
             tree=ast.parse((ROOT/'app'/name).read_text())
             names={n.func.attr for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)}
             self.assertFalse(names & {'submit','create_order','cancel_orders','preview_order','market_order_buy','market_order_sell'},name)
 
     def test_all_shipped_source_hashes_and_python_syntax(self):
         manifest=json.loads((ROOT/'SHA256_MANIFEST.json').read_text())
-        self.assertEqual(manifest['build'],'100.0-adaptive-eth-read-only')
+        self.assertEqual(manifest['build'],'100.0-adaptive-eth-journal-candidate')
         self.assertGreater(len(manifest['files']),30)
         for name,expected in manifest['files'].items():
             p=ROOT/name

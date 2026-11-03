@@ -1,3 +1,7 @@
+Prospective journal preview based on v100.0 commit 1e0d88e. The owner explicitly
+authorized committing and pushing this follow-up. No running-PC installation or
+environment publication is included.
+
 # CoinCat v100.0 — Adaptive ETH Research
 
 A read-only seven-market research build. ETH is the initial working asset and the
@@ -10,9 +14,11 @@ of the title and connection controls.
 
 Adaptive ETH Research adds bounded listed directions, conditional native-cost
 paths, one shared simulated funding/reservation contract, fixed-horizon HOLD
-comparisons and a separate paper ETH scoreboard. The app displays a read-only
-summary using existing scans. It does **not** seed BTC, settle paper trades,
-create predictions or automatically run hypothetical branches. The pure API and
+comparisons and a separate paper ETH scoreboard. The app observes explicitly registered prospective cases using existing scans.
+Research notes provides manual registration and a local journal view. No
+automatic registrations, startup BTC seed, paper execution or predictor is enabled.
+Frozen assumptions, gaps and outcomes persist in a separate private research
+database. See [the journal contract](docs/PROSPECTIVE_JOURNAL.md). The pure API and
 explicit offline example are documented in [docs/V100_RESEARCH.md](docs/V100_RESEARCH.md).
 
 There is **NO DEMONSTRATED EDGE**. Missing depth, exact fee currency, synchronized

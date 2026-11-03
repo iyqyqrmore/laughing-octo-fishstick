@@ -4,7 +4,9 @@ Read START_HERE.md, DECISION_CHAIN_REVIEW.md, docs/V100_RESEARCH.md,
 docs/V100_WORKSPACE.md and docs/V100_MONITOR.md. Use this checkout, no worktrees
 unless requested. The owner explicitly authorized a clean v100 build, redundant
 code/text cleanup, larger transparent upper-header logo, verification, commit
-and push on November 2, 2026. This does not authorize deployment or execution.
+and push on November 2, 2026. The owner subsequently explicitly authorized the
+prospective-journal follow-up commit/push. This does not authorize deployment or
+execution.
 
 Only ADA-ETH, ETH-BTC, LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC and ADA-BTC may receive
 active research quotes/history. Five assets: ETH, BTC, ADA, LINK, SOL. ETH is the
@@ -13,9 +15,11 @@ selection, startup BTC seed, fee fallback, quote-touch fills, realized ETH credi
 reserve harvesting or auto ARM. Direct maker scenarios remain independent
 comparisons; never sum their full-wallet amounts as concurrent funding.
 
-Adaptive ETH research is pure/conditional. Normal UI scanning calls only the
-quantity-free observation summary; it creates no ResearchFunds or ForwardStudy.
-Only explicit offline SIMULATED_ASSUMPTION events can advance paper inventory.
+Adaptive ETH research is pure/conditional. Normal UI scanning observes only explicitly registered persistent cases; it
+creates no experiments, seeds or paper trades automatically. Manual registration
+requires a fresh applied ETH slice, signal ID, horizon and explicit conditional
+assumption. See docs/PROSPECTIVE_JOURNAL.md.
+Only explicit conditional SIMULATED_ASSUMPTION events can advance paper inventory.
 One budget cannot fund competing reservations; unknown/partial fills remain
 locked. Fixed-horizon forward observations never select the best later exit or
 establish predictive improvement. HOLD and NO DEMONSTRATED EDGE are the default.
@@ -54,7 +58,7 @@ source hashes, source-only packaging and independent extracted-source validation
 Preserve the Snowball UTF-8 regression. Report counts/runtime/skips and distinguish
 Linux fixtures from native Windows/DPAPI/connected account evidence.
 
-Eight diagnostics themes and monitor v2 are quantity-free strict allowlists.
+Eight diagnostics themes and monitor v3 are quantity-free strict allowlists.
 Reject unknown fields at every monitor nesting level. Do not export balances,
 receipts, authorization references, account IDs, private paths or raw errors.
 NO_SETUP_UNPRICED is a legitimate state; QUOTE_WIDE is a pricing blocker, not a

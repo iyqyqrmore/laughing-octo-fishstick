@@ -173,6 +173,17 @@ def build_workspace(app):
         'The separate offline harness supports explicit simulated fills, a shared paper budget and fixed-horizon outcomes. '
         'Normal scanning creates no inventory or reservations. Missing sized depth, fee currency or native-residue valuation means UNKNOWN. '
         'A 15% alert is a review proposal only, never an automatic liquidation policy.')
+    journal_label=ttk.Label(adaptive,textvariable=app.journal_text,wraplength=850)
+    journal_label.pack(anchor='w',pady=(8,4))
+    journal_button=ttk.Button(adaptive,text='Register hypothetical experiment…',command=app._open_experiment_dialog)
+    journal_button.pack(anchor='w')
+    Hover(journal_button,'Manually freeze a signal ID, exact ETH what-if slice and future horizon. '
+        'Optional companion funding is an explicit independent simulated assumption, never a real seed. '
+        'Existing scans update the local persistent journal; no automatic predictor or paper trade is started.')
+    view_button=ttk.Button(adaptive,text='View registered experiments…',command=app._view_experiments)
+    view_button.pack(anchor='w',pady=(4,0))
+    Hover(view_button,'Read the bounded local experiment journal while running or stopped. '
+        'View signal IDs, frozen horizons, gaps and conditional outcomes. This creates no network request or trade.')
     app.lab_text=tk.Text(lab,wrap='word',font=('Segoe UI',10),state='disabled',height=7,
         background=BG,foreground=TEXT,insertbackground=TEXT,relief='flat')
     app.lab_text.pack(fill='both',expand=True)

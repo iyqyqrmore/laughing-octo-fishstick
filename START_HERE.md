@@ -153,3 +153,16 @@ network request or private-data access. It does not set your research allocation
 The new larger transparent banner sits in the upper area beside the title/actions.
 Diagnostics and the separate local helper must both come from the v100 source;
 old monitor snapshots are rejected rather than silently accepted as current.
+
+## Prospective-journal preview
+
+The owner authorized committing and pushing the journal preview based on commit
+1e0d88e. It has not been installed on the running PC. See
+docs/PROSPECTIVE_JOURNAL.md before trying it separately.
+Research notes offers Register hypothetical experiment and View registered
+experiments. Registration requires your own size, horizon, signal ID and explicit
+assumption; no experiment or seed starts automatically. Existing quotes update
+registered comparisons while research runs. STOP/restart gaps and missed horizons
+remain recorded. Current BBO/fee evidence cannot establish after-cost predictive
+edge: missing sized depth/fee units remain UNKNOWN. Do not upload the private
+experiment SQLite file; share the redacted eight-section diagnostic export.

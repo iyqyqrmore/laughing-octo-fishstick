@@ -9,10 +9,12 @@ from coincat_continuity import eth_funding,research_identity,quote_reason
 from coincat_recovery import read_call,ReadFailure,public_quote_failure
 from coincat_watchlist import WATCH_PAIRS,eligible_watchlist,schedule_books
 from coincat_adaptive_eth import Frame,observation_summary
+from coincat_research_journal import JournalError,public_status as journal_public
+import sqlite3
 
 
 class Scanner:
-    def __init__(self,ledger,client,fees,market_store):
+    def __init__(self,ledger,client,fees,market_store,*,journal=None):
         self.ledger=ledger;self.client=client;self.fees=fees;self.market_store=market_store
         self.broker=LiveBroker(ledger,client)
         self.catalog=[];self.rules={};self.balances={}
@@ -20,6 +22,7 @@ class Scanner:
         self.last_successful_account_refresh_at=None;self.last_successful_scan_at=None
         self.maker_study=MakerStudy();self.require_refresh=False
         self.watch_books={}
+        self.journal=journal
 
     def pause_observation(self,reason,*,now=None):
         """GUI invokes after its worker finishes; never race an in-flight copy."""
@@ -122,10 +125,12 @@ class Scanner:
         for row in rows:
             h=study.active.get(row['market']['pair'])
             if h is not None:h['_asset']=row['market']['asset']
+        frame=Frame(now,scoped,self.rules,incoming,tier,excluded)
         result=dict(at=now,mode='ETH_GROWTH',scan=self.sequence+1,rows=rows,
             state='RESEARCH_ONLY' if any(r.get('current_estimate_available') for r in rows) else 'NO_QUALIFIED_EVIDENCE',
             market_selection=selection,study_counts=study.statistics(),study_continuity=study.diagnostics(),
-            adaptive=observation_summary(Frame(now,scoped,self.rules,incoming,tier,excluded),funding_ok=funding_ok),
+            adaptive=observation_summary(frame,funding_ok=funding_ok),research_frame=frame,
+            prospective_journal=journal_public(),
             fee_evidence=tier,allocation_state='UNRECONCILED / RESEARCH ONLY',working_allocation=allocation,
             quote_scheduling=dict(requested_books=len(books),research_books=len(books),request_limit=16,
                 research_limit=6,quote_span_s=max(stamps)-min(stamps) if stamps else None,
@@ -141,6 +146,13 @@ class Scanner:
         if stopped():return {'state':'CANCELLED'}
         read_call('LOCAL_PUBLIC_QUOTE_STORE',self.market_store.record_quotes,
             [(p,b[2],b[0],b[1],'COINBASE_PUBLIC_REST_BEST_BID_ASK') for p,b in incoming.items()],cancel=cancel)
+        if stopped():return {'state':'CANCELLED'}
+        if self.journal is not None:
+            try:result['prospective_journal']=self.journal.observe(frame,cancel=cancel)
+            except JournalError as exc:
+                result['prospective_journal']=journal_public({'state':'STORAGE_LIMIT' if str(exc)=='JOURNAL_STORAGE_LIMIT' else 'UNAVAILABLE'})
+            except (sqlite3.Error,OSError,ValueError,TypeError,KeyError,RecursionError):
+                result['prospective_journal']=journal_public({'state':'UNAVAILABLE'})
         if stopped():return {'state':'CANCELLED'}
         self.maker_study=study;self.watch_books=watch_books;self.sequence+=1;self.last_result=result;self.last_successful_scan_at=now
         return result

@@ -256,11 +256,11 @@ class RedactionAndMonitor(unittest.TestCase):
             (altered if level=='root' else altered['candidates'][0])['private_balance']=private
             with self.assertRaises(ValueError):validate_public(altered)
 
-    def test_monitor_v100_v2_first_unpriced_setup_and_adaptive_whitelist(self):
+    def test_monitor_v100_v3_first_unpriced_setup_and_adaptive_whitelist(self):
         app=app_fixture();app.last_result['rows'][0]['observation_state']='NO_SETUP_UNPRICED'
         app.last_result['adaptive']=dict(state='CONDITIONAL_RESEARCH_ONLY',balance='PRIVATE',candidates=[])
         snap=capture(app,session='a'*32,sequence=1,now=NOW)
-        self.assertEqual(snap['schema'],SCHEMA);self.assertEqual(SCHEMA,'coincat-monitor/v2')
+        self.assertEqual(snap['schema'],SCHEMA);self.assertEqual(SCHEMA,'coincat-monitor/v3')
         self.assertEqual(snap['version'],'CoinCat v100.0')
         self.assertEqual(snap['products'][0]['setup_state'],'NO_SETUP_UNPRICED')
         self.assertEqual(snap['products'][0]['reasons'][0],'QUOTE_WIDE')

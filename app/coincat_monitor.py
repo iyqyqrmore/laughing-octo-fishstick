@@ -13,8 +13,9 @@ import uuid
 
 from coincat_version import DISPLAY
 from coincat_adaptive_eth import public_summary as adaptive_public,validate_public
+from coincat_research_journal import public_status as journal_public,validate_public as validate_journal_public
 
-SCHEMA='coincat-monitor/v2'
+SCHEMA='coincat-monitor/v3'
 MAX_SNAPSHOT=32768
 HISTORY_BYTES=2*1024*1024
 HISTORY_FILES=4
@@ -101,6 +102,7 @@ def capture(app,*,session,sequence,manifest_sha256=None,now=None,lifecycle='OPEN
             interruptions=_count(recovery.get('scan_interruptions')),recoveries=_count(recovery.get('recovered_periods')),
             last_failure=last_failure),products=products,
         adaptive=adaptive_public(result.get('adaptive')),
+        prospective_journal=journal_public(result.get('prospective_journal')),
         observations={k:_count(result.get('study_counts',{}).get(k,0)) for k in COUNTS})
     validate(snapshot)
     return snapshot
@@ -114,7 +116,7 @@ def validate(value):
         if raw is not None and (type(raw) not in (int,float) or _number(raw) is None):raise ValueError('INVALID_MONITOR_NUMBER')
     def count(raw):
         if raw is not None and _count(raw) is None:raise ValueError('INVALID_MONITOR_COUNT')
-    exact(value,'schema version session sequence manifest_sha256 captured_at lifecycle companions health products observations adaptive')
+    exact(value,'schema version session sequence manifest_sha256 captured_at lifecycle companions health products observations adaptive prospective_journal')
     if value['schema']!=SCHEMA or value['version']!=DISPLAY:raise ValueError('INVALID_MONITOR_VERSION')
     if not isinstance(value['session'],str) or not re.fullmatch(r'[0-9a-f]{32}',value['session']):raise ValueError('INVALID_MONITOR_SESSION')
     if type(value['sequence']) is not int or not 1<=value['sequence']<=2**53:raise ValueError('INVALID_MONITOR_SEQUENCE')
@@ -145,6 +147,7 @@ def validate(value):
         reasons=product['reasons']
         if not isinstance(reasons,list) or len(reasons)>16 or any(r!=_reason(r) for r in reasons):raise ValueError('INVALID_MONITOR_REASONS')
     validate_public(value['adaptive'])
+    validate_journal_public(value['prospective_journal'])
     exact(value['observations'],' '.join(COUNTS))
     for raw in value['observations'].values():count(raw)
     return value

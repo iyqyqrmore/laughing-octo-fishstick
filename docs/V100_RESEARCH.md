@@ -86,8 +86,10 @@ and optional depth walks. No second receipt calculator was added.
   separate. Adverse observed differences and underwater open cases stay visible.
   The horizon does not close a position. Summary always says NO DEMONSTRATED EDGE.
 
-Normal GUI scanning calls observation_summary only, with already returned books.
-It initializes none of these paper tools, seeds no BTC and fits no forecast. The
+The original published v100.0 GUI called observation_summary only. The local
+journal candidate also observes explicitly registered cases using the same
+returned books; it creates no experiments or paper trades automatically. Manual
+registration requires explicit user values; see PROSPECTIVE_JOURNAL.md. The
 Research notes panel and eight-section diagnostics/local monitor share the same
 strict quantity-free summary. No synthetic evidence is injected into the UI.
 The optional real-account scoreboard input has no connected adapter in this patch.
