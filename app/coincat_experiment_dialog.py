@@ -92,7 +92,9 @@ def show_journal(app):
             if app.journal is None:raise ValueError()
             current=app.journal.list_cases()
         except Exception:
+            app._set_journal_status({'state':'UNAVAILABLE'})
             detail.set('Journal unavailable. No current result is established; retained records are unchanged.');return
+        app._refresh_journal_status()
         rows.clear();rows.update({r['reference']:r for r in current})
         for item in tree.get_children():tree.delete(item)
         for row in current:

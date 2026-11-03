@@ -1,3 +1,9 @@
+Current candidate note: the journal was published as 5e951db. The owner's next
+choice, explicit simulation/replay paper execution, is implemented separately
+in docs/PAPER_LIFECYCLE.md. That offline lifecycle proof adds no connected
+trader or profitable predictor. This critique and its counts describe earlier
+checkpoints; current validation is in VERIFICATION.txt.
+
 Journal preview note: the persistent manually registered journal recommended
 below is implemented in docs/PROSPECTIVE_JOURNAL.md. The owner explicitly
 authorized committing and pushing this follow-up. The critique below belongs

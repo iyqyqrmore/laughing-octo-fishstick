@@ -102,7 +102,7 @@ def capture(app,*,session,sequence,manifest_sha256=None,now=None,lifecycle='OPEN
             interruptions=_count(recovery.get('scan_interruptions')),recoveries=_count(recovery.get('recovered_periods')),
             last_failure=last_failure),products=products,
         adaptive=adaptive_public(result.get('adaptive')),
-        prospective_journal=journal_public(result.get('prospective_journal')),
+        prospective_journal=journal_public(result.get('prospective_journal',getattr(app,'journal_status',None))),
         observations={k:_count(result.get('study_counts',{}).get(k,0)) for k in COUNTS})
     validate(snapshot)
     return snapshot

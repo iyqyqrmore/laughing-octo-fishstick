@@ -82,7 +82,7 @@ def make_report(app,*,now=None):
             preferences='RAM_ONLY',sqlite_integrity=ledger_state,local_unresolved_orders=pending,
             financial_mutations='NONE_BY_RESEARCH',earned_eth='NOT_ESTABLISHED')),
         ('PASSIVE RESEARCH',dict(adaptive_eth=adaptive_public(result.get('adaptive')),
-            prospective_journal=journal_public(result.get('prospective_journal')),
+            prospective_journal=journal_public(result.get('prospective_journal',getattr(app,'journal_status',None))),
             observations=result.get('study_counts',{}),
             current_continuity=scanner.maker_study.diagnostics() if scanner is not None else 'UNOBSERVED',
             guidance='Manual controls only. No AI settings, pricing, funding, ARM or execution authority.',

@@ -1,5 +1,11 @@
 # CoinCat v100 local helper
 
+The current startup repair restores prospective-journal counts before scans.
+Manual local-view/registration and accepted scans refresh the same cached
+allowlisted summary used by diagnostics and monitor v3. No heartbeat/export
+database polling is added. The offline paper lifecycle has separate synthetic
+state; this helper neither controls it nor reports its fills as account fills.
+
 The owner authorized a read-only helper for observing the running app and chose
 their existing Tailscale network. This build adds local monitoring and a private
 connection path; it does not deploy to the PC or establish a cloud VPN session.

@@ -266,3 +266,67 @@ class JournalGUI(unittest.TestCase):
         self.assertIn('DEPTH_UNVERIFIED',cases[0]['reasons'])
         self.assertIsNone(cases[0]['relative_eth'])
         self.assertEqual(result['orders_submitted'],0)
+
+    def test_startup_restores_journal_summary_to_ui_export_and_monitor_before_scanning(self):
+        import tkinter as tk
+        from coincat_app import CoinCatApp
+        app=self.app;journal=app.journal;journal.clock=lambda:NOW
+        funds=ResearchFunds(D(1));assume(funds,'seed',ETH_BTC)
+        journal.register('saved',funds=funds,leg=BTC_SOL,quantity=D(1),frame=frame(),
+            horizon_s=60,signal_id='PRIVATE_STARTUP_SIGNAL',fill_state='SIMULATED_ASSUMPTION',slippage_bps=D(0))
+        journal.observe(frame(at=NOW+60,evidence=False));before=journal.case('saved')
+        app._close();self.root.tk.call('update','idletasks')
+        root=tk.Tk();restarted=CoinCatApp(root)
+        try:
+            self.assertIsNone(restarted.last_result);self.assertFalse(restarted.running)
+            self.assertIn('Registered 1',restarted.journal_text.get())
+            self.assertNotIn('Journal empty',restarted.journal_text.get())
+            self.assertEqual(restarted.journal.case('saved'),before)
+            with patch.object(restarted.journal,'summary',side_effect=AssertionError('NO_PERIODIC_JOURNAL_READ')):
+                restarted._update_freshness()
+                snap=capture(restarted,session='a'*32,sequence=1,now=NOW+61)
+                report=make_report(restarted,now=NOW+61)
+            self.assertEqual(snap['prospective_journal']['registered'],1)
+            self.assertEqual(snap['prospective_journal']['unknown'],1)
+            self.assertFalse(snap['health']['running'])
+            self.assertIn("'registered': 1",report)
+            self.assertNotIn('PRIVATE_STARTUP_SIGNAL',report)
+            self.assertNotIn('PRIVATE_STARTUP_SIGNAL',encode(snap).decode())
+        finally:
+            restarted._close();root.tk.call('update','idletasks')
+
+    def test_manual_local_view_refreshes_main_summary_without_a_scan(self):
+        app=self.app;app.journal.clock=lambda:NOW
+        funds=ResearchFunds(D(1));assume(funds,'seed',ETH_BTC)
+        app.journal.register('saved',funds=funds,leg=BTC_SOL,quantity=D(1),frame=frame(),
+            horizon_s=60,signal_id='PRIVATE_VIEW_SIGNAL',fill_state='UNVERIFIED',slippage_bps=D(0))
+        window=app._view_experiments()
+        try:
+            self.root.update()
+            self.assertIn('Registered 1',app.journal_text.get())
+            self.assertIsNone(app.last_result);self.assertFalse(app.running)
+            self.assertEqual(capture(app,session='a'*32,sequence=1,now=NOW)['prospective_journal']['registered'],1)
+        finally:window.destroy()
+
+    def test_summary_read_failure_is_unavailable_and_does_not_report_an_empty_journal(self):
+        app=self.app
+        with patch.object(app.journal,'summary',side_effect=sqlite3.OperationalError('PRIVATE_DATABASE_PATH')):
+            app._refresh_journal_status();app._update_freshness()
+        self.assertIn('Journal unavailable',app.journal_text.get())
+        self.assertNotIn('Journal empty',app.journal_text.get())
+        snap=capture(app,session='a'*32,sequence=1,now=NOW)
+        self.assertEqual(snap['prospective_journal']['state'],'UNAVAILABLE')
+        self.assertNotIn('PRIVATE_DATABASE_PATH',make_report(app,now=NOW))
+        self.assertNotIn('PRIVATE_DATABASE_PATH',encode(snap).decode())
+
+    def test_committed_registration_is_not_reported_as_failed_when_summary_read_fails(self):
+        app,_,_=self.ready()
+        with patch('coincat_app.time.time',return_value=NOW),patch.object(app.journal,'summary',
+                side_effect=sqlite3.OperationalError('PRIVATE_DATABASE_PATH')):
+            result=app._register_experiment(source='ETH',target='ADA',initial_eth=D('.1'),horizon_s=60,
+                signal_id='COMMITTED_CASE',fill_state='UNVERIFIED',explicit_assumption=True)
+        self.assertEqual(result['latest']['signal']['id'],'COMMITTED_CASE')
+        self.assertEqual(app.journal.summary()['registered'],1)
+        self.assertIn('Journal unavailable',app.journal_text.get())
+        app._refresh_journal_status()
+        self.assertIn('Registered 1',app.journal_text.get())

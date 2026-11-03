@@ -50,7 +50,9 @@ class CoinCatApp:
         self.funding_text=tk.StringVar(value='Working proposal: unset · Protected ETH: unverified')
         self.evidence_text=tk.StringVar(value='Fees: unobserved · Fills: unverified · Actual profit: not established')
         self.adaptive_text=tk.StringVar(value='HOLD · NO DEMONSTRATED EDGE\nRegister explicit conditional cases in the journal. Recoverable ETH: UNKNOWN.')
-        self.journal_text=tk.StringVar(value='Journal empty · Register an explicit hypothetical experiment.' if self.journal else 'Journal unavailable · Existing research is unchanged.')
+        self.journal_status=journal_public()
+        self.journal_text=tk.StringVar()
+        self._refresh_journal_status()
         self.detail_text=tk.StringVar(value='Select a market for details. Hover any control or result for help.')
         self.portfolio_view=PortfolioView();self.portfolio_result={}
         self.eth_held_text=tk.StringVar(value='Unobserved');self.basket_text=tk.StringVar(value='Unpriced')
@@ -349,14 +351,27 @@ class CoinCatApp:
             '\nSource ETH; conditional next assets: '+names+
             '\nBTC → SOL requires an explicit conditional source assumption. No automatic paper trades.'+
             '\nAfter-cost recoverable paper ETH: UNKNOWN · Forecast confidence: UNVALIDATED · Verified fills: 0')
-        if self.last_result:
-            journal=journal_public(self.last_result.get('prospective_journal'))
-            self.journal_text.set('Journal '+journal['state']+f" · Registered {journal['registered']} · Waiting {journal['waiting']}"+
-                f"\nConditional favorable/adverse {journal['favorable']}/{journal['adverse']} · Unknown {journal['unknown']} · Missed {journal['missed_horizons']} · Unpriced open {journal['unpriced_open_cases']}"+
-                '\nNo paper trades · After-cost missing evidence remains UNKNOWN')
-            if journal['state']=='UNAVAILABLE':self.journal_text.set('Journal unavailable · No current experiment verdict; retained records are unchanged.')
-            if journal['state']=='STORAGE_LIMIT':self.journal_text.set('Journal storage limit · Writing paused; retained history is not deleted.')
+        self._set_journal_status((self.last_result or {}).get('prospective_journal',self.journal_status))
         self._update_market_view(now)
+
+    def _set_journal_status(self,value):
+        journal=journal_public(value);self.journal_status=journal
+        if self.last_result is not None:self.last_result['prospective_journal']=journal
+        if journal['state']=='EMPTY':
+            self.journal_text.set('Journal empty · Register an explicit hypothetical experiment.');return
+        if journal['state']=='UNAVAILABLE':
+            self.journal_text.set('Journal unavailable · No current experiment verdict; retained records are unchanged.');return
+        if journal['state']=='STORAGE_LIMIT':
+            self.journal_text.set('Journal storage limit · Writing paused; retained history is not deleted.');return
+        self.journal_text.set('Journal '+journal['state']+f" · Registered {journal['registered']} · Waiting {journal['waiting']}"+
+            f"\nConditional favorable/adverse {journal['favorable']}/{journal['adverse']} · Unknown {journal['unknown']} · Missed {journal['missed_horizons']} · Unpriced open {journal['unpriced_open_cases']}"+
+            '\nNo paper trades · After-cost missing evidence remains UNKNOWN')
+
+    def _refresh_journal_status(self):
+        # One startup/manual read; heartbeat, freshness ticks and exports use cache.
+        try:value=self.journal.summary() if self.journal is not None else None
+        except (ValueError,OSError,sqlite3.Error,TypeError,KeyError,ArithmeticError,RecursionError):value=None
+        self._set_journal_status(value)
 
     def _open_experiment_dialog(self):
         from coincat_experiment_dialog import ExperimentDialog
@@ -380,7 +395,7 @@ class CoinCatApp:
         result=register_from_eth(self.journal,uuid.uuid4().hex,frame=frame,
             slippage_bps=self.applied_config.taker_slippage_bps,**values)
         self.scanner.journal=self.journal
-        self.last_result['prospective_journal']=self.journal.summary()
+        self._refresh_journal_status()
         self._update_freshness()
         return result
 

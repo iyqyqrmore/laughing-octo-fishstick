@@ -1,4 +1,25 @@
-# Prospective-journal preview — source push authorized
+# Paper lifecycle preview — source push authorized
+
+Based on published journal commit 5e951db. The owner selected implementation
+using explicit simulation/replay events. Adds a separate durable paper state
+machine, shared native reservations, post-only admission, explicit partial fills,
+fee-unit quarantine, cancel races, idempotent dispatch/fill handling and exact
+restart reconciliation. The offline scripted driver runs ETH→BTC→SOL then HOLD.
+No quote-derived executions, connected execution adapter or predictor is enabled.
+See docs/PAPER_LIFECYCLE.md for Windows test steps and discussion handoff.
+
+Fixes the restart mismatch where the saved case viewer showed a record while the
+main workspace said Journal empty. Startup/manual refresh restores the count;
+diagnostics and monitor v3 use the same cached sanitized summary before any scan.
+Heartbeat/export do not poll SQLite. Unavailable summaries remain UNAVAILABLE,
+and a post-commit summary-read error does not claim registration failed.
+
+The existing seven products, scanner limits, real broker block, protected
+financial code, private schemas and transparent header are preserved. This
+candidate's source commit/push is explicitly authorized. No PC installation or
+real-account action is included.
+
+# Prospective-journal preview — preceding published checkpoint
 
 Based on published v100.0 commit 1e0d88e. Adds explicit manual preregistration,
 a separate persistent conditional-experiment journal, original-deadline restart

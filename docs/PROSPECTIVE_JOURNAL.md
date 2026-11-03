@@ -1,5 +1,11 @@
 # Prospective experiment journal — source preview
 
+Current follow-up: the startup count now restores from the saved journal before
+scanning, and the local viewer refreshes that cached count. Diagnostics/monitor
+share it without repeated database reads. See [the separate paper lifecycle](PAPER_LIFECYCLE.md)
+for the owner's next authorized increment. Journal cases remain independent
+counterfactuals and never become the paper engine's pooled funding or fills.
+
 Base: published v100.0 commit 1e0d88e0161c98f3f1328eeb9a40ebffe9826467. The owner
 recommended persistent registered experiments before predictive validation or
 automated paper execution. This candidate implements that research increment

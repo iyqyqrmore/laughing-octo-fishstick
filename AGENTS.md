@@ -8,6 +8,13 @@ and push on November 2, 2026. The owner subsequently explicitly authorized the
 prospective-journal follow-up commit/push. This does not authorize deployment or
 execution.
 
+On November 3 the owner selected implementation of a paper-only lifecycle using
+explicit simulation/replay events. The isolated engine and scripted offline
+driver are authorized. The owner subsequently explicitly authorized this paper
+follow-up's source commit/push. Connected execution, strategy defaults, live
+changes and installation remain separate. See docs/PAPER_LIFECYCLE.md.
+Keep paper state in its own empty dedicated database, never a financial file.
+
 Only ADA-ETH, ETH-BTC, LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC and ADA-BTC may receive
 active research quotes/history. Five assets: ETH, BTC, ADA, LINK, SOL. ETH is the
 only initial funding source. No USD/USDC bridges, alternate products, automatic

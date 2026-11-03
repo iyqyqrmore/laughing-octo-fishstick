@@ -1,3 +1,65 @@
+PAPER LIFECYCLE PREVIEW — SOURCE COMMIT/PUSH AUTHORIZED
+Base: published journal commit 5e951db52c31f07f4b66c1f31b81829caed64300.
+Owner selected implementation using explicit simulation/replay events on Nov 3,
+then explicitly authorized this follow-up's source commit/push.
+No connected execution, real allocation, financial data/schema/lot/basis change,
+running-PC installation or deployment is included.
+
+PERSONALLY EXECUTED CURRENT CHECKS
+307 discovered / 307 distinct / 307 run, zero failures/errors/skips/expected
+failures in the checkout (22.492s). HTTP forbidden before discovery and throughout
+execution. Includes 31 paper lifecycle cases and 25 persistent-journal cases,
+real Tk controls/STOP/mixer/hover/logo/export/monitor checks and all retained
+financial/native receipt assertions. First focused startup regressions reproduced
+the stale Journal empty label; the repair passed. The new focused journal/paper
+run passed 55 tests before one additional bounds case passed in the full suite.
+
+Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 / Linux Xvfb. Same 12 hash-locked
+dependencies; no new runtime dependency or exchange traffic. 121 source files
+are listed in the regenerated manifest; all Python syntax and hashes pass.
+The 17 protected/canonical/transport/lock/allocation/cycle modules are byte-
+identical to published 5e951db. git diff --check passes. The source ZIP checksum
+and independently extracted full-suite results are delivered beside the ZIP.
+
+Separate actual Tk restart + authenticated loopback monitor v3 acceptance:
+saved case and aggregate restored before first scan, unchanged financial fixture,
+eight-section redacted export, no heartbeat/export SQLite polling, real GET,
+401/404/405 guards, token/signal omission, STOP, final CLOSED snapshot and clean
+writer/GUI shutdown. Exchange HTTP was forbidden; only explicit localhost HTTP
+was used for this separate integration check. Node syntax/DOM checks cover the
+startup journal count, missing snapshot and failed-response clearing.
+
+The offline replay automatically advances expressly chosen ETH->BTC->SOL steps
+from declared toy partial fills. A final fill wins a cancel race; duplicate fill
+delivery is ignored. Two terminal orders/four simulated fills leave exactly
+2 fictitious SOL from the declared 1 ETH and 1% toy-fee inputs. These are test
+inputs, not defaults or performance evidence. No quote-derived fills occur.
+Session expiry retains SOL; restart requires exact explicit reconciliation and
+leaves PAUSED. Unknown fees/fill history/placement outcomes block new spending;
+partial source and proceeds remain reserved. Dispatch grants cannot be repeated.
+
+LIMITS
+The normal scanner remains read-only; it does not start this engine or place
+paper orders. No connected paper venue/event provider or validated predictor is
+included. Missing sized exit/fee units keeps recoverable ETH UNKNOWN. Actual
+profit NOT ESTABLISHED / NO DEMONSTRATED EDGE / no verified exchange fills.
+LiveBroker.submit still raises LiveBlocked as its unconditional first statement.
+No native Windows/DPAPI/connected account validation was run for this candidate.
+The owner's earlier Windows 251-test result and later screenshots/diagnostics
+belong to preceding builds; they do not establish this source candidate's native
+acceptance. No independent GitHub Actions confirmation is claimed.
+
+COMMANDS
+  python -B VERIFY_SOURCE.py
+  python -B tools/RUN_OFFLINE_TESTS.py
+  python -B tools/PAPER_LIFECYCLE_REPLAY.py --synthetic
+  python -B verification/run_verification.py
+  python -B tools/BUILD_SOURCE_PACKAGE.py --zip <outside-checkout-path>
+  git diff --check
+Windows steps and discussion handoff: docs/PAPER_LIFECYCLE.md.
+
+THE FOLLOWING LEDGERS DESCRIBE PRECEDING PUBLISHED CHECKPOINTS
+
 PROSPECTIVE-JOURNAL PREVIEW — SOURCE COMMIT/PUSH AUTHORIZED
 Base: published v100.0 1e0d88e0161c98f3f1328eeb9a40ebffe9826467.
 The owner recommended persistent explicitly registered experiments before any

@@ -1,5 +1,11 @@
 # CoinCat v100.0 — first read-only trial
 
+This candidate also includes an isolated offline paper lifecycle. After setup
+and source verification, run `tools\RUN_PAPER_REPLAY.bat` with no account
+connection. [Paper acceptance and handoff](docs/PAPER_LIFECYCLE.md) explains the
+expected partial fills, cancel race and restart pause. Normal app scanning below
+remains read-only; the replay does not enable unattended connected trading.
+
 Keep the existing installation and all private records/backups. Extract v100 into
 a separate new folder. Never overlay the running installation or share one data
 folder between running versions. Use normal 64-bit Windows Python 3.11.

@@ -7,7 +7,7 @@ def main():
     manifest=root/'SHA256_MANIFEST.json'
     try:data=json.loads(manifest.read_text(encoding='utf-8'))
     except (ValueError,OSError):return 2
-    if data.get('build')!='100.0-adaptive-eth-journal-candidate':return 3
+    if data.get('build')!='100.0-paper-lifecycle-candidate':return 3
     files=data.get('files')
     if not isinstance(files,dict) or not files:return 4
     fails=[]
