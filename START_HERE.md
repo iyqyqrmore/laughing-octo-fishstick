@@ -1,12 +1,13 @@
-# CoinCat v100.0 — first read-only trial
+# CoinCat v1.01 — first paper/read-only trial
 
-This candidate also includes an isolated offline paper lifecycle. After setup
-and source verification, run `tools\RUN_PAPER_REPLAY.bat` with no account
-connection. [Paper acceptance and handoff](docs/PAPER_LIFECYCLE.md) explains the
-expected partial fills, cancel race and restart pause. Normal app scanning below
-remains read-only; the replay does not enable unattended connected trading.
+After setup/source verification, first run `tools\RUN_PAPER_REPLAY.bat` with no
+account connection. Then follow [Auto Paper acceptance](docs/AUTO_PAPER_V1_01.md)
+for the seven-market/fourteen-view interface, explicit shared ETH budget and
+once-only kickoff. The normal scanner advances simulated orders only while the
+paper session is explicitly enabled; the read-only instructions below remain
+available independently. Real submission stays unconditionally blocked.
 
-Keep the existing installation and all private records/backups. Extract v100 into
+Keep the existing installation and all private records/backups. Extract v1.01 into
 a separate new folder. Never overlay the running installation or share one data
 folder between running versions. Use normal 64-bit Windows Python 3.11.
 
@@ -17,7 +18,7 @@ folder between running versions. Use normal 64-bit Windows Python 3.11.
    backup. A new key/dataset does not recover old trades or tax basis. Optional
    recovery under tools copies a complete verified dataset into an empty
    destination only; do not run it casually against your working installation.
-3. Run **01_START_COINCAT.bat**. Confirm **CoinCat v100.0**. Import the key JSON
+3. Run **01_START_COINCAT.bat**. Confirm **CoinCat v1.01**. Import the key JSON
    locally on your PC, never into chat. Existing permission/DPAPI checks remain:
    View + Trade, Transfer disabled. Trade permission does not enable orders.
 4. **Connect / refresh**. Companion choices come from authenticated direct ETH
@@ -47,13 +48,13 @@ folder between running versions. Use normal 64-bit Windows Python 3.11.
    earn nothing in the app. Even a later target crossing remains uncertain.
 9. Test **STOP** promptly. Displayed findings should remain; no late queued result
    should replace them. Change a control or allocation: the plan must invalidate
-   and require explicit Apply before restarting. Export v100 diagnostics while the
+   and require explicit Apply before restarting. Export v1.01 diagnostics while the
    app is open. Exports have eight sections and omit private native quantities.
 
 The first supervised trial's goal is startup, data integrity, manual controls, hover usability and
 STOP—not a profit verdict. After code/local checks, collect 48–72h of read-only
-coverage, then optionally 2–4 weeks across independent regimes. RAM setups and
-counts disappear on restart; export before closing. Public quotes use the existing
+coverage, then optionally 2–4 weeks across independent regimes. RAM maker setups and
+counts disappear on restart; journal/paper records persist. Export before closing. Public quotes use the existing
 bounded local research store. Native Windows launcher, DPAPI, single-instance,
 cleanup and resource checks still need local evidence. Source restoration and
 environment publication are separate; no old publication success is asserted.
@@ -144,7 +145,8 @@ questions. Do not relax freshness, spread, synchronization or fee requirements.
 
 In Research notes, the compact read-only summary shows HOLD and NO DEMONSTRATED
 EDGE, eligible conditional ETH directions and current quote/funding blockers.
-Normal scanning never seeds BTC or creates simulated holdings. After-cost paper
+Research-only scanning never seeds BTC or creates simulated holdings; the
+separate Auto Paper opt-in is described in AUTO_PAPER_V1_01.md. After-cost paper
 ETH stays UNKNOWN. A local quote touch cannot settle a paper position.
 
 For an intentionally fictitious, offline worked example only:
@@ -157,7 +159,7 @@ Read docs/V100_RESEARCH.md for the conditional APIs and their limits. The exampl
 uses toy prices/depth/fees, shows a losing BTC → SOL comparison and performs no
 network request or private-data access. It does not set your research allocations.
 The new larger transparent banner sits in the upper area beside the title/actions.
-Diagnostics and the separate local helper must both come from the v100 source;
+Diagnostics and the separate local helper must both come from the v1.01 source;
 old monitor snapshots are rejected rather than silently accepted as current.
 
 ## Prospective-journal preview

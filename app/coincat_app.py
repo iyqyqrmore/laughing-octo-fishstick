@@ -1,4 +1,4 @@
-"""CoinCat v100: a small ETH Growth research shell. Live orders stay blocked."""
+"""CoinCat v1.01: a small ETH Growth research shell. Live orders stay blocked."""
 from datetime import datetime,timezone
 from pathlib import Path
 from queue import Queue,Empty
@@ -24,13 +24,15 @@ from coincat_portfolio_view import PortfolioView
 from coincat_watchlist import WATCH_PAIRS
 from coincat_adaptive_eth import Frame
 from coincat_research_journal import ResearchJournal,register_from_eth,public_status as journal_public
+from coincat_auto_paper import AutoPaper
+from coincat_paper_policy import DIRECTIONS
 import sqlite3
 import uuid
 
 
 class CoinCatApp:
     def __init__(self,root):
-        self.root=root;root.title(DISPLAY+' | ETH Growth — Research Only | LIVE blocked')
+        self.root=root;root.title(DISPLAY+' | ETH Growth — Research / Paper Only | LIVE blocked')
         root.geometry(f'{max(1000,min(1380,root.winfo_screenwidth()-40))}x{max(740,min(900,root.winfo_screenheight()-70))}')
         root.minsize(1000,740)
         self.data=data_root();self.ledger=LiveLedger(self.data/'CoinCat_Live_Orders.sqlite3')
@@ -40,8 +42,11 @@ class CoinCatApp:
         except (ValueError,OSError,sqlite3.Error):self.journal=None
         self.scanner=None;self.credentials=None;self.last_result=None;self.applied_config=None
         self.applied_eth_key=None;self.recovery=Recovery();self.retry_kind=None
+        self.paper=AutoPaper(self.data/'research_data'/'auto_paper')
+        self.paper_public=self.paper.public();self.paper_observe=False
         self.connected=False;self.running=False;self.closed=False;self.busy=False;self.generation=0
         self.cancel=threading.Event();self.jobs=Queue();self._after={};self.last_error=None
+        self.worker_thread=None;self.shutdown_complete=threading.Event()
         self.last_note_at=0;self._ready=False;self.working_allocation=None
         self.monitor=MonitorPublisher();self.monitor_enabled=tk.BooleanVar(value=False)
         self.monitor_text=tk.StringVar(value='Off · No automatic snapshots')
@@ -198,7 +203,8 @@ class CoinCatApp:
                 self.jobs.put((kind,generation,{'state':'CANCELLED'},None));return
             try:self.jobs.put((kind,generation,task(),None))
             except Exception as exc:self.jobs.put((kind,generation,None,failure(exc)))
-        threading.Thread(target=work,daemon=True).start();return True
+        self.worker_thread=threading.Thread(target=work,daemon=False)
+        self.worker_thread.start();return True
 
     def _import_key(self):
         if self.busy:self.status.set('Wait for the read-only request to finish.');return
@@ -233,30 +239,95 @@ class CoinCatApp:
         if self.running:return
         if not self.connected or self.scanner is None:self.status.set('Connect first.');return
         if self.applied_config is None:self.status.set('Apply a research plan first.');return
+        self.paper_observe=False
         self.running=True;self.cancel=threading.Event();self.recovery.start()
-        self.status.set('RUNNING · Observing direct ETH markets · No orders');self._scan()
+        self.status.set('RUNNING · Observing direct ETH markets · No live orders');self._scan()
 
     def _stop(self):
         self.running=False;self.cancel.set();self.generation+=1;self.recovery.stop()
+        try:self.paper.pause(at=time.time())
+        except (ValueError,OSError,sqlite3.Error):pass
+        self.paper_public=self.paper.public()
         if hasattr(self,'chart'):self.chart.cancel_pending()
         for key in ('scan','retry'):
             task=self._after.pop(key,None)
             if task is not None:
                 try:self.root.after_cancel(task)
                 except tk.TclError:pass
-        self.status.set('STOPPED · Findings retained · No orders')
+        self.status.set('STOPPED · Findings and paper reserves retained · LIVE orders blocked')
+        if hasattr(self,'paper_panel'):self.paper_panel.refresh()
+
+    def _paper_scan_config(self):
+        if not self.paper_observe:return self.applied_config
+        config=self.paper.config
+        if config is None:return None
+        companions=tuple(v['target'] for v in DIRECTIONS if v['source']=='ETH' and
+            config.directions[v['id']]['enabled'])
+        return MakerConfig(companions=companions,amount_eth=config.amount_eth,observe_watchlist=True).validate()
+
+    def _start_auto_paper(self):
+        if self.closed:return
+        if self.busy:self.paper_panel.message.set('Wait for the current read-only request to finish.');return
+        if self.scanner is None or not self.connected:self.paper_panel.message.set('Connect and verify the current working proposal first.');return
+        try:
+            now=time.time()
+            if self.paper.engine is None:
+                config=self.paper_panel.configuration()
+                if not config.opt_in:raise ValueError('PAPER_OPT_IN_REQUIRED')
+                if self.allocation_editor.dirty_fields:raise ValueError('APPLY_WORKING_DRAFT_FIRST')
+                self._stop()
+                proposal=dict(balances=dict(self.scanner.balances),balances_at=self.scanner.account_at,
+                    draft=self.allocation_editor.parameters()['allocation_draft'],excluded=self.allocation_editor.excluded)
+                self.paper.create(config,at=now,funding=proposal)
+            else:
+                if self.paper.engine.private_state()['mode']=='RECONCILIATION_REQUIRED':
+                    self.paper_panel.message.set('Reconcile paper first; successful reconciliation leaves PAUSED. Then press Start.');return
+                self._stop();self.paper.start(at=now)
+            self.paper_observe=True;self.running=True;self.cancel=threading.Event();self.recovery.start()
+            self.paper_public=self.paper.public();self.paper_panel.refresh()
+            self.status.set('RUNNING · Auto maker rotation PAPER ONLY · LIVE blocked');self._scan()
+        except (ValueError,ArithmeticError,OSError,sqlite3.Error):
+            self.paper_panel.message.set('Paper start blocked. Check opt-in, fresh working ETH, exact size, settings, original expiry and saved-session recovery. No funds or orders reset.')
+
+    def _pause_paper(self):
+        if self.closed:return
+        try:self.paper.pause(at=time.time())
+        except (ValueError,OSError,sqlite3.Error):
+            self.paper_panel.message.set('Paper storage needs review; reservations are retained.');return
+        self.paper_public=self.paper.public();self.paper_panel.refresh()
+
+    def _reconcile_paper(self):
+        if self.closed:return
+        if self.busy:self.paper_panel.message.set('Wait for the current read-only request before paper reconciliation.');return
+        self._stop()
+        try:self.paper.reconcile(at=time.time())
+        except (ValueError,OSError,sqlite3.Error):
+            self.paper_panel.message.set('Paper reconciliation blocked. Complete identities, native receipts and known fees are required; no balances guessed.');return
+        self.paper_public=self.paper.public();self.paper_panel.refresh()
+
+    def _new_paper_session(self):
+        if self.closed:return
+        if self.busy:self.paper_panel.message.set('Wait for the current read-only request before a new paper-session draft.');return
+        self._stop()
+        try:self.paper.new_session()
+        except (ValueError,OSError,sqlite3.Error):
+            self.paper_panel.message.set('The saved paper session needs review before starting another. No records replaced.');return
+        self.paper_public=self.paper.public();self.paper_panel.opt_in.set(False)
+        self.paper_panel.update_budget_default();self.paper_panel.refresh()
+        self.paper_panel.message.set('New paper-session draft. Previous database retained; the new Start will create a separate ETH HOLD baseline.')
 
     def _scan(self,*,force_refresh=False):
         if self.closed or not self.running:return
         if self.busy:self._schedule('scan',250,self._scan);return
-        config=self.applied_config;cancel=self.cancel
-        draft=self.allocation_editor.parameters()['allocation_draft'];funding_key=self.applied_eth_key
+        config=self._paper_scan_config();cancel=self.cancel
+        if config is None:return
+        draft=self.allocation_editor.parameters()['allocation_draft'];funding_key=None if self.paper_observe else self.applied_eth_key
         self._submit('scan',lambda:self.scanner.scan_growth(config,cancel=cancel,allocation_draft=draft,
                      applied_eth_key=funding_key,force_refresh=force_refresh))
 
     def _retry(self):
         if self.closed or self.recovery.state!='RETRYING':return
-        if self.retry_kind=='scan' and (not self.running or self.applied_config is None):return
+        if self.retry_kind=='scan' and (not self.running or self._paper_scan_config() is None):return
         if self.busy:self._schedule('retry',250,self._retry);return
         if not self.recovery.begin_retry():self._schedule_retry();return
         self.status.set(f'RETRYING · read-only attempt {self.recovery.attempt}/5')
@@ -282,6 +353,7 @@ class CoinCatApp:
             self._schedule_retry()
         else:
             self.running=False
+            self._pause_paper()
             self.status.set(f"PAUSED_NEEDS_ATTENTION · {detail['stage']} / {detail['category']} · Refresh manually")
         self._update_freshness()
 
@@ -316,9 +388,15 @@ class CoinCatApp:
                         try:self.root.after_cancel(timer)
                         except tk.TclError:pass
                     self.last_result=payload;self._render(payload)
+                    # Only a current accepted Tk generation can mutate the paper
+                    # wallet. The collector/worker has no paper order authority.
+                    if self.last_result is payload and generation==self.generation and self.paper_observe:
+                        self.paper.on_frame(payload['research_frame'])
+                        self.paper_public=self.paper.public();self.paper_panel.refresh(payload)
                     if time.time()-self.last_note_at>=180:
                         self._note(payload['lab_note']);self.last_note_at=time.time()
-                    if self.running:self._schedule('scan',int(self.applied_config.scan_interval_s*1000),self._scan)
+                    if self.running and self._paper_scan_config() is not None:
+                        self._schedule('scan',int(self._paper_scan_config().scan_interval_s*1000),self._scan)
                 self._update_freshness()
         except Empty:pass
         self._schedule('poll',100,self._poll)
@@ -349,10 +427,11 @@ class CoinCatApp:
         names=', '.join(r['target'] for r in adaptive.get('candidates',())) or 'Await eligible markets'
         self.adaptive_text.set('HOLD · NO DEMONSTRATED EDGE · '+self.recovery.state+
             '\nSource ETH; conditional next assets: '+names+
-            '\nBTC → SOL requires an explicit conditional source assumption. No automatic paper trades.'+
+            '\nBTC → SOL research requires an explicit source assumption. Auto Paper is a separate opted-in session.'+
             '\nAfter-cost recoverable paper ETH: UNKNOWN · Forecast confidence: UNVALIDATED · Verified fills: 0')
         self._set_journal_status((self.last_result or {}).get('prospective_journal',self.journal_status))
         self._update_market_view(now)
+        if hasattr(self,'paper_panel'):self.paper_panel.refresh(self.last_result,at=now)
 
     def _set_journal_status(self,value):
         journal=journal_public(value);self.journal_status=journal
@@ -406,6 +485,7 @@ class CoinCatApp:
         self.working_allocation=self.allocation_editor.assessment()
         changed=self.applied_eth_key is not None and self._funding()['key']!=self.applied_eth_key
         self._sync_eth_default()
+        if hasattr(self,'paper_panel'):self.paper_panel.update_budget_default()
         if changed:self._invalidate()
         self._update_market_view(time.time())
 
@@ -459,7 +539,8 @@ class CoinCatApp:
         if self.last_result is not result:return  # A changed default invalidates this queued plan.
         self.chart.set_products([r['market']['pair'] for r in result['rows']]);self.chart.refresh(live=True)
         self._render_rows(result,freshness(result,time.time(),fee_ttl=self.fees.ttl))
-        self.status.set(f"{self.recovery.state} · Scan {result['scan']} · {result['state']}")
+        mode='Auto Paper '+self.paper.public()['state']+' · ' if self.paper_observe else ''
+        self.status.set(f"{self.recovery.state} · {mode}Scan {result['scan']} · {result['state']}")
         self._select_row()
         self._update_freshness()
 
@@ -517,8 +598,8 @@ class CoinCatApp:
         self.monitor.stop(final)
 
     def _export(self):
-        path=filedialog.asksaveasfilename(title='Save v100 diagnostics',defaultextension='.txt',
-            initialfile='CoinCat_v100_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
+        path=filedialog.asksaveasfilename(title='Save v1.01 diagnostics',defaultextension='.txt',
+            initialfile='CoinCat_v1.01_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
         if path:
             try:Path(path).write_text(make_report(self),encoding='utf-8')
             except OSError as exc:messagebox.showerror('Diagnostics',f'Export failed ({type(exc).__name__}).')
@@ -530,7 +611,20 @@ class CoinCatApp:
         for task in self._after.values():
             try:self.root.after_cancel(task)
             except tk.TclError:pass
-        self._after.clear();self.root.destroy()
+        self._after.clear();self._finish_close()
+
+    def _finish_close(self):
+        # Read-only SDK requests have their existing timeout. Leave the GUI
+        # responsive while cancellation drains the single worker and bounded
+        # scout batch; no paper callback can run after closed/generation changes.
+        from coincat_v701_transport import SCOUT
+        worker=self.worker_thread
+        with SCOUT.lock:scouting=any(not f.done() for f in SCOUT.inflight)
+        if (worker is not None and worker.is_alive()) or scouting:
+            self.status.set('Closing · Waiting for the canceled read-only request to finish')
+            self.root.after(50,self._finish_close);return
+        if worker is not None:worker.join()
+        self.root.destroy();self.shutdown_complete.set()
 
 
 def main():

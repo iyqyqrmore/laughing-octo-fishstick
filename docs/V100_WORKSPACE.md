@@ -1,4 +1,4 @@
-# CoinCat v100.0 seven-market spot workspace
+# Inherited v100.0 seven-market spot workspace
 
 The owner requested a Coinbase-style chart/control/activity arrangement and named
 exactly seven spot products: ADA-ETH, ETH-BTC, LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC,

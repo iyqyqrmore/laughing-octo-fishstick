@@ -1,4 +1,11 @@
-# CoinCat v100.0 paper lifecycle preview
+# CoinCat v1.01 paper lifecycle
+
+Current integration is documented in AUTO_PAPER_V1_01.md. The normal scanner
+advances this engine only through a bounded opted-in shared paper session. Its
+fourteen-view controller and explicit seeded stress provider are separate from
+the declared replay and independent journal comparisons. Current base is v100
+ebe4fd7; the owner authorized source push as v1.01 after verification. The
+original deterministic replay expectations below remain unchanged.
 
 The owner selected implementation using explicit simulation/replay events on
 November 3, 2026. This source candidate builds on published journal commit
@@ -146,24 +153,24 @@ corrupt disk or untrusted caller can be automatically repaired.
 
 ## Current limits and discussion handoff
 
-The normal GUI scanner still makes read-only observations and observes manually
-registered comparisons. It neither starts this engine nor automatically seeds,
-places or cancels anything. The local helper stays quantity-free monitor v3 and
+With Auto Paper off the GUI scanner makes read-only observations and observes
+manually registered comparisons. Explicit Auto Paper opt-in enables a separate
+shared controller; relaunch never resumes it. The local helper stays quantity-free monitor v3 and
 cannot control the engine. Replay counters are separate from GUI/actual fills;
 no simulated gain is exported as account profit. The startup repair restores
 cached journal counts before scans and refreshes them on manual view/registration
 or accepted scan, without database polling in heartbeats/exports.
 
-Next integration work is a specified paper venue/event provider, a durable
-session controller and GUI controls, fair queue/liquidity/fee assumptions, and
-held-out strategy validation. BBO alone cannot supply credible maker fills.
+The shared controller, fourteen views and labeled BBO stress provider are
+implemented. Remaining work is calibrated observed queue/liquidity/fee evidence
+and held-out market strategy validation. BBO alone cannot supply credible maker fills.
 After-cost ETH stays UNKNOWN when sized exits, fee units or residual valuation
 are missing. Unresolved events deliberately pause unattended progress. Patient
 HOLD has no forced losing sale, recovery guarantee or demonstrated advantage.
 
 For a ChatGPT discussion: CoinCat now has a tested offline execution lifecycle
 using explicitly declared synthetic fills, including partial/cancel/restart
-handling. It still has no connected autonomous paper trader or demonstrated
+handling. It has a scanner-connected paper controller but no calibrated venue or demonstrated
 predictor. The goal remains autonomous ETH growth within owner-approved limits,
 with a single future live authorization rather than approval of each routine
 trade. Execution correctness and strategy profitability need separate evidence.

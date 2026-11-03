@@ -1,40 +1,29 @@
-Paper lifecycle source candidate based on published v100.0 journal commit
-5e951db. The owner selected explicit simulation/replay implementation and then
-authorized this follow-up's source commit/push. Running-PC installation and
-environment deployment remain separate.
+# CoinCat v1.01 — Auto Maker Rotation, PAPER ONLY
 
-# CoinCat v100.0 — Adaptive ETH Research
+Start one bounded simulated ETH portfolio from the normal scanner workflow.
+Seven product tabs expose fourteen directions, with shared inventory/reservations,
+post-only paper orders, partial fills, patient ETH returns, qualified rotations,
+HOLD and persistent restart reconciliation. Default kickoff is the explicitly
+chosen ETH→BTC SELL; there is no requirement for a profitable cycle forecast.
+Automatic paper opt-in starts off. A saved checkbox never resumes on relaunch.
 
-A read-only seven-market research build. ETH is the initial working asset and the
-success unit. Live order submission remains unconditionally blocked.
+The existing chart, mixer, manual allocation, journal, read-only research, local
+monitor v3 and larger transparent upper-header logo remain. No actual orders,
+authenticated previews, transfers, financial records or real allocations change.
+LiveBroker.submit still raises LiveBlocked immediately.
 
-The separate offline paper engine now handles post-only intents, shared funding,
-partial fills, cancellation races, duplicate deliveries, unknown fees and restart
-reconciliation. A scripted driver automatically advances ETH→BTC→SOL using
-expressly declared toy executions. Run `tools\RUN_PAPER_REPLAY.bat` after setup
-and verification. See [paper tests and discussion handoff](docs/PAPER_LIFECYCLE.md).
-It is an offline lifecycle proof; the normal scanner remains read-only.
+The current data is BBO, without sized queue/depth. Simulated executions use
+clearly labeled seeded stress assumptions with delay, sustained strict quote
+penetration, synthetic queue depletion and partial/non-fill behavior. A touch
+alone never fills. This is an uncalibrated PAPER experiment, not exchange
+matching evidence or a demonstrated profitable predictor. Open marked losses,
+fees, idle/reserved funds, unknown valuations and missed horizons remain visible.
 
-The existing patient maker comparisons, native-price quote chart, manual mixer,
-allocation proposal, STOP/recovery and local monitor are preserved. The larger
-alpha-transparent CoinCat banner occupies the upper header space to the right
-of the title and connection controls.
+Read [START_HERE.md](START_HERE.md), then
+[the paper trial, defaults and policy](docs/AUTO_PAPER_V1_01.md).
+[Independent feedback](docs/AUTO_PAPER_FEEDBACK.md) explains the objections;
+[VERIFICATION.txt](VERIFICATION.txt) records actual checks and platform limits.
+The source base is published v100 commit ebe4fd7. The owner authorized committing
+and pushing the completed build as v1.01; installation and deployment remain separate.
 
-Adaptive ETH Research adds bounded listed directions, conditional native-cost
-paths, one shared simulated funding/reservation contract, fixed-horizon HOLD
-comparisons and a separate paper ETH scoreboard. The app observes explicitly registered prospective cases using existing scans.
-Research notes provides manual registration and a local journal view. No
-automatic registrations, startup BTC seed, paper execution or predictor is enabled.
-Frozen assumptions, gaps and outcomes persist in a separate private research
-database. See [the journal contract](docs/PROSPECTIVE_JOURNAL.md). The pure API and
-explicit offline example are documented in [docs/V100_RESEARCH.md](docs/V100_RESEARCH.md).
-
-There is **NO DEMONSTRATED EDGE**. Missing depth, exact fee currency, synchronized
-quotes or residue valuation means recoverable paper ETH is **UNKNOWN**. A touch
-is not a fill. Independent counterfactuals cannot be added as a funded portfolio.
-No Coinbase One fee waiver, maker rebate or forced liquidation is assumed.
-
-Read [START_HERE.md](START_HERE.md) before installing into a separate folder.
-[VERIFICATION.txt](VERIFICATION.txt) records this build's actual checks and limits;
-[the independent feedback](docs/ADAPTIVE_ETH_CODEX_FEEDBACK.md) explains objections
-and the preceding research checkpoint. No running PC or private dataset was changed.
+**Paper gains are simulated and never account profit. NO DEMONSTRATED EDGE.**

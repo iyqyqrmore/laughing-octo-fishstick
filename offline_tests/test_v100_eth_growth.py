@@ -327,7 +327,7 @@ class ReadOnlyGrowth(unittest.TestCase):
             app=SimpleNamespace(scanner=s,last_result=result,ledger=ledger,connected=True,
                 running=False,busy=False,last_error=None)
             report=make_report(app,now=NOW)
-            for text in ('CoinCat v100.0','COMPLETE (8/8)','ETH MAKER RESEARCH','NOT_ESTABLISHED','BLOCKED_UNCONDITIONALLY'):
+            for text in ('CoinCat v1.01','COMPLETE (8/8)','ETH MAKER RESEARCH','NOT_ESTABLISHED','BLOCKED_UNCONDITIONALLY'):
                 self.assertIn(text,report)
             for text in (sentinel,str(ledger.path),"'receipts':",'91.0','best_advantage_usd'):
                 self.assertNotIn(text,report)
@@ -345,11 +345,11 @@ class GrowthGUI(unittest.TestCase):
         self.app._apply_plan();return c,s
 
     def test_large_transparent_logo_v100_four_tabs_six_faders_and_hover_coverage(self):
-        self.assertIn('v100.0',self.root.title());self.assertIn('LIVE blocked',self.root.title())
+        self.assertIn('v1.01',self.root.title());self.assertIn('LIVE blocked',self.root.title())
         self.assertGreaterEqual(self.app.logo.width(),400)
         self.assertLessEqual(self.app.logo.width(),750)
         self.assertTrue(self.app._logo_source.transparency_get(0,0))
-        self.assertEqual(len(self.app.tabs.tabs()),4)
+        self.assertEqual(len(self.app.tabs.tabs()),5)
         self.assertEqual(len(self.app.mixer.controls),6)
         self.assertIsNone(self.app.applied_config)
         widgets=[]

@@ -1,3 +1,103 @@
+COINCAT v1.01 — AUTOMATED MAKER-ONLY PAPER SOURCE CANDIDATE
+Base: published coincat-v100 ebe4fd7405dc7a827503b090ef60af348c45d838,
+fetched and matched before implementation. The owner's later "please push as
+v1.01 when complete" authorizes source commit/push on coincat-v1.01 after checks.
+No installation on the running PC, deployment, account change or live trading.
+
+PERSONALLY EXECUTED CURRENT CHECKS — NOVEMBER 3, 2026
+Checkout: 351 discovered / 351 distinct / 351 run; zero failures, errors, skips
+or expected failures in 42.475s. HTTP forbidden before discovery and throughout
+execution. Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 / Xvfb; same 12
+hash-locked dependencies. Retained financial/native assertions pass. New cases
+cover all fourteen actual product/side mappings, four once-only kickoff choices,
+shared caps/reservations, fee/tick/minimum gates, partial/unknown/cancel races,
+dispatch/restart/corruption/bounds, fixed-horizon/no-lookahead evaluation, frozen
+model/policy, monitor redaction, generation rejection and clean worker shutdown.
+
+Supplementary Linux Python 3.13.5 / Tk-Tcl 8.6: 21 actual paper/journal GUI and
+restart tests passed in 6.395s, zero failures/errors/skips. This borrowed the
+same dependency directory for a Tk diagnostic; it is not the supported Python
+3.11 acceptance run. Every test interpreter collects Python/Tcl background
+errors; native pending ThemeChanged idle work is exercised before destruction.
+No theme warning was hidden or filtered. The owner's previous native Windows
+v100 run was 307 tests / zero failures/errors / one synthetic-symlink skip,
+487.932s, with a Tcl ThemeChanged cleanup warning. That run is historical and
+does not establish native v1.01 acceptance or the Windows cleanup repair.
+
+Actual supplementary Tk 8.6 GUI captures at 1380x900 and 1040x780 show explicit
+Start from the normal scan, one shared wallet, modeled partials then a patient
+ETH return, seven product tabs/fourteen reachable directions and scrollable
+small-window details. The larger upper-header transparent logo/icon bytes are
+unchanged. Existing mixer, chart/hover, allocation, journal and notes checks
+remain in the full suite. Synthetic financial fixtures remained unchanged.
+
+Separate actual Tk restart and authenticated localhost monitor acceptance:
+the original wallet/order restores before a scan as RECONCILIATION_REQUIRED,
+without saved-opt-in resumption. Eight diagnostics themes and monitor v3 expose
+only safe aggregate paper fields, with no heartbeat paper-SQLite polling.
+GET 200 / missing-token 401 / private-path 404 / POST 405, private-field/token
+omission, STOP/final CLOSED snapshot and clean GUI/writer/server shutdown pass.
+Only explicit loopback HTTP was used in that separate check; exchange HTTP was
+forbidden. Node JavaScript syntax/DOM checks pass current, missing and failed
+responses, including clearing stale paper/journal/research information.
+
+17 protected broker/FIFO/state/import/key/lot/lock/native-receipt/transport/
+allocation/cycle files are byte-identical to ebe4fd7. Requirements/lock and
+original logo/icon are unchanged. LiveBroker.submit retains its unconditional
+first-statement LiveBlocked. Source-only hashes/syntax cover 129 files;
+SHA256_MANIFEST.json is additional. Independent ZIP SHA256, extracted-source
+verification/full-suite results and logs are delivered beside the source ZIP.
+No private data/backups, keys, monitor files/tokens, uploads, logs, environments
+or bytecode belong in that package. No independent GitHub Actions claim is made.
+
+SYNTHETIC HOLDOUT — SOFTWARE/EVALUATION EVIDENCE ONLY
+24 predeclared runs: two fictitious chronological scenarios x four fixed models
+x seeds 1/7/19. Each uses one 1 ETH wallet, an excluded 20-observation development
+prefix and 222 holdout observations at 30-second intervals. The original horizon
+and its first valid observation are immutable; later cleanup is not scored.
+Partial executions are counted even when an order later completes. Completion
+times, fees, unfilled/open orders, observed peak-to-trough drawdown, underwater
+time and unknown after-cost recoverability are retained for every run.
+
+All six NO_FILL runs retain exactly 1 ETH and charge no execution fees. Across
+the remaining eighteen, midpoint deltas range from approximately -0.02720071 to
++0.04492348 ETH; these include open marked losses and are not executable profit.
+All eighteen remain UNKNOWN for credible after-cost recoverability, due to
+missing sized exits, verified exchange fee units and residual valuation. All
+24 retain NO DEMONSTRATED EDGE / actual profit NOT ESTABLISHED and no model-
+review error. Exact-decimal logs and the all-seed result table are delivered.
+The model's queue sizes/gates are explicit uncalibrated BBO stress assumptions,
+not observed queue/depth or calibrated maker fill probabilities. Touching a
+quote never fills. No extra market GET or quote budget was introduced.
+
+The retained offline declared-event replay still expects 2 terminal orders,
+4 simulated fills, 0 real orders and 0 verified exchange fills, leaving exactly
+2 fictitious SOL under its explicitly chosen toy inputs. It demonstrates the
+lifecycle only. Source paper activity never credits the actual ledger as profit.
+
+WINDOWS/CONNECTED GATES STILL UNRUN FOR v1.01
+Run 02_SETUP_COINCAT.bat, 03_VERIFY_COINCAT.bat and tools\RUN_PAPER_REPLAY.bat in
+a separate installation/data copy, then docs/AUTO_PAPER_V1_01.md's supervised
+Start/Pause/STOP/restart/monitor trial for 60–120 minutes before longer runs.
+Native Windows Python 3.11, DPAPI, single-instance, DPI, connected product/fee
+availability and outages need that PC's evidence. The source candidate is not
+installation-ready or a validated predictive/exchange execution system. Basic
+membership changes no fee evidence; actual pair fee units remain unverified.
+Real order submission stays blocked. No live pilot is authorized by these checks.
+
+COMMANDS
+  python -B VERIFY_SOURCE.py
+  python -B tools/RUN_OFFLINE_TESTS.py
+  python -B tools/PAPER_LIFECYCLE_REPLAY.py --synthetic
+  python -B tools/AUTO_PAPER_HOLDOUT.py --synthetic
+  python -B verification/run_verification.py
+  python -B tools/BUILD_SOURCE_PACKAGE.py --zip <outside-checkout-path>
+  git diff --check
+Defaults, architecture, user steps and objections: docs/AUTO_PAPER_V1_01.md and
+docs/AUTO_PAPER_FEEDBACK.md. Subsequent ledgers describe historical checkpoints.
+
+THE FOLLOWING LEDGERS DESCRIBE PRECEDING PUBLISHED CHECKPOINTS
+
 PAPER LIFECYCLE PREVIEW — SOURCE COMMIT/PUSH AUTHORIZED
 Base: published journal commit 5e951db52c31f07f4b66c1f31b81829caed64300.
 Owner selected implementation using explicit simulation/replay events on Nov 3,

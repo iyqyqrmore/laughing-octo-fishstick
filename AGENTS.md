@@ -1,6 +1,7 @@
-# Codex instructions — CoinCat v100.0
+# Codex instructions — CoinCat v1.01
 
-Read START_HERE.md, DECISION_CHAIN_REVIEW.md, docs/V100_RESEARCH.md,
+Read docs/AUTO_PAPER_V1_01.md, docs/AUTO_PAPER_FEEDBACK.md, START_HERE.md,
+DECISION_CHAIN_REVIEW.md, docs/V100_RESEARCH.md,
 docs/V100_WORKSPACE.md and docs/V100_MONITOR.md. Use this checkout, no worktrees
 unless requested. The owner explicitly authorized a clean v100 build, redundant
 code/text cleanup, larger transparent upper-header logo, verification, commit
@@ -15,17 +16,34 @@ follow-up's source commit/push. Connected execution, strategy defaults, live
 changes and installation remain separate. See docs/PAPER_LIFECYCLE.md.
 Keep paper state in its own empty dedicated database, never a financial file.
 
+The owner then requested all-market maker-only automated PAPER integration:
+seven real-product tabs/fourteen directions, one shared portfolio, explicit
+once-only kickoff, patient maker policy and a labeled conservative provider.
+The pasted November 3 handoff governs that expansion. The later instruction
+"please push as v1.01 when complete" explicitly authorizes source commit/push
+after verification on coincat-v1.01, preserving coincat-v100. No installation,
+deployment, real funding, account changes, new permissions or live execution.
+The remote baseline was fetched/matched at ebe4fd7405dc7a827503b090ef60af348c45d838.
+Do not ask again for this already authorized source publication.
+
 Only ADA-ETH, ETH-BTC, LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC and ADA-BTC may receive
 active research quotes/history. Five assets: ETH, BTC, ADA, LINK, SOL. ETH is the
 only initial funding source. No USD/USDC bridges, alternate products, automatic
-selection, startup BTC seed, fee fallback, quote-touch fills, realized ETH credit,
+REAL selection/funding, actual startup BTC seed, fee fallback, quote-touch fills, realized account ETH credit,
 reserve harvesting or auto ARM. Direct maker scenarios remain independent
 comparisons; never sum their full-wallet amounts as concurrent funding.
 
-Adaptive ETH research is pure/conditional. Normal UI scanning observes only explicitly registered persistent cases; it
+Adaptive ETH research is pure/conditional. With Auto Paper off, UI scanning observes only explicitly registered persistent cases; it
 creates no experiments, seeds or paper trades automatically. Manual registration
 requires a fresh applied ETH slice, signal ID, horizon and explicit conditional
 assumption. See docs/PROSPECTIVE_JOURNAL.md.
+The separate opt-in paper controller may select/reserve/settle inside its frozen
+limits from current accepted scan frames. Saved opt-in never resumes or repeats
+kickoff after restart. Four-way kickoff is explicit; blocked choices never fall
+back or increase size to meet minima. No research comparison becomes funding.
+One funded wallet serves all fourteen views. All intents LIMIT/POST_ONLY; no
+taker/market/IOC fallback. Review defaults 30s and retains reasonable orders.
+Cancel must reconcile before replacement. Paper expiry never liquidates holdings.
 Only explicit conditional SIMULATED_ASSUMPTION events can advance paper inventory.
 One budget cannot fund competing reservations; unknown/partial fills remain
 locked. Fixed-horizon forward observations never select the best later exit or
@@ -35,7 +53,7 @@ review-only and opt-in for offline callers, never a forced sale or loss limit.
 
 LiveBroker.submit must retain unconditional first-statement LiveBlocked. Preserve
 coincat_live.py, coincat_unified_fifo_v501.py, coincat_state_v50.py,
-coincat_data_transfer.py and protected key/lot/lock code. No create/edit/cancel,
+coincat_data_transfer.py and protected key/lot/lock code. No real exchange create/edit/cancel,
 transfers, new authenticated previews, financial schema/record/lot/basis changes,
 real allocations, risk-setting changes or credential requests. Preserve
 private_data/private_backups and DPAPI/single-instance behavior. Fresh setup
@@ -70,6 +88,15 @@ Reject unknown fields at every monitor nesting level. Do not export balances,
 receipts, authorization references, account IDs, private paths or raw errors.
 NO_SETUP_UNPRICED is a legitimate state; QUOTE_WIDE is a pricing blocker, not a
 fill or a continuity failure. No monitor command/update channel.
+
+Monitor v3 may contain one strictly allowlisted optional auto_paper aggregate
+extension; private GUI amounts/settings/history never enter exports. The BBO
+feed has no sized depth/queue. Seeded stress assumptions never become observed
+liquidity or calibrated fills. Touch alone cannot fill. Freeze model parameters,
+policy and original horizon; retain no-fill/adverse/partial/missed cases and open
+losses. Basic membership changes no authenticated fees or inferred units/rebates.
+Simulated quote fees do not establish credible exchange liquidation; subscription
+costs are separate and unmodeled.
 
 Source packages include regenerated SHA256_MANIFEST.json and an independent ZIP
 checksum; exclude private records/backups, reports/uploads, monitor files/tokens,

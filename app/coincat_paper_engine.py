@@ -16,7 +16,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from coincat_adaptive_eth import Frame,ResearchFunds
+from coincat_adaptive_eth import ResearchFunds
 from coincat_continuity import eth_funding
 from coincat_eth_maker import post_only_eligible
 from coincat_fill_units import normalize_fill,FillUnitError
@@ -142,7 +142,7 @@ class PaperEngine:
         return cls.create(path,initial_eth=amount,limits=limits,at=at,simulation_ack=simulation_ack)
 
     @classmethod
-    def restore(cls,path):
+    def _read(cls,path):
         path=Path(path)
         if not path.is_file() or path.is_symlink() or path.parent.is_symlink():
             raise PaperBlocked('PAPER_STATE_NOT_AVAILABLE')
@@ -152,17 +152,41 @@ class PaperEngine:
             row=db.execute('SELECT revision,payload,digest FROM paper_state WHERE rowid=1').fetchone()
         if row is None or hashlib.sha256(row[1].encode()).hexdigest()!=row[2]:
             raise PaperBlocked('INVALID_PAPER_STATE_DIGEST')
-        state=_unpack(row[1]);engine=cls(path,state,row[0])
+        state=_unpack(row[1]);cls._invariants(state)
+        return state,row[0]
+
+    @classmethod
+    def inspect(cls,path):
+        """Bounded private local inspection, without a restore/write/resume."""
+        return cls._read(path)[0]
+
+    @classmethod
+    def restore(cls,path):
+        state,revision=cls._read(path);engine=cls(path,state,revision)
         # This is a control transition only; quantities/deadlines remain untouched.
-        engine._apply('restore_'+str(row[0]),{'kind':'RESTORE'},
+        engine._apply('restore_'+str(revision),{'kind':'RESTORE'},
             lambda s:s.update(mode='RECONCILIATION_REQUIRED',last_issue='RESTART_RECONCILIATION_REQUIRED'))
         return engine
 
     def private_state(self):return deepcopy(self._state)
 
+    def local_events(self,reference,*,limit=128):
+        _id(reference)
+        if type(limit) is not int or not 1<=limit<=256:raise PaperBlocked('INVALID_PAPER_EVENT_VIEW_BOUND')
+        with closing(self._db()) as db:
+            rows=db.execute('SELECT kind,payload FROM paper_events ORDER BY rowid DESC LIMIT ?',
+                (MAX_EVENTS,)).fetchall()
+        selected=[]
+        for kind,raw in rows:
+            payload=_unpack(raw)
+            if payload.get('reference')==reference:
+                selected.append(dict(kind=kind,payload=payload))
+                if len(selected)>=limit:break
+        return list(reversed(selected))
+
     def _db(self):
-        if self.path.is_symlink():raise PaperBlocked('PAPER_SYMLINK_REJECTED')
-        db=sqlite3.connect(self.path,timeout=1)
+        if self.path.is_symlink() or self.path.parent.is_symlink():raise PaperBlocked('PAPER_SYMLINK_REJECTED')
+        db=sqlite3.connect(self.path.resolve().as_uri()+'?mode=rw',uri=True,timeout=1)
         if db.execute('PRAGMA application_id').fetchone()[0]!=APP_ID:
             db.close();raise PaperBlocked('WRONG_PAPER_DATABASE')
         return db
@@ -209,8 +233,10 @@ class PaperEngine:
             if any(q>state['wallet'].get(a,D(0)) for a,q in reserved.items()):
                 raise PaperBlocked('PAPER_DOUBLE_ALLOCATION')
 
-    def _apply(self,event_id,payload,action,*,critical=False,order_ref=None):
+    def _apply(self,event_id,payload,action,*,critical=False,order_ref=None,context_after=None,journal=True):
         event_id=_id(event_id);fingerprint=_digest(payload);before=self._state
+        if not journal and payload!={'kind':'AUTO_CONTEXT_CHECKPOINT'}:
+            raise PaperBlocked('PAPER_CONTEXT_ONLY_CHECKPOINT_REQUIRED')
         if self.path.stat().st_size>=MAX_DB_BYTES:raise PaperBlocked('PAPER_STORAGE_LIMIT')
         issue=None;result=None
         with closing(self._db()) as db,db:
@@ -218,9 +244,9 @@ class PaperEngine:
             revision=db.execute('SELECT revision FROM paper_state WHERE rowid=1').fetchone()[0]
             if revision!=self._revision:
                 self._stale=True;raise PaperBlocked('STALE_PAPER_INSTANCE_RELOAD_REQUIRED')
-            previous=db.execute('SELECT fingerprint FROM paper_events WHERE event_id=?',(event_id,)).fetchone()
+            previous=db.execute('SELECT fingerprint FROM paper_events WHERE event_id=?',(event_id,)).fetchone() if journal else None
             if previous and previous[0]==fingerprint:return {'result':'DUPLICATE_IGNORED'}
-            if db.execute('SELECT COUNT(*) FROM paper_events').fetchone()[0]>=MAX_EVENTS:
+            if journal and db.execute('SELECT COUNT(*) FROM paper_events').fetchone()[0]>=MAX_EVENTS:
                 raise PaperBlocked('PAPER_EVENT_HISTORY_LIMIT')
             draft=deepcopy(before)
             try:
@@ -228,6 +254,17 @@ class PaperEngine:
                 with localcontext() as ctx:
                     ctx.prec=60
                     result=action(draft)
+                    if context_after is not None:
+                        if not isinstance(context_after,dict):raise PaperBlocked('INVALID_PAPER_CONTEXT')
+                        original=before.get('auto',{})
+                        if original.get('policy')=='PATIENT_MAKER_ETH_V1' and (
+                                context_after.get('config')!=original.get('config') or
+                                context_after.get('model_assumptions')!=original.get('model_assumptions') or
+                                context_after.get('session')!=original.get('session')):
+                            raise PaperBlocked('FROZEN_PAPER_POLICY_CANNOT_CHANGE_WITHIN_SESSION')
+                        draft['auto']=deepcopy(context_after)
+                    if not journal and {k:v for k,v in draft.items() if k!='auto'}!={k:v for k,v in before.items() if k!='auto'}:
+                        raise PaperBlocked('CHECKPOINT_CANNOT_CHANGE_PAPER_FUNDS')
                     self._invariants(draft)
             except (PaperBlocked,ValueError,TypeError,KeyError,ArithmeticError) as exc:
                 if not critical and not previous:raise
@@ -244,11 +281,22 @@ class PaperEngine:
                 # Preserve the original idempotency identity; retain the fault separately.
                 log_id='#fault_'+str(revision+1)
             else:log_id=event_id
-            db.execute('INSERT INTO paper_events VALUES(?,?,?,?,?)',
-                       (log_id,fingerprint,str(payload.get('kind','CONTROL')),_pack(payload),str(result)))
+            if journal:
+                db.execute('INSERT INTO paper_events VALUES(?,?,?,?,?)',
+                           (log_id,fingerprint,str(payload.get('kind','CONTROL')),_pack(payload),str(result)))
         self._state=draft;self._revision=revision+1
         if issue:raise PaperBlocked(issue)
         return result
+
+    def checkpoint_context(self,context):
+        """Replace bounded venue/policy cache; no financial event or history deletion.
+
+        Fills and command grants can commit their context in the same transaction.
+        Repeated observation-only cache writes do not consume execution-event IDs.
+        """
+        if context==self._state.get('auto'):return
+        return self._apply('context_'+str(self._revision),{'kind':'AUTO_CONTEXT_CHECKPOINT'},
+            lambda s:None,context_after=context,journal=False)
 
     @staticmethod
     def _held(state,asset):
@@ -284,11 +332,13 @@ class PaperEngine:
             return {'result':'PAPER_SESSION_PAUSED_RESERVATIONS_RETAINED'}
         return self._apply(event_id,dict(kind='STOP',at=now),apply)
 
-    def place(self,event_id,*,reference,pair,side,source_budget,limit_price,expires_at,frame):
+    def place(self,event_id,*,reference,pair,side,source_budget,limit_price,expires_at,frame,context_after=None,
+              target_cap_from_receipt=False):
         reference=_id(reference);budget=_positive(source_budget);price=_positive(limit_price)
         expiry=_at(expires_at)
         payload=dict(kind='PLACE_INTENT',reference=reference,pair=pair,side=side,
-            source_budget=budget,limit_price=price,expires_at=expiry,at=frame.at)
+            source_budget=budget,limit_price=price,expires_at=expiry,at=frame.at,
+            target_cap_from_receipt=target_cap_from_receipt)
         def apply(s):
             if self._stale or s['mode']!='ACTIVE':raise PaperBlocked('PAPER_SESSION_NOT_ACTIVE')
             if frame.at<s['last_at']:raise PaperBlocked('PAPER_TIME_MOVED_BACKWARDS')
@@ -318,6 +368,12 @@ class PaperEngine:
                     book=(price,price,frame.at),product_rules=frame._rules,fee=fee,slip=D(0))
             receipt.pop('approx_usd_notional',None)
             receipt['fee_rate_source']='EXPLICIT_SIMULATION_INPUT_NOT_ACCOUNT_VERIFICATION'
+            if type(target_cap_from_receipt) is not bool:raise PaperBlocked('INVALID_PAPER_CAP_RULE')
+            if target_cap_from_receipt and dst not in s['limits']['source_caps']:
+                # The opt-in controller freezes this rule at session creation.
+                # A cap is a ceiling, never a credit. The first canonical target
+                # quantity is persisted before dispatch and is never increased.
+                s['limits']['source_caps'][dst]=receipt['output_quantity']
             s['orders'][reference]=dict(reference=reference,pair=pair,side=side,source=src,target=dst,
                 source_budget=budget,reserved=budget,base_size=receipt['gross_base_quantity'],
                 limit_price=price,created_at=frame.at,expires_at=expiry,state='PENDING_NEW',
@@ -329,7 +385,7 @@ class PaperEngine:
                 status='UNSENT',classification='SIMULATED_ASSUMPTION'))
             s['last_at']=frame.at
             return {'result':'PAPER_ORDER_RESERVED','reference':reference}
-        return self._apply(event_id,payload,apply)
+        return self._apply(event_id,payload,apply,context_after=context_after)
 
     def pending_commands(self):
         s=self._state
@@ -338,7 +394,7 @@ class PaperEngine:
             s['orders'][c['reference']]['state'] not in TERMINAL and
             (s['mode']=='ACTIVE' or c['kind']=='CANCEL_PAPER_ORDER')])
 
-    def mark_dispatched(self,event_id,command_id,*,at):
+    def mark_dispatched(self,event_id,command_id,*,at,context_after=None):
         now=_at(at)
         def apply(s):
             command=next((c for c in s['commands'] if c['command_id']==command_id),None)
@@ -355,7 +411,7 @@ class PaperEngine:
             command['status']='DISPATCHED'
             s['last_at']=now
             return {'result':'PAPER_COMMAND_DISPATCHED_ONCE','dispatch_permitted':True}
-        return self._apply(event_id,dict(kind='DISPATCH',command_id=command_id,at=now),apply)
+        return self._apply(event_id,dict(kind='DISPATCH',command_id=command_id,at=now),apply,context_after=context_after)
 
     @staticmethod
     def _cancel(s,reference):
@@ -369,12 +425,12 @@ class PaperEngine:
             s['commands'].append(dict(command_id=cid,kind='CANCEL_PAPER_ORDER',reference=reference,
                 status='UNSENT',classification='SIMULATED_ASSUMPTION'))
 
-    def request_cancel(self,event_id,reference):
+    def request_cancel(self,event_id,reference,*,context_after=None):
         def apply(s):
             if reference not in s['orders']:raise PaperBlocked('UNKNOWN_PAPER_ORDER')
             self._cancel(s,reference)
             return {'result':'PAPER_CANCEL_REQUESTED_NO_RELEASE_UNTIL_ACK'}
-        return self._apply(event_id,dict(kind='CANCEL_INTENT',reference=reference),apply)
+        return self._apply(event_id,dict(kind='CANCEL_INTENT',reference=reference),apply,context_after=context_after)
 
     def tick(self,event_id,*,at):
         now=_at(at)
@@ -438,11 +494,13 @@ class PaperEngine:
         if _digest(raw) not in fingerprints:fingerprints.append(_digest(raw))
         s['fills'][fill_id]=dict(reference=reference,raw=deepcopy(raw),fingerprints=fingerprints,settled=True)
         s['simulated_fills']+=1
+        s['fills'][fill_id].update(source=order['source'],target=order['target'],debit=debit,credit=credit,
+            settle_index=s['simulated_fills'])
         if order['filled_base']==order['base_size'] and not self._pending_fees(s,reference):
             order.update(state='FILLED',reserved=D(0))
         else:order['state']='PENDING_CANCEL' if order['cancel_requested'] else 'PARTIAL'
 
-    def ingest(self,event):
+    def ingest(self,event,*,context_after=None):
         if not isinstance(event,dict) or set(event)!={'event_id','source','kind','reference','at','data'}:
             raise PaperBlocked('INVALID_SIMULATION_EVENT_SCHEMA')
         event=deepcopy(event);reference=_id(event['reference']);event['at']=_at(event['at'])
@@ -510,7 +568,7 @@ class PaperEngine:
                 order.update(state=state,reserved=D(0))
                 self._ack_command(s,reference,'PLACE_POST_ONLY');self._ack_command(s,reference,'CANCEL_PAPER_ORDER')
             return {'result':'SIMULATED_EVENT_APPLIED'}
-        return self._apply(event['event_id'],event,apply,critical=True,order_ref=reference)
+        return self._apply(event['event_id'],event,apply,critical=True,order_ref=reference,context_after=context_after)
 
     def reconcile(self,event_id,*,wallet,orders,at,source):
         if source not in SOURCES:raise PaperBlocked('EXPLICIT_SIMULATION_EVENT_SOURCE_REQUIRED')

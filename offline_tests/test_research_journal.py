@@ -268,16 +268,13 @@ class JournalGUI(unittest.TestCase):
         self.assertEqual(result['orders_submitted'],0)
 
     def test_startup_restores_journal_summary_to_ui_export_and_monitor_before_scanning(self):
-        import tkinter as tk
-        from coincat_app import CoinCatApp
         app=self.app;journal=app.journal;journal.clock=lambda:NOW
         funds=ResearchFunds(D(1));assume(funds,'seed',ETH_BTC)
         journal.register('saved',funds=funds,leg=BTC_SOL,quantity=D(1),frame=frame(),
             horizon_s=60,signal_id='PRIVATE_STARTUP_SIGNAL',fill_state='SIMULATED_ASSUMPTION',slippage_bps=D(0))
         journal.observe(frame(at=NOW+60,evidence=False));before=journal.case('saved')
         app._close();self.root.tk.call('update','idletasks')
-        root=tk.Tk();restarted=CoinCatApp(root)
-        try:
+        with fixtures.gui_lifetime() as (root,restarted):
             self.assertIsNone(restarted.last_result);self.assertFalse(restarted.running)
             self.assertIn('Registered 1',restarted.journal_text.get())
             self.assertNotIn('Journal empty',restarted.journal_text.get())
@@ -292,8 +289,17 @@ class JournalGUI(unittest.TestCase):
             self.assertIn("'registered': 1",report)
             self.assertNotIn('PRIVATE_STARTUP_SIGNAL',report)
             self.assertNotIn('PRIVATE_STARTUP_SIGNAL',encode(snap).decode())
-        finally:
-            restarted._close();root.tk.call('update','idletasks')
+
+    def test_restarted_window_drains_pending_native_theme_notification_before_destroy(self):
+        self.app._close();self.root.tk.call('update','idletasks')
+        with fixtures.gui_lifetime() as (root,restarted):
+            root.tk.setvar('coincat_theme_callback_ran',0)
+            root.tk.call('after','idle','ttk::ThemeChanged; set ::coincat_theme_callback_ran 1')
+            self.assertEqual(root.tk.eval('set ::coincat_theme_callback_ran'),'0')
+        # The native callback completed while Tk was live, and the shared
+        # lifetime asserted no Python/Tcl background errors after destruction.
+        self.assertTrue(restarted.closed)
+        self.assertEqual(root.tk.eval('set ::coincat_theme_callback_ran'),'1')
 
     def test_manual_local_view_refreshes_main_summary_without_a_scan(self):
         app=self.app;app.journal.clock=lambda:NOW

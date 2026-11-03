@@ -1,3 +1,40 @@
+# CoinCat v1.01 — integrated all-market maker PAPER candidate
+
+Base ebe4fd7405dc7a827503b090ef60af348c45d838, fetched/matched. Owner authorized
+source implementation and later explicitly requested push as v1.01 when complete.
+Adds an opt-in controller to accepted normal scan results, one shared persistent
+ETH-funded paper portfolio, seven BBO book tabs/fourteen directional views,
+four chosen once-only kickoffs, frozen patient maker policy, seeded scenario
+provider, partial/cancel handling, explicit restart reconciliation and a shared
+scoreboard versus ETH HOLD. Old sessions and open losses remain inspectable.
+
+The BBO feed remains inside its original budget. No observed sized depth/queue
+is invented. Stress fills require delay, sustained strict penetration, assumed
+queue depletion and a seeded gate; touch alone never fills. New chronological
+synthetic holdout reports no-fill/adverse models and UNKNOWN recoverability.
+The original declared replay retains two terminal orders/four simulated fills.
+
+Resting reviews default to 30 seconds; reasonable orders are retained, cancel
+reconciles before replacement, and expiry never sells holdings. Basic membership
+changes no fees. Cached authenticated rates remain required; model quote-fee
+units do not verify actual exchange fee currency. Public monitor v3 adds only
+an optional strictly allowlisted aggregate paper subsection; eight-section
+exports omit native paper/account amounts and private identifiers.
+
+Repairs the test-only second-Tk-interpreter cleanup gap behind the owner's
+Windows ThemeChanged warning. Every GUI fixture now drains native idle work
+before destruction and fails on Python/Tcl background errors. Closing the app
+waits responsively for canceled read work and joins its worker before Tk teardown.
+Current labels/launchers/shortcuts/diagnostics identify CoinCat v1.01; historical
+module and financial database filenames remain compatibility identifiers.
+
+Protected broker/FIFO/state/import/key/lot/lock/native receipt/transport sources,
+financial schemas, actual records, original quote/fee/backoff limits and large
+transparent logo are preserved. Live submission remains blocked. No running-PC
+installation, account action or deployment. Details: docs/AUTO_PAPER_V1_01.md.
+
+THE FOLLOWING NOTES DESCRIBE PRECEDING v100 CHECKPOINTS
+
 # Paper lifecycle preview — source push authorized
 
 Based on published journal commit 5e951db. The owner selected implementation

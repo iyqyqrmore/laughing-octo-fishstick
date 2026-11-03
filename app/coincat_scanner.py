@@ -1,4 +1,4 @@
-"""Read-only v100 direct-ETH observer with staged, attributed observations."""
+"""Read-only direct-ETH observer with staged, attributed observations."""
 import time
 from copy import deepcopy
 from coincat_live import LiveBroker

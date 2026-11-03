@@ -12,6 +12,7 @@ import time
 import uuid
 
 from coincat_version import DISPLAY
+from coincat_auto_paper import public_status as paper_public,validate_public as validate_paper_public
 from coincat_adaptive_eth import public_summary as adaptive_public,validate_public
 from coincat_research_journal import public_status as journal_public,validate_public as validate_journal_public
 
@@ -92,7 +93,7 @@ def capture(app,*,session,sequence,manifest_sha256=None,now=None,lifecycle='OPEN
     snapshot=dict(schema=SCHEMA,version=DISPLAY,session=session,sequence=sequence,
         manifest_sha256=manifest_sha256,captured_at=now,lifecycle=lifecycle,
         companions=list(dict.fromkeys(v.get() for v in app.companions if _asset(v.get())))[:4],
-        health=dict(running=bool(app.running),busy=bool(app.busy),plan_applied=app.applied_config is not None,
+        health=dict(running=bool(app.running),busy=bool(app.busy),plan_applied=bool(app.applied_config is not None or getattr(app,'paper_observe',False)),
             connected=bool(app.connected and account_age is not None and 0<=account_age<=120 and
                 app.last_error is None and recovery.get('connection_state')!='RETRYING'),
             connection_state=_enum(recovery.get('connection_state'),STATES),
@@ -103,6 +104,7 @@ def capture(app,*,session,sequence,manifest_sha256=None,now=None,lifecycle='OPEN
             last_failure=last_failure),products=products,
         adaptive=adaptive_public(result.get('adaptive')),
         prospective_journal=journal_public(result.get('prospective_journal',getattr(app,'journal_status',None))),
+        auto_paper=paper_public(getattr(app,'paper_public',None)),
         observations={k:_count(result.get('study_counts',{}).get(k,0)) for k in COUNTS})
     validate(snapshot)
     return snapshot
@@ -116,7 +118,10 @@ def validate(value):
         if raw is not None and (type(raw) not in (int,float) or _number(raw) is None):raise ValueError('INVALID_MONITOR_NUMBER')
     def count(raw):
         if raw is not None and _count(raw) is None:raise ValueError('INVALID_MONITOR_COUNT')
-    exact(value,'schema version session sequence manifest_sha256 captured_at lifecycle companions health products observations adaptive prospective_journal')
+    # v3's one known optional extension remains strict. Older v3 snapshots may
+    # omit it; arbitrary root or nested keys are still rejected.
+    fields='schema version session sequence manifest_sha256 captured_at lifecycle companions health products observations adaptive prospective_journal'
+    exact(value,fields+(' auto_paper' if isinstance(value,dict) and 'auto_paper' in value else ''))
     if value['schema']!=SCHEMA or value['version']!=DISPLAY:raise ValueError('INVALID_MONITOR_VERSION')
     if not isinstance(value['session'],str) or not re.fullmatch(r'[0-9a-f]{32}',value['session']):raise ValueError('INVALID_MONITOR_SESSION')
     if type(value['sequence']) is not int or not 1<=value['sequence']<=2**53:raise ValueError('INVALID_MONITOR_SEQUENCE')
@@ -148,6 +153,7 @@ def validate(value):
         if not isinstance(reasons,list) or len(reasons)>16 or any(r!=_reason(r) for r in reasons):raise ValueError('INVALID_MONITOR_REASONS')
     validate_public(value['adaptive'])
     validate_journal_public(value['prospective_journal'])
+    if 'auto_paper' in value:validate_paper_public(value['auto_paper'])
     exact(value['observations'],' '.join(COUNTS))
     for raw in value['observations'].values():count(raw)
     return value

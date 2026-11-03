@@ -1,4 +1,11 @@
-# CoinCat v100 local helper
+# CoinCat v1.01 local helper — monitor v3
+
+The optional strictly allowlisted auto_paper subsection adds state/model enums
+and aggregate paper order/fill/non-fill/partial/gap/review counts. It omits native
+amounts, seeds/session IDs, settings and event payloads. Missing optional data
+stays unobserved, never inferred active. Existing v3 fields and unknown-field
+rejection remain; the source app/helper must both identify v1.01. The helper has
+no paper control or update channel. Older v100 version snapshots are not current.
 
 The current startup repair restores prospective-journal counts before scans.
 Manual local-view/registration and accepted scans refresh the same cached
@@ -126,7 +133,7 @@ acceptance step. Existing research limits, fees, funding and order blocks remain
 ## Journal preview monitor contract
 
 The helper page, download name, launcher output and snapshot version identify
-CoinCat v100.0. Schema coincat-monitor/v3 retains a bounded Adaptive ETH Research
+CoinCat v1.01. Schema coincat-monitor/v3 retains a bounded Adaptive ETH Research
 subsection with approved product IDs, reason classifications and HOLD / NO
 DEMONSTRATED EDGE. Paper positions and verified fills remain zero in app scans;
 recoverable paper ETH is UNKNOWN. These are controlled labels/counts, never

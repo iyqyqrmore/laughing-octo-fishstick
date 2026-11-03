@@ -1,4 +1,9 @@
-# Prospective experiment journal — source preview
+# Prospective experiment journal — retained independent research
+
+Current v1.01 connects a separate opted-in paper controller to accepted scans;
+see AUTO_PAPER_V1_01.md. Journal cases remain independent comparisons, never
+pooled funding, fills or profits. The saved-count repair and fixed horizon rules
+below remain; all GUI interpreters now share guarded idle cleanup.
 
 Current follow-up: the startup count now restores from the saved journal before
 scanning, and the local viewer refreshes that cached count. Diagnostics/monitor

@@ -1,3 +1,3 @@
 """CoinCat ETH Growth development-preview identity."""
-VERSION = "100.0"
+VERSION = "1.01"
 DISPLAY = "CoinCat v" + VERSION

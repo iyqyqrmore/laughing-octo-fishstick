@@ -1,4 +1,4 @@
-"""Eight v100 diagnostic sections. Strict quantity-free projections only."""
+"""Eight v1.01 diagnostic sections. Strict quantity-free projections only."""
 from contextlib import closing
 from datetime import datetime,timezone
 import sqlite3
@@ -8,6 +8,7 @@ from coincat_live import TERMINAL
 from coincat_eth_maker import public_summary
 from coincat_adaptive_eth import public_summary as adaptive_public
 from coincat_research_journal import public_status as journal_public
+from coincat_auto_paper import public_status as paper_public
 from coincat_working_allocation import allocation_diagnostics
 from coincat_continuity import freshness,age
 
@@ -82,10 +83,11 @@ def make_report(app,*,now=None):
             preferences='RAM_ONLY',sqlite_integrity=ledger_state,local_unresolved_orders=pending,
             financial_mutations='NONE_BY_RESEARCH',earned_eth='NOT_ESTABLISHED')),
         ('PASSIVE RESEARCH',dict(adaptive_eth=adaptive_public(result.get('adaptive')),
+            auto_paper=paper_public(getattr(app,'paper_public',None)),
             prospective_journal=journal_public(result.get('prospective_journal',getattr(app,'journal_status',None))),
             observations=result.get('study_counts',{}),
             current_continuity=scanner.maker_study.diagnostics() if scanner is not None else 'UNOBSERVED',
-            guidance='Manual controls only. No AI settings, pricing, funding, ARM or execution authority.',
+            guidance='Explicit research and opt-in simulated paper sessions only. No live funding, ARM or execution authority.',
             fill_evidence='TOUCH_OR_CROSSING_IS_NOT_A_FILL',hypothetical_full_fills=0,
             verified_fills=0,partial_fill_returns='UNVERIFIED_NO_CREDIT',actual_profit='NOT_ESTABLISHED',
             observations_persisted='PUBLIC_QUOTES_AND_EXPLICIT_PROSPECTIVE_CASES; MAKER_SETUPS_RAM_ONLY')),

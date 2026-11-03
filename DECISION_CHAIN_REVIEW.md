@@ -1,11 +1,26 @@
-# CoinCat v100.0 decision chain
+# CoinCat v1.01 decision chain
+
+Current Auto Paper path: explicit working-ETH slice/session opt-in -> frozen
+policy/model/seed/limits -> existing current-pass scanner frame -> accepted Tk
+generation -> once-only kickoff or patient review -> canonical post-only intent
+and reservation -> persisted dispatch grant -> explicit seeded stress events ->
+canonical native partial/terminal settlement -> funded ETH return, qualifying
+one-step rotation or HOLD. See docs/AUTO_PAPER_V1_01.md.
+
+BBO supplies no sized depth/queue. The seeded stress provider is uncalibrated;
+strict penetration alone cannot fill. All fourteen views share one wallet.
+Restore/reconcile leaves PAUSED; STOP rejects late generations and retains funds.
+Original expiry never renews and old losses remain visible. No real orders or
+account profit are created. Context-only checkpoints cannot change native funds.
+
+The following inherited research/pure APIs remain separate from the controller.
 
 Explicit RAM working-ETH proposal → manually approved ETH companions → eligible
 seven-product catalog → existing bounded quote collection → frozen account fee
 and native rules → independent patient maker studies → uncertain passive
 observations → eight-section redacted diagnostics and local monitor.
 
-The adaptive app hook observes only topology and quote/fee blockers from this
+The read-only adaptive research hook observes only topology and quote/fee blockers from this
 pass. It creates no reservations, fills, seeds or predictors. BTC cross-pairs
 remain account-unfunded observations. A possible graph edge is not an order or
 permission to spend ETH as BTC. Existing quote chart/reference basket never
@@ -16,7 +31,7 @@ slice using the existing allocation contract. reserve locks that source budget;
 only an exact SIMULATED_ASSUMPTION event matching the frozen canonical receipt
 credits the next simulated asset. No-fill releases a known untouched reserve;
 partial/uncertain outcomes keep the entire reserve locked. There is no production
-settlement, unknown-outcome resolution or restart recovery in this contract.
+settlement, unknown-outcome resolution or restart recovery in that pure ResearchFunds contract; the separate PaperEngine owns those simulated lifecycle functions.
 
 Immediate conditional paths use one synchronized frozen frame and canonical
 native receipts for every leg, each fee once. All residuals remain. Missing

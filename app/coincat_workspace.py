@@ -10,6 +10,7 @@ from coincat_mixer import ResearchMixer
 from coincat_theme import apply_theme,BG,TEXT
 from coincat_version import DISPLAY
 from coincat_watchlist import WATCH_PAIRS
+from coincat_paper_panel import PaperPanel
 
 
 def build_workspace(app):
@@ -20,7 +21,7 @@ def build_workspace(app):
     top.columnconfigure(1,weight=1);top.rowconfigure(0,minsize=160)
     header=ttk.Frame(top);header.grid(row=0,column=0,sticky='nw',padx=(0,12))
     ttk.Label(header,text=DISPLAY+' / ETH workspace',style='Title.TLabel',wraplength=410).pack(anchor='w')
-    badge=ttk.Label(header,text='RESEARCH ONLY  ·  LIVE BLOCKED',foreground='#eab86b');badge.pack(anchor='w',pady=(2,6))
+    badge=ttk.Label(header,text='RESEARCH / PAPER  ·  LIVE BLOCKED',foreground='#eab86b');badge.pack(anchor='w',pady=(2,6))
     Hover(badge,'Real order submission is unconditionally blocked. Quotes and hypothetical setups never create Coinbase orders or verified profit.')
     if sys.platform=='win32':root.iconbitmap(str(Path(__file__).with_name('CoinCat50.ico')))
     actions=ttk.Frame(header);actions.pack(fill='x',pady=(0,5))
@@ -52,8 +53,9 @@ def build_workspace(app):
     banner.bind('<Configure>',fit_logo)
     app.tabs=ttk.Notebook(shell);app.tabs.pack(fill='both',expand=True)
     growth=ttk.Frame(app.tabs,padding=6);mixer_tab=ttk.Frame(app.tabs,padding=8)
-    allocation=ttk.Frame(app.tabs);lab=ttk.Frame(app.tabs,padding=8)
-    for frame,label in ((growth,'ETH Growth'),(mixer_tab,'Manual mixer'),(allocation,'Allocation'),(lab,'Research notes')):app.tabs.add(frame,text=label)
+    allocation=ttk.Frame(app.tabs);paper_tab=ttk.Frame(app.tabs);lab=ttk.Frame(app.tabs,padding=8)
+    for frame,label in ((growth,'ETH Growth'),(mixer_tab,'Manual mixer'),(allocation,'Allocation'),
+            (paper_tab,'Auto Paper Trader'),(lab,'Research notes')):app.tabs.add(frame,text=label)
     growth.columnconfigure(0,weight=1);growth.columnconfigure(1,weight=0,minsize=286)
     growth.rowconfigure(0,weight=1)
     left=ttk.Frame(growth);left.grid(row=0,column=0,sticky='nsew',padx=(0,8))
@@ -88,7 +90,7 @@ def build_workspace(app):
         'Prices use each actual product’s quote currency. BTC is an ETH companion through ETH-BTC. '
         'Four direct ETH products stay in each full pass; three BTC cross-pairs rotate through remaining slots, at most six books per pass. '
         'Deferred books retain their timestamp and cannot masquerade as a newly synchronized observation. Selecting a row only changes the chart.')
-    ttk.Label(orders,text='CoinCat orders: 0 · Submission blocked',style='Metric.TLabel').pack(anchor='w')
+    ttk.Label(orders,text='CoinCat live orders: 0 · Submission blocked',style='Metric.TLabel').pack(anchor='w')
     ttk.Label(orders,text='Coinbase account order feed: not loaded',style='Muted.TLabel').pack(anchor='w',pady=6)
     app.orders_tree=ttk.Treeview(orders,columns=('market','side','price','amount','state'),show='headings',height=4)
     for name in app.orders_tree['columns']:app.orders_tree.heading(name,text=name.title());app.orders_tree.column(name,width=100,minwidth=70)
@@ -162,6 +164,7 @@ def build_workspace(app):
     wheel_bind(canvas)
     app.allocation_editor=WorkingAllocationEditor(allocation,app._allocation_changed)
     app.allocation_editor.canvas.configure(background=BG);app.allocation_editor.pack(fill='both',expand=True)
+    app.paper_panel=PaperPanel(paper_tab,app);app.paper_panel.pack(fill='both',expand=True)
     monitor_bar=ttk.Frame(lab);monitor_bar.pack(fill='x',pady=(0,6))
     ttk.Checkbutton(monitor_bar,text='Local monitor',variable=app.monitor_enabled,command=app._monitor_changed).pack(side='left')
     monitor_label=ttk.Label(monitor_bar,textvariable=app.monitor_text);monitor_label.pack(side='left',padx=12)

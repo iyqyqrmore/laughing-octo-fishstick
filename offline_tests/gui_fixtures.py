@@ -1,9 +1,9 @@
-"""Synthetic account/quote fixtures and deterministic Tk lifetime for v100 tests."""
-from contextlib import closing
+"""Synthetic account/quote fixtures and deterministic Tk lifetime for v1.01 tests."""
+from contextlib import closing,contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
-import sqlite3,unittest
+import sqlite3,time,unittest
 
 from coincat_live import LiveLedger
 from coincat_live_forward_store import ForwardStore
@@ -45,24 +45,39 @@ def ledger_dump(ledger):
     with closing(sqlite3.connect(ledger.path)) as db:return '\n'.join(db.iterdump())
 
 
+@contextmanager
+def gui_lifetime():
+    """Guard every test interpreter, including windows created to test restart."""
+    import tkinter as tk
+    from coincat_app import CoinCatApp
+    root=tk.Tk();background_errors=[];app=None
+    root.report_callback_exception=lambda cls,value,trace:background_errors.append(f'{cls.__name__}: {value}')
+    root.tk.createcommand('bgerror',lambda message:background_errors.append(str(message)))
+    try:
+        app=CoinCatApp(root)
+        root.update_idletasks()
+        yield root,app
+    finally:
+        try:
+            # ThemeChanged needs a live Tk event command. Finish pending native
+            # idle work before destruction, without running app timers/workers.
+            if app is None or not app.closed:root.update_idletasks()
+        finally:
+            if app is None:root.destroy()
+            else:
+                app._close()
+                deadline=time.monotonic()+5
+                while not app.shutdown_complete.is_set() and time.monotonic()<deadline:
+                    root.tk.call('update');time.sleep(.005)
+                if not app.shutdown_complete.is_set():raise AssertionError('GUI worker did not finish clean shutdown')
+            # Keep the collector alive while any post-destruction idle errors
+            # surface; these must fail the test rather than only print to Tcl.
+            root.tk.call('update','idletasks')
+            if background_errors:raise AssertionError('Tk background errors: '+repr(background_errors))
+
+
 class SimpleGUI(unittest.TestCase):
     def setUp(self):
-        import tkinter as tk
         self.temp=TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.env=patch.dict('os.environ',{'COINCAT_DATA_DIR':self.temp.name});self.env.start();self.addCleanup(self.env.stop)
-        from coincat_app import CoinCatApp
-        self.root=tk.Tk();self.app=CoinCatApp(self.root)
-        background_errors=[]
-        self.root.report_callback_exception=lambda cls,value,trace:background_errors.append(f'{cls.__name__}: {value}')
-        self.root.tk.createcommand('bgerror',lambda message:background_errors.append(str(message)))
-        def close_gui():
-            try:
-                if not self.app.closed:self.root.update_idletasks()
-            finally:
-                self.app._close()
-            # Tcl's event queue survives destruction of the Tk window. Drain
-            # idle theme events while this interpreter and error collector live.
-            self.root.tk.call('update','idletasks')
-            self.assertFalse(background_errors,'Tk background errors: '+repr(background_errors))
-        self.addCleanup(close_gui)
-        self.root.update_idletasks()
+        self.root,self.app=self.enterContext(gui_lifetime())

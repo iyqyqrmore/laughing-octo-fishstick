@@ -1,4 +1,8 @@
-# CoinCat v100.0 research contract and API
+# Inherited v100 research contract and pure API
+
+Current v1.01 adds a separate opted-in shared paper controller; see
+AUTO_PAPER_V1_01.md. The pure adaptive APIs and independent comparisons described
+below retain their original boundaries. They do not become funded positions.
 
 Source base: remote coincat-v95 checkpoint
 40bdac5df0c29a9571acc5fe118dd4d8190bf54a, freshly fetched and matched. The clean
