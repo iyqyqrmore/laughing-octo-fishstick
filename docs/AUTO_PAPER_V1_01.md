@@ -2,7 +2,7 @@
 
 This source build integrates the durable paper engine with accepted normal scans.
 It has seven actual-product tabs and fourteen directional views, one funded
-simulated portfolio, a frozen patient-maker policy and a seeded stress venue.
+simulated portfolio, frozen patient/short-lived maker policies and a seeded stress venue.
 Source base: v100 commit ebe4fd7405dc7a827503b090ef60af348c45d838, fetched and
 matched before this work. The owner requested publication as v1.01 after checks.
 No running-PC installation, account change or live order is authorized.
@@ -75,6 +75,85 @@ No running-PC installation, account change or live order is authorized.
 Native Windows/DPI/DPAPI/single-instance, connected fee/product availability and
 60–120-minute supervised acceptance still need that PC's evidence. Source tests
 and Linux Tk captures do not establish installation readiness or profitable fills.
+
+## Short-lived orders with a fresh decision
+
+The owner requested that a limit quote be valid only briefly while pursuing ETH
+accumulation. For a **new** paper session, choose **Session settings → Order
+policy → Short-lived / net ETH target** before opt-in/Start. Patient target
+remains the default for compatibility. Existing sessions keep their frozen
+policy, funding and original expiry; updating the source cannot silently change
+an existing experiment. New paper session retains the prior database, holdings,
+open orders and losses as a separate study, with no pooled capital or transfer.
+
+| Short-lived control | Default | Valid range |
+|---|---|---|
+| Order lifetime | 120 seconds | 60–600 seconds |
+| Minimum rest before a price-move cancel | 30 seconds | At least 30s, shorter than order lifetime |
+| Reprice threshold | 10 bps and at least two native ticks | 1–100 bps; two-tick floor |
+| Review / new-order cooldown | Existing 30s / 30s | Existing validated settings |
+| Session orders / open orders | Existing 16 / 1 | Every replacement consumes a slot; hard bounds unchanged |
+
+The controller reads only accepted fresh normal scans. BUY uses the actual
+resting bid minus its offset; SELL uses the actual ask plus its offset, with
+native rounding/post-only admission. Minimum rest starts at venue acceptance,
+not local creation or pending arrival. A meaningful move after minimum rest can
+request cancellation. Otherwise the order keeps its queue identity until the
+short lifetime ends. Expiry requests cancellation of the unfilled portion; it
+is not a sale, fill or cancellation acknowledgment. Both source and partial
+proceeds stay locked until terminal reconciliation with known fees.
+
+After cancellation, the next eligible review uses a new fresh frame, not a cached
+replacement price. A wholly unfilled kickoff can retry only the same chosen
+direction and remaining approved source budget, under the same persisted
+kickoff campaign. It never allocates initial ETH again or substitutes another
+market. Once any seed receipt is confirmed and terminal, the funded inventory
+drives the normal one-step selector. An ETH return is placed at the current
+resting price only if its modeled after-fee native receipt meets the original
+allocated net ETH target. Otherwise the view says
+HOLD_MARKET_BELOW_NET_ETH_TARGET. It does not lower the target to force a sale
+or leave a far-away profit exit resting for a day. Held coins and marked losses
+remain visible; short order life does not ensure recovery or eventual ETH gains.
+
+Each replacement inherits its original campaign deadline, remaining budget and
+the session's original expiry. A two-minute child order does not renew the
+24-hour session or the direction's maximum waiting window. Reaching the order
+budget pauses new placement with PAPER_ORDER_BUDGET_EXHAUSTED_HOLD_INVENTORY.
+Sixteen two-minute attempts total 32 minutes resting, plus cancel/review delays;
+price-move cancellations can use the budget sooner. Raising the allowed order
+count is never automatic. No blind reallocation/new session circumvents a limit.
+
+The existing feed scans five seconds after each bounded pass (up to six seconds
+collection), rather than providing tick-level streaming. Expiry/reviews are
+processed when observations resume after a gap; deadlines themselves never
+renew. STOP/restart rules remain unchanged. Replacements lose the old modeled
+queue position and repeat arrival/rest/queue checks. Short lifetimes can sharply
+reduce fills, and a series of no-fills is an honest result. Neither touching a
+price nor the passage of 120 seconds creates an execution or fee.
+
+For ordinary Coinbase Advanced spot orders, canceling an entirely unfilled
+limit order normally carries no execution fee; fees on filled portions remain.
+Current Coinbase fee/help pages could not be refreshed from this environment.
+The paper model still uses explicit simulated quote fees, not verified exchange
+fee units. No actual cancellation endpoint or account order is used here.
+
+The versioned policy is SHORT_LIVED_ETH_V1. The original
+PATIENT_MAKER_ETH_V1 configuration serialization and behavior remain available.
+Inspect order age/lifetime remaining, policy reason and slot counts locally.
+The settings dialog scrolls, with Close always reachable. Monitor v3 exports
+only the known policy enum and safe aggregates, without TTL, prices, seeds,
+campaign identities or private holdings.
+
+Run the unchanged synthetic holdout with the new policy explicitly selected:
+
+```text
+.venv\Scripts\python.exe -B tools\AUTO_PAPER_HOLDOUT.py --synthetic --policy SHORT_LIVED_ETH_V1
+```
+
+Prices, model parameters, seeds and horizons remain the same predeclared fixture.
+Do not loosen queue/fill assumptions to make short-lived orders execute. These
+results and native Windows results for the preceding 353-test verifier are
+reported separately from this source candidate in VERIFICATION.txt.
 
 ## Frozen defaults and limits
 

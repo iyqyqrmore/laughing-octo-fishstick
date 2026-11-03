@@ -26,6 +26,16 @@ deployment, real funding, account changes, new permissions or live execution.
 The remote baseline was fetched/matched at ebe4fd7405dc7a827503b090ef60af348c45d838.
 Do not ask again for this already authorized source publication.
 
+The owner then requested brief validity/market following for paper limits while
+retaining ETH accumulation as the objective. The short-lived optional policy
+uses 120-second child orders, fresh re-evaluation after confirmed cancellation,
+the original campaign source budget/deadline and the original session horizon.
+No loss-exit rule is authorized: preserve the simulated net ETH target and HOLD
+when the current native maker receipt cannot meet it. Legacy patient sessions
+keep their exact frozen serialization/policy. Replacements are child intents of
+one initial funding campaign, not new seeds; every child consumes an existing
+order slot. Stop for the existing budget rather than expanding hard limits.
+
 Only ADA-ETH, ETH-BTC, LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC and ADA-BTC may receive
 active research quotes/history. Five assets: ETH, BTC, ADA, LINK, SOL. ETH is the
 only initial funding source. No USD/USDC bridges, alternate products, automatic

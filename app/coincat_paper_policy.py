@@ -10,6 +10,8 @@ from coincat_v80_immediate import exact
 from coincat_watchlist import WATCH_PAIRS,WATCH_ASSETS,product_eligibility
 
 POLICY='PATIENT_MAKER_ETH_V1'
+SHORT_POLICY='SHORT_LIVED_ETH_V1'
+POLICIES=(POLICY,SHORT_POLICY)
 MODELS=('NO_FILL_V1','CONSERVATIVE_STRESS_V1','PARTIAL_SCARCE_V1','ADVERSE_SLOW_V1')
 DIRECTIONS=tuple(dict(id=src+'_'+dst,pair=pair,side=side,source=src,target=dst)
     for src,dst,pair,side in (
@@ -48,6 +50,10 @@ class AutoConfig:
     fee_ceiling:D=D('.02')
     fee_stress_bps:D=D(5)
     membership:str='Basic'
+    policy:str=POLICY
+    order_ttl_s:int=120
+    min_rest_s:int=30
+    reprice_bps:D=D(10)
 
     def checked(self):
         amount=exact(self.amount_eth)
@@ -59,6 +65,12 @@ class AutoConfig:
         ceiling,stress=exact(self.fee_ceiling),exact(self.fee_stress_bps)
         if not 0<ceiling<D('.05') or not 0<=stress<=50:raise ValueError('INVALID_PAPER_FEE_BOUND')
         if self.membership not in ('None','Basic','Preferred','Premium'):raise ValueError('INVALID_MEMBERSHIP_LABEL')
+        if self.policy not in POLICIES:raise ValueError('INVALID_PAPER_ORDER_POLICY')
+        if (type(self.order_ttl_s) is not int or not 60<=self.order_ttl_s<=600 or
+                type(self.min_rest_s) is not int or not 30<=self.min_rest_s<self.order_ttl_s):
+            raise ValueError('INVALID_SHORT_ORDER_LIFETIME')
+        reprice=exact(self.reprice_bps)
+        if not 1<=reprice<=100:raise ValueError('INVALID_PAPER_REPRICE_THRESHOLD')
         if not isinstance(self.directions,dict) or set(self.directions)!=set(BY_ID):raise ValueError('ALL_FOURTEEN_VIEWS_REQUIRED')
         settings=deepcopy(self.directions)
         for row in settings.values():
@@ -70,9 +82,15 @@ class AutoConfig:
             if type(row['wait_s']) is not int or not 30<=row['wait_s']<=259200:raise ValueError('INVALID_PAPER_ORDER_EXPIRY')
         if not settings[self.kickoff]['enabled']:raise ValueError('CHOSEN_KICKOFF_DISABLED')
         return AutoConfig(amount,settings,self.opt_in,self.kickoff,self.model,self.seed,self.review_s,self.cooldown_s,
-            self.duration_s,self.max_orders,ceiling,stress,self.membership)
+            self.duration_s,self.max_orders,ceiling,stress,self.membership,self.policy,self.order_ttl_s,self.min_rest_s,reprice)
 
-    def frozen(self):return asdict(self.checked())
+    def frozen(self):
+        data=asdict(self.checked())
+        if self.policy==POLICY:
+            # Preserve the exact previously published configuration identity.
+            # Old sessions keep their original policy, caps and expiry.
+            for key in ('policy','order_ttl_s','min_rest_s','reprice_bps'):data.pop(key)
+        return data
 
 
 def paper_frame(frame,config,*,planning=False):
@@ -155,7 +173,7 @@ def patient_return_price(frame,view,budget,required_eth,fee):
     return price
 
 
-def candidates(engine,frame,config,*,review_reference=None,kickoff=False):
+def candidates(engine,frame,config,*,review_reference=None,kickoff=False,budget_limits=None):
     state=engine.private_state();costs,_,_=reference_costs(state);rows={}
     planning=paper_frame(frame,config,planning=True);fee=planning.rates('MAKER')
     released=state['orders'].get(review_reference,{})
@@ -179,18 +197,29 @@ def candidates(engine,frame,config,*,review_reference=None,kickoff=False):
                 if available<=0:raise ValueError('UNFUNDED_AWAIT_CONFIRMED_TERMINAL_RECEIPT')
                 cap=state['limits']['source_caps'].get(view['source'],D(0))
                 budget=min(available,cap)*setting['source_pct']/100
+                if config.policy==SHORT_POLICY:
+                    if released.get('source')==view['source']:budget=min(budget,released['reserved'])
+                    if budget_limits is not None and view['source'] in budget_limits:
+                        budget=min(budget,budget_limits[view['source']])
                 if budget<=0:raise ValueError('PAPER_NATIVE_CAP_UNAVAILABLE')
                 rule=frame._rules[view['pair']];tick=exact(rule.get('price_increment',rule['quote_increment']))
                 offset=setting['entry_bps']/10000
                 price=rounded(book[0]*(1-offset) if view['side']=='BUY' else book[1]*(1+offset),
                     tick,up=view['side']=='SELL')
                 current=receipt(planning,view['pair'],view['side'],budget,price,fee)
-                row.update(limit_price=price,source_budget=budget,plan=current,fee_fraction=fee,kind='ROTATION')
+                row.update(limit_price=price,market_limit_price=price,source_budget=budget,plan=current,fee_fraction=fee,kind='ROTATION')
                 if kickoff and key==config.kickoff:
                     row.update(state='CANDIDATE',reason='EXPLICIT_ONCE_ONLY_KICKOFF',priority=10,kind='KICKOFF');continue
                 if view['target']=='ETH':
                     allocated=costs[view['source']]*budget/state['wallet'][view['source']]
                     required=allocated*(1+setting['target_pct']/100)
+                    if config.policy==SHORT_POLICY:
+                        qualified=current['output_quantity']>=required
+                        row.update(state='CANDIDATE' if qualified else 'HOLD',
+                            reason='FRESH_MAKER_ETH_TARGET' if qualified else 'HOLD_MARKET_BELOW_NET_ETH_TARGET',
+                            kind='RETURN_ETH',priority=3 if qualified else 0,required_eth=required,
+                            score=current['output_quantity']/allocated-1)
+                        continue
                     target=patient_return_price(planning,view,budget,required,fee)
                     limit=min(price,target) if view['side']=='BUY' else max(price,target)
                     proposed=receipt(planning,view['pair'],view['side'],budget,limit,fee)

@@ -1,3 +1,68 @@
+COINCAT v1.01 — OPTIONAL SHORT-LIVED PAPER POLICY CANDIDATE
+Base 5abbce56066f295708f73013a3d73602b8c91ab6, remote fetched/matched.
+The owner requested brief validity/fresh market decisions while pursuing ETH
+accumulation. SHORT_LIVED_ETH_V1 is selected explicitly for a new paper session;
+PATIENT_MAKER_ETH_V1 remains the default and old sessions keep their exact frozen
+serialization, funds and deadlines. No assumed loss-exit rule, live order,
+account/financial change, new dependency or extra market polling.
+
+Current supported checkout: 374 discovered / 374 distinct / 374 run, zero
+failures/errors/skips/expected failures in 39.336s. Linux Python 3.11.17 /
+SQLite 3.53.1 / Tk-Tcl 9.0 / Xvfb; HTTP forbidden before discovery and throughout
+execution. Includes twenty-one additional checks: short lifetime, all fourteen
+native sides, partial/final-fill cancel races, confirmed cancellation plus fresh
+replacement, remaining source/campaign limits, minimum rest/hysteresis, original
+deadlines, slot exhaustion, STOP/restart, old-session restoration, frozen params,
+GUI opt-in/current scanner path and quantity-free monitor policy enum.
+
+Supplementary Linux Python 3.13.5 / SQLite 3.46.1 / Tk-Tcl 8.6: 42 short-policy,
+paper/journal GUI and restart checks pass, zero failures/errors/skips, 7.736s.
+This is supplementary Tk evidence, not supported Python 3.11 or native Windows.
+Actual synthetic Tk captures show an expressly declared seed receipt, a fresh
+maker ETH return, cancellation after target invalidation and HOLD with visible
+underwater inventory. All seven products/fourteen views, the large transparent
+logo and scrollable settings fit 1380x900 and 1040x780; financial fixture bytes
+remain unchanged. Final extracted-source validation is delivered beside the ZIP.
+
+The policy's default child lifetime is 120s, review/minimum rest 30s, movement
+threshold the greater of 10 bps or two native ticks. A replacement is another
+order slot under the same original campaign/session deadline and remaining
+approved source, not another ETH allocation. Cancellation/fill uncertainty
+retains reservations. A fresh current maker receipt must meet the allocated
+simulated net ETH target; otherwise HOLD. Sixteen two-minute attempts total 32
+minutes of resting time, plus cancellation/review delays. Price-move replacement
+can consume slots sooner. No hard
+limit, fee evidence, queue model or profit threshold was relaxed to create fills.
+
+All 24 unchanged chronological synthetic scenarios/models/seeds under the new
+policy produced zero fills: one shared 1 ETH wallet per run, zero fees, sixteen
+unfilled orders, observed midpoint delta/drawdown zero, no model-review errors,
+and PAPER_ORDER_BUDGET_EXHAUSTED_HOLD_INVENTORY. All kept NO DEMONSTRATED EDGE /
+actual profit NOT ESTABLISHED. Cash remains 1 ETH at the fixed horizon; no
+successful trading cycle or predictive improvement is inferred from idle cash.
+The assumptions are uncalibrated BBO stress scenarios, not exchange matching.
+Actual fee-unit/depth/residue uncertainty still keeps non-cash recoverability
+UNKNOWN. The earlier patient holdout includes marked losses and is retained;
+model prices/parameters were not changed to make the short variant execute.
+
+17 protected broker/FIFO/state/import/key/lot/lock/native receipt/transport/
+allocation/cycle modules, original logo/icon and locked dependency files match
+5abbce5 byte for byte. LiveBroker.submit keeps unconditional first-statement
+LiveBlocked. The regenerated manifest covers 129 source files, plus the manifest
+itself. Independent source ZIP SHA256, extracted-suite/replay results, detailed
+logs, current GUI captures and handoff are delivered outside the source ZIP.
+
+OWNER-SUPPLIED WINDOWS RESULT FOR PRECEDING 5abbce5
+Python 3.11.9 / SQLite 3.45.1 / Tk-Tcl 8.6. All 129 hashes passed; 353 distinct/run
+in 1332.850s (22m13s), zero failures/errors and one host-symlink capability skip.
+No ThemeChanged cleanup warning appears. This confirms the prior fixture repair
+on that PC, not this new policy's native/connected acceptance. The slowest test
+was the four-run synthetic holdout, 474.703s. Native Windows re-verification and
+the supervised 60–120-minute paper/connected-product/fee/DPAPI/DPI trial remain
+separate gates. Real order submission remains blocked; no deployment is implied.
+
+THE FOLLOWING LEDGERS DESCRIBE PRECEDING PUBLISHED CHECKPOINTS
+
 COINCAT v1.01 — WINDOWS VERIFICATION REPAIR
 Parent: published cf0b43f6e9b4d7bb7c34667a796954a93153df78, fetched/matched.
 This repairs the owner's native verification failure and quiet progress output

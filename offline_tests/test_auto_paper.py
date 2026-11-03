@@ -11,7 +11,7 @@ import json,sqlite3,unittest,uuid
 from coincat_adaptive_eth import Frame
 from coincat_auto_paper import AutoPaper,public_status,validate_public
 from coincat_paper_engine import PaperBlocked,TERMINAL
-from coincat_paper_policy import (AutoConfig,DIRECTIONS,BY_ID,KICKOFFS,MODELS,direction_defaults,
+from coincat_paper_policy import (AutoConfig,POLICY,SHORT_POLICY,DIRECTIONS,BY_ID,KICKOFFS,MODELS,direction_defaults,
     candidates,paper_frame,reference_costs,eth_mark,select_candidate)
 from coincat_paper_venue import StressVenue,event
 from coincat_working_allocation import AllocationRow
@@ -67,7 +67,8 @@ class AutoIntegration(unittest.TestCase):
         self.assertIsNone(manager.last_problem)
         return manager.engine.private_state()['auto']['kickoff_reference']
 
-    def fund_asset(self,manager,asset):
+    @staticmethod
+    def fund_asset(manager,asset):
         if asset=='ETH':return
         view=next(v for v in DIRECTIONS if v['source']=='ETH' and v['target']==asset)
         f=frame();reference='fund_'+asset
@@ -516,6 +517,37 @@ class PaperGUI(unittest.TestCase):
         self.assertTrue(all('disabled' in w.state() for w in panel.session_widgets if w.winfo_exists()))
         panel.settings_window.destroy()
 
+    def test_short_order_settings_start_through_accepted_scan_and_keep_financial_records_unchanged(self):
+        app,client,scanner=self.ready();panel=app.paper_panel;panel.settings()
+        self.assertTrue(all('disabled' in w.state() for w in panel.short_widgets))
+        panel.values['order_policy'].set('Short-lived / net ETH target');panel._freeze()
+        self.assertTrue(all('disabled' not in w.state() for w in panel.short_widgets))
+        panel.values['amount_eth'].set('.01');panel.opt_in.set(True)
+        f=frame();client.rules=f._rules;client.q={p:(D(1),D('1.001'),NOW) for p in WATCH_PAIRS}
+        scanner.refresh(now=NOW,force_catalog=True);before=fixtures.ledger_dump(app.ledger);reads=list(client.calls)
+        with patch('coincat_app.time.time',return_value=NOW),patch.object(app,'_scan'):
+            app._start_auto_paper();result=scanner.scan_growth(app._paper_scan_config(),now=NOW,
+                collect=fixtures.collector(client),allocation_draft=app.allocation_editor.parameters()['allocation_draft'])
+            app.jobs.put(('scan',app.generation,result,None));app._poll()
+        state=app.paper.engine.private_state();order=next(iter(state['orders'].values()))
+        self.assertEqual(state['auto']['policy'],SHORT_POLICY);self.assertEqual(order['expires_at'],NOW+120)
+        self.assertEqual(client.calls,reads);self.assertEqual(fixtures.ledger_dump(app.ledger),before)
+        snap=capture(app,session='a'*32,sequence=1,now=NOW);validate(snap)
+        self.assertEqual(snap['auto_paper']['policy'],SHORT_POLICY)
+        self.assertNotIn('campaign_root',str(snap));self.assertNotIn('order_ttl_s',str(snap))
+        self.assertTrue(all('disabled' in w.state() for w in panel.session_widgets if w.winfo_exists()))
+
+    def test_legacy_session_configuration_keeps_patient_policy_and_frozen_original_wait(self):
+        app,_,_=self.ready();panel=app.paper_panel
+        old=config(amount_eth=D('.01'));app.paper.create(old,at=NOW,funding=funding())
+        panel.values['order_policy'].set('Short-lived / net ETH target');panel.from_config(app.paper.config)
+        panel.settings();self.assertEqual(panel.values['order_policy'].get(),'Patient target')
+        self.assertEqual(app.paper.config.directions['ETH_BTC']['wait_s'],86400)
+        self.assertNotIn('policy',app.paper.config.frozen())
+        panel.values['order_ttl_s'].set('unused invalid draft')
+        self.assertEqual(panel.configuration().frozen(),old.frozen())
+        self.assertTrue(all('disabled' in w.state() for w in panel.session_widgets if w.winfo_exists()))
+
     def test_shutdown_waits_for_canceled_read_worker_and_cannot_apply_its_late_result(self):
         import threading,time
         app=self.app;entered=threading.Event();release=threading.Event()
@@ -542,6 +574,227 @@ class PaperGUI(unittest.TestCase):
         self.assertEqual(after['wallet'],before['wallet']);self.assertEqual(after['limits'],before['limits'])
         self.assertEqual(after['auto']['session'],before['auto']['session'])
         self.assertNotIn('PRIVATE_CONFIGURATION_DETAIL',app.status.get())
+
+
+class ShortLivedOrders(unittest.TestCase):
+    def setUp(self):
+        self.temp=TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.serial=0
+        self.manager=self.create()
+
+    def create(self,**changes):
+        self.serial+=1;manager=AutoPaper(Path(self.temp.name)/('case_'+str(self.serial)))
+        settings=config(policy=SHORT_POLICY,model='NO_FILL_V1',**changes)
+        with patch('coincat_auto_paper.uuid.uuid4',return_value=uuid.UUID(int=1)):
+            manager.create(settings,at=NOW,funding=funding())
+        return manager
+
+    def advance(self,dt,manager=None,*,price=None,missing=False):
+        manager=manager or self.manager;at=NOW+dt
+        f=frame(at,changes={} if price is None else {'ETH-BTC':(D(price),D(price)+D('.001'),at)})
+        if missing:
+            f=Frame(at,f._catalog,f._rules,{p:q for p,q in f._quotes.items() if p!='ETH-BTC'},f._tier)
+        manager.on_frame(f);self.assertIsNone(manager.last_problem)
+        return manager.engine.private_state()
+
+    def opened(self,manager=None):
+        manager=manager or self.manager;self.advance(0,manager);state=self.advance(5,manager)
+        return next(iter(state['orders']))
+
+    def fill_seed(self):
+        ref=self.opened();order=self.manager.engine.private_state()['orders'][ref]
+        self.manager.engine.ingest(event('FILL',ref,'declared_seed_fill',NOW+10,dict(fill_id='declared_seed_fill',
+            venue_order_id=order['venue_order_id'],price=order['limit_price'],size=order['base_size'],
+            size_in_quote=False,commission=D('.0055055'),fee_currency='BTC',liquidity='MAKER')))
+        return ref
+
+    def test_short_config_is_versioned_without_changing_legacy_frozen_identity(self):
+        old=config();stored=old.frozen()
+        self.assertNotIn('policy',stored);self.assertNotIn('order_ttl_s',stored)
+        self.assertEqual(AutoConfig(**stored).frozen(),stored)
+        self.assertEqual(self.manager.config.frozen()['policy'],SHORT_POLICY)
+        for change in (dict(order_ttl_s=True),dict(order_ttl_s=30),dict(min_rest_s=120),
+                dict(reprice_bps=D('NaN')),dict(policy='UNKNOWN')):
+            with self.subTest(change=change),self.assertRaises(ValueError):
+                replace(self.manager.config,**change).checked()
+
+    def test_two_minute_child_retains_original_campaign_and_session_deadline(self):
+        ref=self.opened();state=self.manager.engine.private_state();order=state['orders'][ref]
+        self.assertEqual(order['expires_at'],NOW+120)
+        self.assertEqual(state['auto']['intent_meta'][ref]['campaign_deadline'],NOW+3600)
+        self.assertEqual(state['auto']['intent_meta'][ref]['campaign_root'],ref)
+
+    def test_expired_unfilled_child_waits_for_cancel_then_retries_same_funded_campaign(self):
+        ref=self.opened();self.advance(119)
+        state=self.advance(120);self.assertEqual(state['orders'][ref]['state'],'PENDING_CANCEL')
+        self.assertEqual(self.manager.engine.available('ETH'),0)
+        state=self.advance(125);self.assertEqual(state['orders'][ref]['state'],'CANCELED')
+        self.assertEqual(len(state['orders']),1)
+        state=self.advance(150,price='1.03');new=list(state['orders'].values())[-1]
+        self.assertEqual(len(state['orders']),2);self.assertEqual(new['limit_price'],D('1.031'))
+        self.assertEqual(new['expires_at'],NOW+270)
+        self.assertEqual(state['auto']['kickoff_reference'],ref)
+        self.assertEqual(state['auto']['intent_meta'][new['reference']]['campaign_root'],ref)
+        self.assertEqual(state['auto']['intent_meta'][new['reference']]['campaign_deadline'],NOW+3600)
+        self.assertEqual(state['wallet'],{'ETH':D(1)});self.assertEqual(state['fills'],{})
+
+    def test_market_move_requires_minimum_rest_and_confirmed_cancel_then_fresh_price(self):
+        ref=self.opened();self.advance(29,price='1.01')
+        state=self.advance(30,price='1.01');self.assertEqual(state['orders'][ref]['state'],'OPEN')
+        state=self.advance(60,price='1.01');self.assertEqual(state['orders'][ref]['state'],'PENDING_CANCEL')
+        self.assertEqual(len(state['orders']),1)
+        state=self.advance(61,price='1.02');self.assertEqual(len(state['orders']),1)
+        self.advance(65,price='1.03');state=self.advance(90,price='1.04')
+        new=list(state['orders'].values())[-1]
+        self.assertEqual(len(state['orders']),2);self.assertEqual(new['limit_price'],D('1.041'))
+        self.assertEqual(state['orders'][ref]['state'],'CANCELED')
+        self.assertEqual(new['source_budget'],D(1));self.assertEqual(state['wallet'],{'ETH':D(1)})
+
+    def test_ordinary_reviews_and_small_tick_moves_retain_queue_and_order_identity(self):
+        ref=self.opened();self.advance(30,price='1.0001');state=self.advance(60,price='1.0002')
+        self.assertEqual(len(state['orders']),1);self.assertEqual(state['orders'][ref]['state'],'OPEN')
+        self.assertEqual(state['auto']['venue'][ref]['accepted_at'],NOW+5)
+        self.assertEqual(state['orders'][ref]['expires_at'],NOW+120)
+
+    def test_faster_review_cannot_bypass_the_minimum_resting_period(self):
+        manager=self.create(review_s=5);ref=self.opened(manager)
+        state=self.advance(29,manager,price='1.01');self.assertEqual(state['orders'][ref]['state'],'OPEN')
+        state=self.advance(34,manager,price='1.01');self.assertEqual(state['orders'][ref]['state'],'OPEN')
+        state=self.advance(39,manager,price='1.01');self.assertEqual(state['orders'][ref]['state'],'PENDING_CANCEL')
+
+    def test_all_fourteen_views_use_actual_resting_side_and_native_quote_units(self):
+        for view in DIRECTIONS:
+            with self.subTest(view=view['id']):
+                manager=self.create();AutoIntegration.fund_asset(manager,view['source'])
+                row=candidates(manager.engine,frame(NOW+10,pair=view['pair']),manager.config)[view['id']]
+                self.assertIn('plan',row);self.assertEqual(row['market_limit_price'],D(1) if view['side']=='BUY' else D('1.001'))
+                self.assertEqual(row['plan']['input_asset'],view['source'])
+                if view['target']=='ETH':
+                    self.assertEqual(row['limit_price'],row['market_limit_price'])
+                    if row['state']=='CANDIDATE':self.assertGreaterEqual(row['plan']['output_quantity'],row['required_eth'])
+
+    def test_stale_or_deferred_prices_cannot_trigger_replacement_or_a_fallback_seed(self):
+        ref=self.opened();state=self.advance(60,missing=True)
+        self.assertEqual(state['orders'][ref]['state'],'OPEN')
+        self.advance(120,missing=True);self.advance(125,missing=True);state=self.advance(150,missing=True)
+        self.assertEqual(state['orders'][ref]['state'],'CANCELED');self.assertEqual(len(state['orders']),1)
+        self.assertEqual(state['auto']['kickoff_reference'],ref)
+
+    def test_cancel_replacement_keeps_original_slice_with_a_nonfull_source_percentage(self):
+        settings=direction_defaults();settings['ETH_BTC']['source_pct']=D(50)
+        manager=self.create(directions=settings);ref=self.opened(manager)
+        self.advance(60,manager,price='1.01');self.advance(65,manager,price='1.02')
+        state=self.advance(90,manager,price='1.03')
+        self.assertEqual(len(state['orders']),2)
+        self.assertEqual([o['source_budget'] for o in state['orders'].values()],[D('.5'),D('.5')])
+        self.assertEqual(state['wallet'],{'ETH':D(1)})
+        self.assertEqual(state['auto']['kickoff_reference'],ref)
+
+    def test_partial_proceeds_lock_until_cancel_and_do_not_create_another_initial_seed(self):
+        ref=self.opened();order=self.manager.engine.private_state()['orders'][ref]
+        self.manager.engine.ingest(event('FILL',ref,'declared_partial',NOW+10,dict(fill_id='declared_partial',
+            venue_order_id=order['venue_order_id'],price=D('1.001'),size=D('.25'),size_in_quote=False,
+            commission=D('.00137638'),fee_currency='BTC',liquidity='MAKER')))
+        self.assertEqual(self.manager.engine.available('BTC'),0)
+        state=self.advance(60,price='1.01');self.assertEqual(state['orders'][ref]['state'],'PENDING_CANCEL')
+        self.assertEqual(self.manager.engine.available('BTC'),0)
+        state=self.advance(65,price='1.02');self.assertEqual(state['orders'][ref]['state'],'CANCELED')
+        self.assertGreater(self.manager.engine.available('BTC'),0)
+        state=self.advance(90,price='1.03');self.assertEqual(len(state['orders']),1)
+        self.assertEqual(state['wallet']['ETH'],D('.75'))
+        self.assertEqual(state['auto']['performance']['fees']['BTC'],D('.00137638'))
+
+    def test_final_fill_wins_cancel_race_and_cannot_recreate_the_initial_seed(self):
+        ref=self.opened();engine=self.manager.engine;context=engine.private_state()['auto']
+        payload=event('FILL',ref,'declared_final',NOW+61,dict(fill_id='declared_final',
+            venue_order_id=context['venue'][ref]['venue_id'],price=D('1.001'),size=D(1),size_in_quote=False,
+            commission=D('.0055055'),fee_currency='BTC',liquidity='MAKER'))
+        context['pending'].append(dict(kind='FILL',reference=ref,identity='declared_final',due_at=NOW+61,event=payload))
+        engine.checkpoint_context(context)
+        self.advance(60,price='1.01');state=self.advance(65,price='1.02');self.advance(90,price='1.03')
+        self.assertEqual(state['orders'][ref]['state'],'FILLED');self.assertEqual(len(engine.private_state()['orders']),1)
+        self.assertEqual(state['wallet'],{'ETH':D(0),'BTC':D('.9954945')})
+        self.assertEqual(state['simulated_fills'],1)
+
+    def test_profit_target_below_market_is_hold_instead_of_a_far_away_exit(self):
+        self.fill_seed();state=self.advance(30,price='1.02')
+        row=self.manager.view_rows['BTC_ETH']
+        self.assertEqual(row['state'],'HOLD');self.assertEqual(row['reason'],'HOLD_MARKET_BELOW_NET_ETH_TARGET')
+        self.assertEqual(len(state['orders']),1)
+        self.assertLess(state['auto']['performance']['midpoint_delta_eth'],0)
+        self.assertIsNone(state['auto']['performance']['recoverable_eth'])
+
+    def test_qualified_eth_exit_uses_current_native_price_and_cancels_when_target_no_longer_met(self):
+        self.fill_seed();state=self.advance(30,price='.9')
+        order=list(state['orders'].values())[-1]
+        self.assertEqual((order['side'],order['limit_price']),('BUY',D('.9')))
+        self.assertGreaterEqual(order['plan_receipt']['output_quantity'],state['auto']['intent_meta'][order['reference']]['required_eth'])
+        self.advance(35,price='.9');self.advance(90,price='1.02');self.advance(95,price='1.03')
+        state=self.advance(120,price='1.03')
+        self.assertEqual(state['orders'][order['reference']]['state'],'CANCELED')
+        self.assertEqual(len(state['orders']),2);self.assertEqual(state['wallet']['BTC'],D('.9954945'))
+
+    def test_session_expiry_and_original_direction_deadline_cannot_renew(self):
+        manager=self.create(duration_s=60);ref=self.opened(manager)
+        self.advance(60,manager);state=self.advance(65,manager)
+        self.assertEqual(state['mode'],'PAUSED');self.assertEqual(len(state['orders']),1)
+        self.assertEqual(state['orders'][ref]['state'],'CANCELED')
+        with self.assertRaises(PaperBlocked):manager.start(at=NOW+70)
+        settings=direction_defaults();settings['ETH_BTC']['wait_s']=90
+        manager=self.create(directions=settings);ref=self.opened(manager)
+        self.advance(90,manager);self.advance(95,manager);state=self.advance(120,manager)
+        self.assertEqual(len(state['orders']),1);self.assertEqual(state['auto']['last_reason'],'HOLD_ORIGINAL_CAMPAIGN_EXPIRED')
+
+    def test_order_budget_exhaustion_pauses_without_new_money_or_silently_expanding_limits(self):
+        manager=self.create(max_orders=2,order_ttl_s=60);self.opened(manager)
+        for dt in (60,65,90,95,150,155,180):self.advance(dt,manager)
+        state=manager.engine.private_state()
+        self.assertEqual(state['mode'],'PAUSED');self.assertEqual(len(state['orders']),2)
+        self.assertEqual(state['limits']['max_orders'],2);self.assertEqual(state['wallet'],{'ETH':D(1)})
+        self.assertEqual(state['auto']['last_reason'],'PAPER_ORDER_BUDGET_EXHAUSTED_HOLD_INVENTORY')
+        self.assertEqual(state['auto']['performance']['fees'],{})
+
+    def test_stop_and_restart_pending_cancel_require_reconciliation_and_explicit_start(self):
+        ref=self.opened();self.advance(60,price='1.01');self.manager.pause(at=NOW+60)
+        restored=AutoPaper(self.manager.directory)
+        self.assertEqual(restored.public()['state'],'RECONCILIATION_REQUIRED')
+        self.assertEqual(len(restored.engine.private_state()['orders']),1)
+        restored.reconcile(at=NOW+65);self.assertEqual(restored.public()['state'],'PAUSED')
+        restored.on_frame(frame(NOW+70));self.assertEqual(len(restored.engine.private_state()['orders']),1)
+        restored.start(at=NOW+75);state=self.advance(90,restored,price='1.03')
+        self.assertEqual(len(state['orders']),2);self.assertEqual(state['auto']['kickoff_reference'],ref)
+        self.assertEqual(state['auto']['intent_meta'][list(state['orders'])[-1]]['campaign_deadline'],NOW+3600)
+
+    def test_both_policies_restore_and_frozen_short_parameters_cannot_change(self):
+        old=AutoPaper(Path(self.temp.name)/'legacy');old.create(config(),at=NOW,funding=funding())
+        self.assertEqual(AutoPaper(old.directory).config.frozen(),config().frozen())
+        self.opened();restored=AutoPaper(self.manager.directory)
+        self.assertEqual(restored.config.policy,SHORT_POLICY);self.assertIsNone(restored.last_problem)
+        context=restored.engine.private_state()['auto'];context['config']['order_ttl_s']=300
+        with self.assertRaisesRegex(PaperBlocked,'FROZEN_PAPER_POLICY'):restored.engine.checkpoint_context(context)
+        context=restored.engine.private_state()['auto'];context['policy']=POLICY
+        with self.assertRaisesRegex(PaperBlocked,'FROZEN_PAPER_POLICY'):restored.engine.checkpoint_context(context)
+        context=restored.engine.private_state()['auto'];context['kickoff_reference']='another_seed'
+        with self.assertRaisesRegex(PaperBlocked,'PAPER_KICKOFF_IDENTITY'):restored.engine.checkpoint_context(context)
+
+    def test_stopped_order_past_child_expiry_cancels_after_explicit_resume_before_replacement(self):
+        ref=self.opened();self.manager.pause(at=NOW+10)
+        restored=AutoPaper(self.manager.directory);restored.reconcile(at=NOW+150)
+        state=restored.engine.private_state()
+        self.assertEqual(state['mode'],'PAUSED');self.assertEqual(state['orders'][ref]['state'],'OPEN')
+        self.assertEqual(restored.engine.available('ETH'),0)
+        restored.start(at=NOW+155);state=self.advance(160,restored)
+        self.assertEqual(state['orders'][ref]['state'],'PENDING_CANCEL');self.assertEqual(len(state['orders']),1)
+        self.advance(165,restored);state=self.advance(190,restored)
+        self.assertEqual(state['orders'][ref]['state'],'CANCELED');self.assertEqual(len(state['orders']),2)
+        self.assertEqual(state['auto']['kickoff_reference'],ref)
+        self.assertEqual(state['wallet'],{'ETH':D(1)})
+        self.assertEqual(state['auto']['intent_meta'][list(state['orders'])[-1]]['campaign_deadline'],NOW+3600)
+
+    def test_short_policy_summary_is_an_allowlisted_enum_without_private_settings(self):
+        self.opened();safe=self.manager.public();validate_public(safe)
+        self.assertEqual(safe['policy'],SHORT_POLICY)
+        for key in ('order_ttl_s','min_rest_s','reprice_bps','campaign_deadline','amount_eth'):
+            self.assertNotIn(key,safe)
 
 
 class OfflineVerifierProgress(unittest.TestCase):

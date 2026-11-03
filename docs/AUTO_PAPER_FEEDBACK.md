@@ -1,5 +1,24 @@
 # CoinCat v1.01 — independent technical feedback
 
+The later short-lived option addresses stale quotes by expiring a child order
+after 120 seconds and requiring terminal cancellation plus a fresh decision.
+It preserves the simulated net ETH target; if the current maker quote cannot
+meet that target, it holds the inventory and displays its marked loss. Canceling
+an order does not remove that exposure or create ETH. Price following and
+never realizing a loss do not guarantee a timely profitable exit.
+
+Short orders have costs beyond execution fees: queue resets, idle reservations,
+missed fills and use of the 16-order budget. A bounded source campaign cannot
+follow indefinitely by resetting its deadline or allocation. Its default
+120-second children total 32 minutes of resting time plus cancel/review delays;
+price-move cancellation can consume slots sooner. That is a visible stop condition, not
+permission to expand hard limits. The unchanged seeded venue may produce no
+fills at all during these short opportunities; that result must be retained.
+Unchanged fill/fee assumptions and fixed-horizon holdouts distinguish a software
+repricing test from a claim of improved ETH accumulation. A streaming data feed
+and calibrated matching remain separate future work. Existing patient sessions
+keep their frozen configuration and must not be silently migrated.
+
 The source integration closes the operational gap between an isolated replay
 engine and the normal scanner/GUI: one bounded opted-in portfolio can make a
 chosen kickoff, process simulated partials/cancels and select a patient return,

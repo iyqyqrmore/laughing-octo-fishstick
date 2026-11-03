@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from coincat_hover import Hover
-from coincat_paper_policy import AutoConfig,DIRECTIONS,KICKOFFS,MODELS,direction_defaults
+from coincat_paper_policy import AutoConfig,POLICY,SHORT_POLICY,DIRECTIONS,KICKOFFS,MODELS,direction_defaults
 from coincat_paper_engine import PaperEngine
 from coincat_watchlist import WATCH_PAIRS
 
@@ -14,6 +14,7 @@ DISCLOSURE=('Paper only. No demonstrated edge or guaranteed profit. Maker orders
     'Unfilled orders normally incur no execution fee; partials incur supported fees and change exposure. '
     'Reserved funds, opportunity cost and holding risk remain. Resting orders may fill unfavorably. '
     'Paper gains are simulated and never account profit.')
+POLICY_LABELS={POLICY:'Patient target',SHORT_POLICY:'Short-lived / net ETH target'}
 
 
 class PaperPanel(ttk.Frame):
@@ -26,7 +27,10 @@ class PaperPanel(ttk.Frame):
             ('amount_eth',''),('budget_percent','10%'),('kickoff','ETH_BTC'),('model','CONSERVATIVE_STRESS_V1'),
             ('seed','1'),('review_s','30'),('cooldown_s','30'),('duration_hours','24'),('max_orders','16'),
             ('fee_ceiling_pct','2'),('fee_stress_bps','5'),('membership','Basic'))}
+        self.values.update({key:tk.StringVar(value=value) for key,value in (
+            ('order_policy',POLICY_LABELS[POLICY]),('order_ttl_s','120'),('min_rest_s','30'),('reprice_bps','10'))})
         self.opt_in=tk.BooleanVar(value=False);self.session_widgets=[];self.market_widgets=[];self.settings_window=None
+        self.short_widgets=[]
         self.message=tk.StringVar(value='OFF · Select a paper allocation and explicitly opt in. No live orders.')
         self.score=tk.StringVar(value='Shared paper wallet: not funded. ETH HOLD baseline: unset. Actual profit: not established.')
         title=ttk.Label(self,text='AUTO MAKER ROTATION · PAPER ONLY · LIVE BLOCKED',style='Metric.TLabel')
@@ -93,17 +97,22 @@ class PaperPanel(ttk.Frame):
             wait_s=wait_seconds(items)) for key,items in self.direction_vars.items()}
         hours=D(self.values['duration_hours'].get());seconds=hours*3600
         if not seconds.is_finite() or seconds!=seconds.to_integral_value():raise ValueError('INVALID_SESSION_HORIZON')
+        policy={label:key for key,label in POLICY_LABELS.items()}.get(self.values['order_policy'].get())
         return AutoConfig(D(self.values['amount_eth'].get()),directions,self.opt_in.get(),
             self.values['kickoff'].get(),self.values['model'].get(),integer('seed'),integer('review_s'),
             integer('cooldown_s'),int(seconds),integer('max_orders'),D(self.values['fee_ceiling_pct'].get())/100,
-            D(self.values['fee_stress_bps'].get()),self.values['membership'].get()).checked()
+            D(self.values['fee_stress_bps'].get()),self.values['membership'].get(),
+            policy,integer('order_ttl_s') if policy==SHORT_POLICY else 120,
+            integer('min_rest_s') if policy==SHORT_POLICY else 30,
+            D(self.values['reprice_bps'].get()) if policy==SHORT_POLICY else D(10)).checked()
 
     def from_config(self,config):
         self.opt_in.set(config.opt_in);self.values['budget_percent'].set('Exact custom')
         data=dict(amount_eth=config.amount_eth,kickoff=config.kickoff,model=config.model,seed=config.seed,
             review_s=config.review_s,cooldown_s=config.cooldown_s,duration_hours=D(config.duration_s)/3600,
             max_orders=config.max_orders,fee_ceiling_pct=config.fee_ceiling*100,fee_stress_bps=config.fee_stress_bps,
-            membership=config.membership)
+            membership=config.membership,order_policy=POLICY_LABELS[config.policy],order_ttl_s=config.order_ttl_s,
+            min_rest_s=config.min_rest_s,reprice_bps=config.reprice_bps)
         for key,value in data.items():self.values[key].set(str(value))
         for key,items in config.directions.items():
             for name,value in items.items():self.direction_vars[key][name].set(value if name=='enabled' else str(value))
@@ -111,9 +120,21 @@ class PaperPanel(ttk.Frame):
     def settings(self):
         if self.settings_window is not None and self.settings_window.winfo_exists():self.settings_window.lift();return
         window=tk.Toplevel(self);self.settings_window=window;window.title('Paper session settings · Frozen at Start')
-        body=ttk.Frame(window,padding=12);body.pack(fill='both',expand=True)
+        window.geometry(f'790x{min(780,window.winfo_screenheight()-70)}')
+        outer=ttk.Frame(window);outer.pack(fill='both',expand=True)
+        canvas=tk.Canvas(outer,background='#0b0f12',highlightthickness=0)
+        scroll=ttk.Scrollbar(outer,orient='vertical',command=canvas.yview);scroll.pack(side='right',fill='y')
+        canvas.pack(side='left',fill='both',expand=True);canvas.configure(yscrollcommand=scroll.set)
+        body=ttk.Frame(canvas,padding=12);item=canvas.create_window((0,0),window=body,anchor='nw')
+        body.columnconfigure(1,weight=1)
+        body.bind('<Configure>',lambda e:canvas.configure(scrollregion=canvas.bbox('all')))
+        canvas.bind('<Configure>',lambda e:canvas.itemconfigure(item,width=e.width))
         ttk.Label(body,text='BBO stress scenarios; no observed queue/depth or calibrated fill probability.',wraplength=600).grid(row=0,column=0,columnspan=2,sticky='w',pady=5)
         for row,(key,label,choices) in enumerate((
+            ('order_policy','Order policy',tuple(POLICY_LABELS.values())),
+            ('order_ttl_s','Short-lived mode · order lifetime seconds',None),
+            ('min_rest_s','Short-lived mode · minimum rest seconds',None),
+            ('reprice_bps','Short-lived mode · reprice threshold bps',None),
             ('kickoff','Chosen kickoff · no fallback',KICKOFFS),('model','Provider model',MODELS),('seed','Frozen scenario seed',None),
             ('review_s','Resting-order review · seconds',None),('cooldown_s','New-order cooldown · seconds',None),
             ('duration_hours','Original session horizon · hours',None),('max_orders','Maximum session orders',None),
@@ -123,13 +144,28 @@ class PaperPanel(ttk.Frame):
             widget=ttk.Entry(body,textvariable=self.values[key],width=32) if choices is None else ttk.Combobox(body,
                 textvariable=self.values[key],values=choices,state='readonly',width=31)
             widget.grid(row=row,column=1,sticky='ew',pady=4);self.session_widgets.append(widget)
+            if key in ('order_ttl_s','min_rest_s','reprice_bps'):self.short_widgets.append(widget)
+            if key=='order_policy':widget.bind('<<ComboboxSelected>>',lambda e:self._freeze())
         text=('One open order, 16 session orders, 24-hour horizon, 30-second reviews/cooldown are operational defaults. '
             'The first native cap for a new asset is frozen from its canonical acquisition receipt; a cap never credits funds. '
             'Basic has no assumed Advanced rebate. No membership infers zero fees, rebates or fee currencies. Subscription costs are excluded from execution fees and reported separately as unmodeled. '
             'The simulated venue explicitly charges supported quote-currency fees from fresh account rates plus stress; '
-            'actual exchange fee units remain unverified. Missing/stale rates block admission. '+DISCLOSURE)
-        ttk.Label(body,text=text,wraplength=620).grid(row=12,column=0,columnspan=2,sticky='w',pady=10)
-        ttk.Button(body,text='Close',command=window.destroy).grid(row=13,column=1,sticky='e')
+            'actual exchange fee units remain unverified. Missing/stale rates block admission. '
+            'Short-lived mode uses a 120-second order lifetime, fresh decisions after confirmed cancellation, and '
+            'retains the net ETH target. An unavailable target means HOLD; inventory and losses do not disappear. '
+            'Every replacement uses an order slot. Sixteen two-minute attempts total 32 minutes of resting time '
+            'plus cancellation/review delays; price-move replacements can use the budget sooner. '
+            'The 24-hour session horizon does not increase that budget. '+DISCLOSURE)
+        ttk.Label(body,text=text,wraplength=700).grid(row=row+1,column=0,columnspan=2,sticky='w',pady=10)
+        ttk.Button(window,text='Close',command=window.destroy).pack(anchor='e',padx=12,pady=8)
+        def wheel(event):
+            steps=-1 if event.num==4 else 1 if event.num==5 else -int(event.delta/120)
+            if steps:canvas.yview_scroll(steps,'units')
+            return 'break'
+        def bind_wheel(widget):
+            for event in ('<MouseWheel>','<Button-4>','<Button-5>'):widget.bind(event,wheel,add='+')
+            for child in widget.winfo_children():bind_wheel(child)
+        bind_wheel(body)
         self._freeze()
 
     def _freeze(self):
@@ -140,6 +176,9 @@ class PaperPanel(ttk.Frame):
             else:
                 widget.state(['!disabled'])
                 if isinstance(widget,ttk.Combobox):widget.state(['readonly'])
+        if not frozen and self.values['order_policy'].get()!=POLICY_LABELS[SHORT_POLICY]:
+            for widget in self.short_widgets:
+                if widget.winfo_exists():widget.state(['disabled'])
 
     def history(self):
         """Private read-only paper history. No old loss or wallet is overwritten."""
@@ -263,7 +302,7 @@ class PaperPanel(ttk.Frame):
         else:
             context=state['auto'];performance=context['performance'];public=manager.public()
             expiry=datetime.fromtimestamp(state['limits']['expires_at'],timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
-            self.message.set(public['state']+' · '+context['last_reason']+' · '+manager.config.model+' · seed '+str(manager.config.seed)+
+            self.message.set(public['state']+' · '+POLICY_LABELS[manager.config.policy]+' · '+context['last_reason']+' · '+manager.config.model+' · seed '+str(manager.config.seed)+
                 ' · original expiry '+expiry+' · simulated venue / NO DEMONSTRATED EDGE')
             def compact(value):return 'UNKNOWN' if value is None else format(value,'.10g')
             wallet=' · '.join(f'{a}: total {compact(q)}, available '+compact(manager.engine.available(a))+', reserved '+
@@ -277,7 +316,7 @@ class PaperPanel(ttk.Frame):
                 ' · Recoverable after-cost ETH '+compact(known)+
                 '\nMarked ΔETH '+compact(performance.get('midpoint_delta_eth'))+' · Max observed midpoint drawdown '+compact(performance.get('max_midpoint_drawdown_pct'))+'%'+
                 f" · Observed underwater {round(performance.get('observed_underwater_s',0))} s · Fees "+fee_text+
-                f" · Paper fills {public['fills']} / non-fills {public['non_fills']} · Actual profit NOT ESTABLISHED")
+                f" · Orders {public['orders']}/{state['limits']['max_orders']} · Paper fills {public['fills']} / non-fills {public['non_fills']} · Actual profit NOT ESTABLISHED")
         for pair,page in self.pages.items():
             if not hasattr(page,'book_trees'):continue
             observed=self.books.get(pair,{})
@@ -300,8 +339,14 @@ class PaperPanel(ttk.Frame):
                         order=matches[-1]
                         heading=f"{pair} · {view['side']} · {view['source']} → {view['target']} · PAPER "+(
                             'RECONCILIATION_REQUIRED' if state['mode']=='RECONCILIATION_REQUIRED' else order['state'])
+                        if manager.config.policy==SHORT_POLICY:
+                            if row.get('reason')=='HOLD_MARKET_BELOW_NET_ETH_TARGET':
+                                heading+='\nHOLD · Current quote cannot meet net ETH target'
+                            elif order['state'] not in ('FILLED','CANCELED','REJECTED'):
+                                heading+=f" · {round(max(0,order['expires_at']-now))}s left"
                         text+=f"\nPAPER {order['state']} · {order['side']} limit {order['limit_price']} · cumulative {order['filled_base']} / {order['base_size']} · reserve {order['reserved']} {order['source']}"
                         text+=f"\nOrder age {round(max(0,now-order['created_at']))} s · modeled fee currency {pair.split('-')[1]} · next policy review in "+str(round(max(0,manager.config.review_s-(now-(state['auto']['last_review'] or now)))))+' s'
+                        text+=f" · order lifetime remaining {round(max(0,order['expires_at']-now))} s (expiry requests cancel)"
                         text+=' · venue '+state['auto']['venue'].get(order['reference'],{}).get('data_state','AWAITING_RECEIPT')
                 if row.get('plan'):
                     text+=f"\nCandidate {row.get('limit_price')} · native base size {row['plan']['gross_base_quantity']} · source cap {row['source_budget']}"

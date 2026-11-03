@@ -1,3 +1,28 @@
+# CoinCat v1.01 — optional short-lived PAPER orders
+
+Adds SHORT_LIVED_ETH_V1 for explicitly selected new paper sessions: 120-second
+orders, fresh native maker prices, 30-second reviews/minimum rest, 10-bps/two-tick
+movement threshold, confirmed cancellation before replacement, and the original
+net ETH target. An unavailable target means HOLD with visible inventory/losses;
+it does not create a far-away exit or force a losing sale. Settings scroll and
+show remaining order life, current HOLD reason and used session-order slots.
+
+Zero-filled kickoff children remain one persisted funding campaign, under the
+remaining source budget and original direction/session deadline. Once a seed
+receipt is confirmed and terminal, only funded inventory supplies successors.
+Every replacement consumes an existing order slot; budget exhaustion pauses
+new placement. Original patient serialization/policy, STOP/restart, native
+settlement, quote/fee budgets, monitor v3 redaction and protected files remain.
+
+The unchanged 24 synthetic seed/model/scenario runs produced zero fills for
+this short policy: each retained 1 ETH, charged zero execution fees, used sixteen
+order slots and paused. This is no evidence of better ETH accumulation; short
+lifetimes/queue resets can reduce fills. Declared event tests separately verify
+partial/cancel races, remaining-source limits and profitable-exit/HOLD behavior.
+The prior verifier passed the owner's native Windows run: 353 distinct tests,
+zero failures/errors, one host-symlink skip, 1332.850s. That is historical evidence
+for 5abbce5; this new source candidate still needs native acceptance.
+
 # CoinCat v1.01 — Windows verification repair
 
 The owner's first native v1.01 run checked all 129 source hashes, then completed

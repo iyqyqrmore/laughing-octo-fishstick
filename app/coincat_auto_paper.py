@@ -9,7 +9,7 @@ import uuid
 
 from coincat_adaptive_eth import recoverable_inventory
 from coincat_paper_engine import PaperEngine,PaperLimits,PaperBlocked,TERMINAL
-from coincat_paper_policy import (AutoConfig,POLICY,MODELS,DIRECTIONS,candidates,
+from coincat_paper_policy import (AutoConfig,POLICY,SHORT_POLICY,POLICIES,MODELS,DIRECTIONS,candidates,
     select_candidate,paper_frame,reference_costs,eth_mark)
 from coincat_paper_venue import StressVenue
 from coincat_watchlist import WATCH_PAIRS
@@ -23,7 +23,8 @@ def public_status(value=None):
     out={k:value.get(k,0) if type(value.get(k,0)) is int and 0<=value.get(k,0)<=1000000000 else 0 for k in PUBLIC_COUNTS}
     out.update(state=value.get('state') if value.get('state') in PUBLIC_STATES else 'OFF',
         model=value.get('model') if value.get('model') in MODELS else 'UNOBSERVED',
-        policy=POLICY,provider='SEEDED_BBO_STRESS_NOT_EXCHANGE_MATCHING',classification='SIMULATED_ASSUMPTION',
+        policy=value.get('policy') if value.get('policy') in POLICIES else POLICY,
+        provider='SEEDED_BBO_STRESS_NOT_EXCHANGE_MATCHING',classification='SIMULATED_ASSUMPTION',
         valuation=value.get('valuation') if value.get('valuation') in ('PAPER_ETH_CASH','UNKNOWN') else 'UNKNOWN',
         actual_profit='NOT_ESTABLISHED',edge='NO_DEMONSTRATED_EDGE',live_permission=False)
     return out
@@ -54,8 +55,9 @@ class AutoPaper:
             if not isinstance(identity,str) or len(identity)!=32 or any(c not in '0123456789abcdef' for c in identity):raise ValueError()
             engine=PaperEngine.restore(self.directory/('paper_'+identity+'.sqlite3'))
             context=engine.private_state().get('auto',{})
-            if context.get('schema')!=1 or context.get('policy')!=POLICY or context.get('session')!=identity:raise ValueError()
+            if context.get('schema')!=1 or context.get('policy') not in POLICIES or context.get('session')!=identity:raise ValueError()
             config=AutoConfig(**context['config']).checked()
+            if config.policy!=context['policy'] or config.frozen()!=context['config']:raise ValueError()
             venue=StressVenue(config)
             if context.get('model_assumptions')!=venue.assumptions():raise ValueError('PAPER_MODEL_VERSION_REVIEW_REQUIRED')
             self.engine=engine;self.config=config;self.venue=venue;self.session_id=identity
@@ -74,7 +76,7 @@ class AutoPaper:
         limits=PaperLimits(products,{'ETH':config.amount_eth},1,config.max_orders,at+config.duration_s,config.fee_ceiling)
         engine=PaperEngine.from_proposal(self.directory/('paper_'+identity+'.sqlite3'),amount_eth=config.amount_eth,
             limits=limits,at=at,simulation_ack='SIMULATION_ONLY',**funding)
-        context=dict(schema=1,policy=POLICY,session=identity,config=config.frozen(),kickoff_reference=None,
+        context=dict(schema=1,policy=config.policy,session=identity,config=config.frozen(),kickoff_reference=None,
             intent_meta={},venue={},pending=[],last_observed_at=None,last_review=None,last_order_at=None,
             reviews=0,last_reason='WAITING_FOR_FIRST_QUALIFYING_FRAME',performance={},history=[],detail_truncated=False,
             horizon=None,native_cap_rule='FIRST_CANONICAL_RECEIPT_CEILING_NEVER_FUNDS',pause_at=None,replacement_deadline=None,
@@ -192,29 +194,59 @@ class AutoPaper:
             context['last_review']=frame.at;context['reviews']+=1;self.engine.checkpoint_context(context)
             open_orders=[o for o in state['orders'].values() if o['state'] not in TERMINAL]
             current=open_orders[0] if open_orders else None
+            following=self.config.policy==SHORT_POLICY
+            parent=current or (list(state['orders'].values())[-1] if state['orders'] else None)
+            if parent is not None and parent['state']=='FILLED':parent=None
+            parent_meta={} if parent is None else context['intent_meta'].get(parent['reference'],{})
+            budget_limits=None
+            if following and parent is not None and current is None:
+                budget_limits={parent['source']:parent['source_budget']-parent['spent_source']}
             kickoff=context['kickoff_reference'] is None
             if not kickoff:
                 first=state['orders'][context['kickoff_reference']]
-                if first['state'] in TERMINAL and first['filled_base']==0:
+                if following:
+                    seed_orders=[o for ref,o in state['orders'].items() if context['intent_meta'].get(ref,{}).get('kind')=='KICKOFF']
+                    kickoff=not any(o['filled_base']>0 for o in seed_orders)
+                elif first['state'] in TERMINAL and first['filled_base']==0:
                     self._reason('KICKOFF_UNFILLED_NO_SUBSTITUTE_SEED');return
             self.view_rows=candidates(self.engine,frame,self.config,
-                review_reference=current['reference'] if current and current['state']=='OPEN' else None,kickoff=kickoff)
+                review_reference=current['reference'] if current and (current['state']=='OPEN' or
+                    following and current['state']=='PARTIAL') else None,
+                kickoff=kickoff,budget_limits=budget_limits)
+            if following and parent is not None and frame.at>=parent_meta['campaign_deadline']:
+                for row in self.view_rows.values():
+                    if row['source']==parent['source']:
+                        row.update(state='HOLD',reason='HOLD_ORIGINAL_CAMPAIGN_EXPIRED',priority=0)
             selected=select_candidate(self.view_rows,kickoff=self.config.kickoff if kickoff else None)
             if current is not None:
                 original=context['intent_meta'].get(current['reference'],{})
-                if (current['state']=='OPEN' and original.get('kind')=='RETURN_ETH' and selected is not None and
+                row=self.view_rows.get(original.get('direction'),{})
+                proposed=row.get('market_limit_price')
+                accepted_at=context['venue'].get(current['reference'],{}).get('accepted_at')
+                moved=(following and current['state'] in ('OPEN','PARTIAL') and proposed is not None and
+                    accepted_at is not None and frame.at-accepted_at>=self.config.min_rest_s and
+                    abs(proposed-current['limit_price'])>=max(current['price_increment']*2,
+                        current['limit_price']*self.config.reprice_bps/10000))
+                if moved:
+                    context['last_reason']='SHORT_ORDER_MARKET_MOVED_CANCEL_BEFORE_FRESH_REVIEW'
+                    self.engine.request_cancel('follow_cancel_'+str(self.engine._revision),current['reference'],context_after=context)
+                    self.venue.advance(self.engine,frame)
+                elif (current['state']=='OPEN' and original.get('kind')=='RETURN_ETH' and selected is not None and
                         selected['kind']=='ROTATION' and selected['priority']>1):
-                    context.update(replacement_deadline=current['expires_at'],
+                    context.update(replacement_deadline=None if following else current['expires_at'],
                         last_reason='BETTER_CONDITIONAL_ROTATION_CANCEL_BEFORE_REPLACEMENT')
                     self.engine.request_cancel('rotate_cancel_'+str(self.engine._revision),current['reference'],context_after=context)
                     self.venue.advance(self.engine,frame)
                 else:self._reason('REVIEW_RETAIN_RESTING_ORDER_OR_LOCKED_PARTIAL')
                 return
+            if following and len(state['orders'])>=state['limits']['max_orders']:
+                self._reason('PAPER_ORDER_BUDGET_EXHAUSTED_HOLD_INVENTORY')
+                self.engine.stop('order_budget_'+str(self.engine._revision),at=frame.at);return
             if selected is None:
                 self._reason(self.view_rows[self.config.kickoff]['reason'] if kickoff else 'HOLD_NO_ELIGIBLE_AFTER_COST_CANDIDATE');return
             if context['last_order_at'] is not None and frame.at-context['last_order_at']<self.config.cooldown_s:
                 self._reason('PAPER_COOLDOWN');return
-            if selected['kind']=='RETURN_ETH' and selected['priority']==1:
+            if not following and selected['kind']=='RETURN_ETH' and selected['priority']==1:
                 last_acquisition=max((f['raw']['at'] for f in state['fills'].values()
                     if f['settled'] and f.get('target')==selected['source']),default=0)
                 expired_return=any(o['state']=='CANCELED' and o['source']==selected['source'] and
@@ -228,11 +260,18 @@ class AutoPaper:
                 self.engine.checkpoint_context(context);return
             reference='a'+self.session_id[:12]+'_'+str(len(state['orders'])+1)
             context=self.engine.private_state()['auto']
-            if kickoff:context['kickoff_reference']=reference
-            context['intent_meta'][reference]=dict(direction=selected['id'],kind=selected['kind'],
+            if context['kickoff_reference'] is None:context['kickoff_reference']=reference
+            metadata=dict(direction=selected['id'],kind=selected['kind'],
                 required_eth=selected.get('required_eth'),reason=selected['reason'])
+            context['intent_meta'][reference]=metadata
             context.update(last_order_at=frame.at,last_reason=selected['reason'])
             expiry=min(frame.at+self.config.directions[selected['id']]['wait_s'],state['limits']['expires_at'])
+            if following:
+                root=reference
+                if parent is not None and parent['source']==selected['source']:
+                    expiry=min(expiry,parent_meta['campaign_deadline']);root=parent_meta['campaign_root']
+                metadata.update(campaign_deadline=expiry,campaign_root=root)
+                expiry=min(expiry,frame.at+self.config.order_ttl_s)
             if inherited is not None:
                 expiry=min(expiry,inherited);context['replacement_deadline']=None
             try:
@@ -258,6 +297,7 @@ class AutoPaper:
         mode='UNAVAILABLE' if self.last_problem else state['mode']
         if mode=='PAUSED' and context.get('horizon') is not None:mode='EXPIRED'
         return public_status(dict(state=mode,model=self.config.model,orders=len(orders),fills=state['simulated_fills'],
+            policy=self.config.policy,
             non_fills=sum(o['state'] in ('CANCELED','REJECTED') and o['filled_base']==0 for o in orders),
             partials=sum(0<o['filled_base']<o['base_size'] for o in orders),
             gaps=sum(m['gaps'] for m in context['venue'].values()),reviews=context['reviews'],

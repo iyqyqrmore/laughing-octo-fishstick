@@ -30,7 +30,7 @@ def observations(*,adverse):
         yield Frame(at,WATCH_PAIRS,rules,books,dict(fresh=True,captured_at=at,maker=D('.005'),taker=D('.009')))
 
 
-def evaluate(*,seeds=(1,7,19),models=None,emit=print):
+def evaluate(*,seeds=(1,7,19),models=None,emit=print,policy='PATIENT_MAKER_ETH_V1'):
     from coincat_auto_paper import AutoPaper
     from coincat_paper_policy import AutoConfig,MODELS,direction_defaults
     from coincat_working_allocation import AllocationRow
@@ -46,7 +46,7 @@ def evaluate(*,seeds=(1,7,19),models=None,emit=print):
                 # run has ONE wallet for all 14 views, not 14 funded accounts.
                 with TemporaryDirectory(prefix='CoinCat_Holdout_') as folder,patch(
                         'coincat_auto_paper.uuid.uuid4',return_value=uuid.UUID(int=1)):
-                    cfg=AutoConfig(D(1),direction_defaults(),opt_in=True,model=model,seed=seed,duration_s=6600)
+                    cfg=AutoConfig(D(1),direction_defaults(),opt_in=True,model=model,seed=seed,duration_s=6600,policy=policy)
                     manager=AutoPaper(Path(folder));manager.create(cfg,at=holdout[0].at,
                         funding=dict(balances={'ETH':D(1)},balances_at=holdout[0].at,draft=(AllocationRow('ETH',D(1)),)))
                     frozen=manager.engine.private_state()['auto']['config']
@@ -69,7 +69,7 @@ def evaluate(*,seeds=(1,7,19),models=None,emit=print):
                             if cumulative<order['base_size']:
                                 partial_events+=1;partial_orders.add(reference)
                         if order['state']=='FILLED':completion_times.append(fills[-1]['raw']['at']-order['created_at'])
-                    result=dict(scenario='ADVERSE_UNRECOVERED' if adverse else 'LATER_PRICE_RETURN',model=model,seed=seed,
+                    result=dict(scenario='ADVERSE_UNRECOVERED' if adverse else 'LATER_PRICE_RETURN',model=model,seed=seed,policy=policy,
                         observations=len(holdout),development_observations=len(development),
                         **{k:v for k,v in (evaluation_public or manager.public()).items() if k in ('orders','fills','non_fills','partials','gaps','state')},
                         partial_fill_events=partial_events,orders_with_partial_fills=len(partial_orders),
@@ -80,19 +80,22 @@ def evaluate(*,seeds=(1,7,19),models=None,emit=print):
                         midpoint_delta_eth=performance['midpoint_delta_eth'],max_midpoint_drawdown_pct=performance['max_midpoint_drawdown_pct'],
                         observed_underwater_s=performance['observed_underwater_s'],fees=performance['fees'],
                         recoverable_eth=performance['recoverable_eth'],unobserved_s=performance['unobserved_s'],
-                        actual_profit_eth=None,edge='NO_DEMONSTRATED_EDGE',review_required=manager.last_problem is not None)
+                        actual_profit_eth=None,edge='NO_DEMONSTRATED_EDGE',review_required=manager.last_problem is not None,
+                        final_reason=context['last_reason'])
                     results.append(result);emit(result)
     return results
 
 
 def main():
+    from coincat_paper_policy import POLICY,POLICIES
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--synthetic',action='store_true',required=True,
         help='Acknowledge these are declared fictitious prices, fees and scenario executions')
-    parser.parse_args()
+    parser.add_argument('--policy',choices=POLICIES,default=POLICY)
+    args=parser.parse_args()
     print('CoinCat v1.01 — SYNTHETIC uncalibrated holdout exercise. No account or network.')
     print('Policy/model parameters fixed before chronological holdout; no tuning or future-price selection.')
-    results=evaluate(emit=lambda row:print(json.dumps(row,default=str,sort_keys=True)))
+    results=evaluate(policy=args.policy,emit=lambda row:print(json.dumps(row,default=str,sort_keys=True)))
     print('Runs:',len(results),'Actual verified exchange fills: 0. NO DEMONSTRATED EDGE.')
     print('Marked deltas are midpoint references; missing depth/fee units/dust keeps recoverable ETH UNKNOWN.')
     return 0

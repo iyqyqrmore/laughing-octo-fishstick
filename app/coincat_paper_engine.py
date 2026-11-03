@@ -257,11 +257,15 @@ class PaperEngine:
                     if context_after is not None:
                         if not isinstance(context_after,dict):raise PaperBlocked('INVALID_PAPER_CONTEXT')
                         original=before.get('auto',{})
-                        if original.get('policy')=='PATIENT_MAKER_ETH_V1' and (
+                        if original.get('policy') in ('PATIENT_MAKER_ETH_V1','SHORT_LIVED_ETH_V1') and (
+                                context_after.get('policy')!=original.get('policy') or
                                 context_after.get('config')!=original.get('config') or
                                 context_after.get('model_assumptions')!=original.get('model_assumptions') or
                                 context_after.get('session')!=original.get('session')):
                             raise PaperBlocked('FROZEN_PAPER_POLICY_CANNOT_CHANGE_WITHIN_SESSION')
+                        if original.get('kickoff_reference') is not None and (
+                                context_after.get('kickoff_reference')!=original['kickoff_reference']):
+                            raise PaperBlocked('PAPER_KICKOFF_IDENTITY_CANNOT_CHANGE')
                         draft['auto']=deepcopy(context_after)
                     if not journal and {k:v for k,v in draft.items() if k!='auto'}!={k:v for k,v in before.items() if k!='auto'}:
                         raise PaperBlocked('CHECKPOINT_CANNOT_CHANGE_PAPER_FUNDS')
