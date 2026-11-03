@@ -5,13 +5,16 @@ if not exist ".venv\Scripts\python.exe" (echo Run 02_SETUP_COINCAT.bat first.&pa
 set "PYTHONPATH=%~dp0app;%~dp0"
 set "COINCAT_DATA_DIR=%TEMP%\CoinCat_Verify_Disposable_%RANDOM%%RANDOM%"
 echo CoinCat v1.01: SHA256 preview verification plus isolated source tests.
-"%~dp0.venv\Scripts\python.exe" -B VERIFY_SOURCE.py
+echo [1/3] Checking source hashes...
+"%~dp0.venv\Scripts\python.exe" -u -B VERIFY_SOURCE.py
 if errorlevel 1 goto fail
-echo Verifying Python source syntax against the installed Windows interpreter...
+echo [2/3] Verifying Python source syntax against the installed Windows interpreter...
 set "PYTHONPYCACHEPREFIX=%COINCAT_DATA_DIR%\pycache"
-"%~dp0.venv\Scripts\python.exe" -m compileall -q app offline_tests verification VERIFY_SOURCE.py
+"%~dp0.venv\Scripts\python.exe" -u -B -m compileall -q app offline_tests verification VERIFY_SOURCE.py
 if errorlevel 1 goto fail
-"%~dp0.venv\Scripts\python.exe" -B "%~dp0tools\RUN_OFFLINE_TESTS.py"
+echo [3/3] Running isolated tests with names, elapsed times and a 30-second heartbeat...
+echo Windows tests can take 20 minutes or more. An E or FAIL requires the final error details.
+"%~dp0.venv\Scripts\python.exe" -u -B "%~dp0tools\RUN_OFFLINE_TESTS.py"
 if errorlevel 1 goto fail
 echo PASS: All isolated offline source tests completed.
 echo Live order POST remains blocked. Original private ledger untouched.

@@ -1,3 +1,19 @@
+# CoinCat v1.01 — Windows verification repair
+
+The owner's first native v1.01 run checked all 129 source hashes, then completed
+351 tests in 1278.366s with two errors and one host-symlink skip. Two new test
+fixtures incorrectly used dictionary representations as folder names, including
+Windows-invalid colons. Replace them with portable numbered case names and
+validate every auto-paper fixture name on all platforms. All financial, product
+eligibility and funding assertions remain unchanged.
+
+The verifier now shows three batch phases, unbuffered numbered test names,
+per-test and total elapsed time, a 30-second heartbeat during long steps and the
+five slowest tests. A heartbeat is liveness output, not a timeout or passing
+result. Added checks preserve subtest-error/failure accounting and ensure the
+progress worker stops even on exceptions. No runtime trading/account/ledger
+module changed. A successful native Windows rerun remains required.
+
 # CoinCat v1.01 — integrated all-market maker PAPER candidate
 
 Base ebe4fd7405dc7a827503b090ef60af348c45d838, fetched/matched. Owner authorized

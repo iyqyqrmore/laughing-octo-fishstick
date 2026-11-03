@@ -1,4 +1,48 @@
-COINCAT v1.01 — AUTOMATED MAKER-ONLY PAPER SOURCE CANDIDATE
+COINCAT v1.01 — WINDOWS VERIFICATION REPAIR
+Parent: published cf0b43f6e9b4d7bb7c34667a796954a93153df78, fetched/matched.
+This repairs the owner's native verification failure and quiet progress output
+within the already requested v1.01 build. No application/trading change.
+
+OWNER-SUPPLIED NATIVE WINDOWS RESULT FOR PARENT cf0b43f
+Python 3.11.9 / SQLite 3.45.1 / Tk-Tcl 8.6; all 129 source hashes pass.
+351 distinct/run in 1278.366s (21m18s), zero assertion failures, two errors,
+one host-symlink capability skip. Both errors were NotADirectoryError/WinError
+267: new test fixtures used dictionary text containing Windows-invalid colons
+as directory names. This was a completed FAILED run, not an indefinite hang.
+The affected test branches had not reached their financial/eligibility asserts.
+
+REPAIR AND PERSONALLY EXECUTED CHECKS
+Use numbered portable fixture names; validate every auto-paper case folder on
+all platforms. No financial/fee/funding/product assertion was removed or relaxed.
+Four focused checks pass on Linux Python 3.11.17 and supplementary Python 3.13.5:
+the two affected cases plus heartbeat lifetime and unchanged subtest-error/failure
+accounting. All actual app modules, logo/icon and dependency files are byte-
+identical to cf0b43f. The unconditional live order guard remains unchanged.
+
+Current checkout: 353 discovered / 353 distinct / 353 run, zero failures/errors/
+skips/expected failures, 38.333s. Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl
+9.0 / Xvfb. HTTP forbidden before discovery and throughout execution. A real
+30-second heartbeat appeared during that run. The slowest test was the four-run
+synthetic holdout at 12.911s here; its Windows runtime has not been measured
+individually. No speed improvement or native pass is inferred from Linux.
+
+03_VERIFY_COINCAT.bat now labels hash/syntax/test phases and uses unbuffered
+output. Tests show their number/name and per-test/total elapsed time. A separate
+console-only worker emits liveness every 30s through discovery, long tests and
+temporary-data cleanup, then joins cleanly. The final COUNTS and five slowest
+tests remain visible. Heartbeats do not declare success or impose a timeout;
+Windows tests can still take 20 minutes or more. Failures retain nonzero exit.
+
+Regenerated manifest still covers 129 source files. The repaired source-only ZIP
+and independent checksum/extracted-suite evidence are delivered separately from
+the original cf0b43f package. No private/monitor/credential/log/environment files
+belong in the source ZIP. Native Windows rerun remains REQUIRED: source hashes
+alone do not establish acceptance. The symlink capability skip is distinct from
+these two errors and has not been hidden. Real trading remains blocked.
+
+THE FOLLOWING LEDGERS DESCRIBE THE PRECEDING PUBLISHED CHECKPOINTS
+
+COINCAT v1.01 — AUTOMATED MAKER-ONLY PAPER SOURCE CANDIDATE (cf0b43f)
 Base: published coincat-v100 ebe4fd7405dc7a827503b090ef60af348c45d838,
 fetched and matched before implementation. The owner's later "please push as
 v1.01 when complete" authorizes source commit/push on coincat-v1.01 after checks.

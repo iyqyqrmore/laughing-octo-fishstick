@@ -18,6 +18,13 @@ No running-PC installation, account change or live order is authorized.
    Require matching source hashes and no failures/errors. Inspect skips. The
    owner's earlier v100 Windows run had 307 tests, zero failures/errors, one
    host-symlink skip and a Tcl theme-cleanup warning; it does not verify v1.01.
+   The first v1.01 Windows run took 1278.366 seconds and reported two invalid
+   test-fixture folder names plus the host-symlink skip. The follow-up uses
+   portable names; a clean native rerun is still required. Source hash PASS
+   alone is not suite acceptance. The verifier now shows numbered test names,
+   elapsed times and a 30-second heartbeat, including discovery/cleanup.
+   Windows verification can take 20 minutes or more; the final result and
+   COUNTS line determine success. Keep any ERROR tracebacks and slowest timings.
 3. Run `tools\RUN_PAPER_REPLAY.bat`. It needs no account and must retain the
    declared fixture result: two terminal orders, four simulated fills, zero real
    orders, zero verified exchange fills, two fictitious SOL. It is a replay proof.

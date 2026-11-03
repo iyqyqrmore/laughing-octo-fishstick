@@ -52,6 +52,9 @@ class AutoIntegration(unittest.TestCase):
         self.manager=self.create('main')
 
     def create(self,name,settings=None):
+        # Exercise portable fixture paths on Linux as well as Windows. Case
+        # parameters belong in subTest labels, never filesystem components.
+        self.assertRegex(name,r'\A[A-Za-z0-9_-]+\Z')
         manager=AutoPaper(Path(self.temp.name)/name)
         with patch('coincat_auto_paper.uuid.uuid4',return_value=uuid.UUID(int=1)):
             manager.create(settings or config(),at=NOW,funding=funding())
@@ -93,8 +96,8 @@ class AutoIntegration(unittest.TestCase):
     def test_initial_wallet_is_only_approved_eth_after_existing_carve_outs(self):
         self.assertEqual(self.manager.engine.private_state()['wallet'],{'ETH':D(1)})
         self.assertEqual(self.manager.engine.available('BTC'),0)
-        for changes in (dict(amount_eth=D('1.01')),dict(opt_in=False)):
-            with self.subTest(changes=changes),self.assertRaises(PaperBlocked):self.create(str(changes),config(**changes))
+        for index,changes in enumerate((dict(amount_eth=D('1.01')),dict(opt_in=False))):
+            with self.subTest(changes=changes),self.assertRaises(PaperBlocked):self.create('funding_'+str(index),config(**changes))
         self.assertEqual(self.manager.engine.private_state()['limits']['source_caps'],{'ETH':D(1)})
 
     def test_all_fourteen_native_intents_admit_only_funded_source_and_canonical_rules(self):
@@ -146,8 +149,8 @@ class AutoIntegration(unittest.TestCase):
 
     def test_all_fourteen_views_reject_permissions_rules_exclusions_and_unknown_listing(self):
         for view in DIRECTIONS:
-            for change in ({'view_only':True},{'base_increment':'0'},{'product_type':'FUTURE'}):
-                m=self.create('invalid_'+view['id']+str(len(change))+str(change));self.fund_asset(m,view['source'])
+            for index,change in enumerate(({'view_only':True},{'base_increment':'0'},{'product_type':'FUTURE'})):
+                m=self.create('invalid_'+view['id']+'_'+str(index));self.fund_asset(m,view['source'])
                 row=candidates(m.engine,frame(NOW+10,pair=view['pair'],rules={view['pair']:change}),m.config)[view['id']]
                 self.assertEqual(row['state'],'BLOCKED')
 
@@ -539,3 +542,40 @@ class PaperGUI(unittest.TestCase):
         self.assertEqual(after['wallet'],before['wallet']);self.assertEqual(after['limits'],before['limits'])
         self.assertEqual(after['auto']['session'],before['auto']['session'])
         self.assertNotIn('PRIVATE_CONFIGURATION_DETAIL',app.status.get())
+
+
+class OfflineVerifierProgress(unittest.TestCase):
+    def test_slow_step_has_a_live_heartbeat_and_exceptions_join_its_worker(self):
+        import io,threading
+        from tools.RUN_OFFLINE_TESTS import Progress
+        seen=threading.Event()
+        class Output(io.StringIO):
+            def write(self,value):
+                result=super().write(value)
+                if 'STILL RUNNING' in value:seen.set()
+                return result
+        stream=Output();progress=Progress(stream,interval=.01)
+        with self.assertRaisesRegex(ValueError,'DECLARED_FIXTURE_EXCEPTION'):
+            with progress:
+                progress.update('declared slow fixture')
+                self.assertTrue(seen.wait(2),'A running slow step must emit progress before it completes')
+                raise ValueError('DECLARED_FIXTURE_EXCEPTION')
+        self.assertIn('declared slow fixture',stream.getvalue())
+        self.assertFalse(progress.thread.is_alive())
+
+    def test_numbered_timing_output_retains_subtest_errors_and_failure_status(self):
+        import io
+        from tools.RUN_OFFLINE_TESTS import Progress,ProgressResult
+        class DeclaredError(unittest.TestCase):
+            def runTest(self):
+                with self.subTest(case='declared error'):raise ValueError('DECLARED_SUBTEST_ERROR')
+        stream=io.StringIO()
+        with Progress(stream) as progress:
+            suite=unittest.TestSuite((unittest.FunctionTestCase(lambda:None),DeclaredError()))
+            result=unittest.TextTestRunner(stream=stream,verbosity=2,resultclass=lambda *args,**kwargs:
+                ProgressResult(*args,total=2,progress=progress,**kwargs)).run(suite)
+        self.assertEqual(result.testsRun,2);self.assertEqual(len(result.errors),1)
+        self.assertFalse(result.wasSuccessful());self.assertEqual(len(result.timings),2)
+        for text in ('[1/2]','[2/2]','Test ','suite ','DECLARED_SUBTEST_ERROR','FAILED (errors=1)'):
+            self.assertIn(text,stream.getvalue())
+        self.assertFalse(progress.thread.is_alive())
