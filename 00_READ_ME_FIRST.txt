@@ -1,17 +1,20 @@
-CoinCat v1.02 — Global PAPER Trading Settings; LIVE BLOCKED
+CoinCat v1.03beta — default-ON block; bounded REAL maker execution available
 
-Read START_HERE.md. Extract into a separate folder and preserve installed data
-and backups. Run 02_SETUP_COINCAT.bat, 03_VERIFY_COINCAT.bat and the offline
-RUN_PAPER_REPLAY.bat before the supervised read-only trial.
+Read START_HERE.md and docs/BETA_1_03.md. Use a separate installation and preserve
+private data/backups. Run setup, numbered isolated verification and the finite
+synthetic PAPER replay first. Source verification never trades.
 
-Defaults: $0.01 net USD-equivalent completed ETH-return minimum; first working
-ETH slice 50% once; subsequent available source cap 50%; review 30s / reconsider
-120s. Apply Trading Settings, then opt in and Start Auto Paper Trader.
-UNKNOWN blocks all new entries. Current BBO feed lacks sized exits/verified fee
-units and normally HOLDs with no orders. No invented fill or profit. No edge.
+Live orders blocked starts ON every launch. Deliberate OFF plus locally applied
+live limits and Start REAL Beta Trader can send actual Coinbase Limit/Post Only
+orders. Proposed limits: .005 ETH session, $5/order, one open, four attempts,
+30 minutes. UNKNOWN native fee/depth/profit evidence still blocks every entry.
+STOP/reblock requests owned-order cancellation and reconciles racing fills;
+it never liquidates or assumes cancellation from acknowledgment alone.
 
-Auto Trader / Trading Settings / Allocation / Research Archive. Old records,
-manual controls, large transparent logo and redacted monitor remain. Existing
-orders retain their versions and require safe cancel/reconciliation before
-replacement. See docs/GLOBAL_PAPER_V1_02.md. No installation, deployment,
-financial mutation or live execution is performed by this source package.
+Global $.01 completed ETH-return floor; first working slice up to 50% once,
+later source up to 50%; review 30s / reconsider 120s from acknowledgment.
+Public L2 and manual imports are optional/read-only, initially inactive. CSV
+fees are historical evidence, not future fee settings. No demonstrated edge.
+Native Windows/connected/independent acceptance is not proven by cloud tests.
+Live receipts use a separate native-flow journal, not tax lots. Old data,
+protected libraries, backups and transparent logo remain preserved.

@@ -1,37 +1,44 @@
-# CoinCat v1.02 — Global PAPER Trading Settings
+# CoinCat v1.03beta
 
-One shared simulated wallet, seven product tabs and fourteen directions now use
-one adjustable **$0.01 minimum net USD-equivalent completed ETH-return target**.
-The first order can use the approved **50% of working ETH once**; subsequent
-orders use up to **50% of available, unreserved source inventory**, subject to
-native/session caps. Review is 30 seconds, unfilled-order reconsideration 120
-seconds. Every intent is Limit + Post Only. Real submission remains blocked.
+**Live orders blocked starts ON at every launch.** Deliberately switching it
+OFF and pressing **Start REAL Beta Trader** permits actual Coinbase **Limit +
+Post Only** orders under applied limits, without another approval per trade.
+Paper trading, manual history and public market observation stay separate.
 
-Auto Trader is the default page. Trading Settings holds the common target,
-source percentage and timing. Apply creates an immutable version for future
-intents. Existing orders keep their price, expiry and settings version; a safe
-review requests cancellation/reconciliation before any replacement. Target
-changes do not increase size, relax protection or force an underwater sale.
-The old mixer, chart, scenarios, journal and passive AI Lab remain in Research
-Archive. Historical records and the larger transparent header logo are retained.
+Proposed initial beta limits: **0.005 ETH session, $5/order, one open, four total
+attempts, 30 minutes**. They are drafts until applied locally. Funding is the
+smaller of that ETH cap and 50% of fresh working ETH after carve-outs, once.
+Later intents use up to 50% of available owned source inventory. The shared
+floor remains **$0.01 net USD-equivalent per completed ETH-return slice**, review
+30s, child reconsideration 120s from acknowledgment. All seven approved native
+pairs / fourteen directions share the session inventory and original budget.
 
-**UNKNOWN blocks every new global entry, including startup.** The current normal
-scanner supplies best bid/ask, not sized exits or verified fee-currency evidence.
-It therefore normally HOLDs with UNKNOWN under this policy. This release does
-not invent missing evidence or bypass the gate to make the paper trader active.
-A separate fresh ETH-USD public reference values USD only; it is never traded,
-used as a bridge or added to the research graph/history. Conservative exit
-valuation is a benchmark, never a taker-order fallback.
+**UNKNOWN blocks new entries, including startup.** Optional healthy public
+Level2 supplies visible sized liquidity, not fee currency, queue position or
+future fills. Explicit authenticated fee denomination is separately required.
+If Coinbase does not supply it, both paper and REAL admission HOLD. The switch
+never waives the native fee, depth, precision, residue, USD or profit gates.
+No profitable predictive strategy or connected beta readiness is established.
 
-Conditional opportunities, terminal completed ETH-return slices and whole-wallet
-performance against HOLD are separate. Fees, native rounding, residuals, missed
-fills, partials and open losses remain visible. A touch alone never fills.
-The seeded simulated venue is uncalibrated and provides no demonstrated edge,
-exchange fill proof or real account profit. Basic membership changes no fees.
+STOP/reblocking prevents new placements, requests cancellation of **owned**
+resting orders and reconciles racing fills. Cancellation acknowledgment does
+not release funds. Partial fills retain actual coin and fees; unknown outcomes
+stay locked. No liquidation, taker fallback, blind retry or restart reseed.
 
-Follow [START_HERE.md](START_HERE.md) and
-[the v1.02 policy and discussion handoff](docs/GLOBAL_PAPER_V1_02.md).
-[VERIFICATION.txt](VERIFICATION.txt) distinguishes actual offline checks from
-native Windows and connected evidence still required. Source is based on
-published v1.01 bba4dfe; earlier branches/installations remain separate.
-No installation, account mutation, deployment or live pilot is included.
+New optional order books display red asks, spread, green bids, native grouping,
+base/quote totals and depth bars. **Manual Trade Lab** deliberately reads scoped
+order/fill history through a view-only interface. Its CSV math view separates
+historical implied deductions from authenticated commission evidence. Neither
+tool funds the trader or counts manual trades as bot fills.
+
+The visible old scenario mixer and new-experiment registration are retired.
+Historical records, canonical accounting libraries, compatibility settings,
+financial/FIFO data, backups and transparent header logo are preserved. Live
+receipts use a **separate native-flow journal, not the tax ledger**. Diagnostics
+retain eight redacted sections; the local monitor reports safe aggregate
+paper/live/manual/book status and has no command channel.
+
+Follow [START_HERE.md](START_HERE.md), [design/limitations](docs/BETA_1_03.md),
+[acceptance ledger](docs/BETA_1_03_ACCEPTANCE.md) and [VERIFICATION.txt](VERIFICATION.txt).
+Base: published v1.02 `a09a1f3`; branch `coincat-v1.03beta`. Prior branches remain.
+This source package does not install on the PC or trade from the cloud.

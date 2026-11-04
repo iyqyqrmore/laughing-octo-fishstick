@@ -1,4 +1,4 @@
-"""Spot-style chart workspace. All actions remain the existing read-only ones."""
+"""Native market workspace; optional public stream and explicit bounded beta."""
 from pathlib import Path
 import sys
 import tkinter as tk
@@ -21,8 +21,9 @@ def build_workspace(app):
     top.columnconfigure(1,weight=1);top.rowconfigure(0,minsize=160)
     header=ttk.Frame(top);header.grid(row=0,column=0,sticky='nw',padx=(0,12))
     ttk.Label(header,text=DISPLAY+' / ETH workspace',style='Title.TLabel',wraplength=410).pack(anchor='w')
-    badge=ttk.Label(header,text='RESEARCH / PAPER  ·  LIVE BLOCKED',foreground='#eab86b');badge.pack(anchor='w',pady=(2,6))
-    Hover(badge,'Real order submission is unconditionally blocked. Quotes and hypothetical setups never create Coinbase orders or verified profit.')
+    badge=ttk.Label(header,text='LIVE ORDERS BLOCKED · ON BY DEFAULT',foreground='#eab86b');badge.pack(anchor='w',pady=(2,6));app.execution_badge=badge
+    Hover(badge,'Live orders blocked starts ON every launch. Deliberately switch OFF, apply bounded live limits and press REAL Start to enable qualified maker orders. '
+        'STOP or block ON cancels only owned resting orders and reconciles racing fills; it never liquidates holdings.')
     if sys.platform=='win32':root.iconbitmap(str(Path(__file__).with_name('CoinCat50.ico')))
     actions=ttk.Frame(header);actions.pack(fill='x',pady=(0,5))
     for label,command,tip in (
@@ -52,14 +53,22 @@ def build_workspace(app):
             app.logo_label.configure(image=app.logo)
     banner.bind('<Configure>',fit_logo)
     app.tabs=ttk.Notebook(shell);app.tabs.pack(fill='both',expand=True)
-    paper_tab=ttk.Frame(app.tabs);trading=ttk.Frame(app.tabs,padding=8)
+    paper_tab=ttk.Frame(app.tabs);trading_outer=ttk.Frame(app.tabs)
+    trading_canvas=tk.Canvas(trading_outer,background=BG,highlightthickness=0)
+    trading_canvas.pack(side='left',fill='both',expand=True)
+    trading_scroll=ttk.Scrollbar(trading_outer,command=trading_canvas.yview);trading_scroll.pack(side='right',fill='y')
+    trading_canvas.configure(yscrollcommand=trading_scroll.set)
+    trading=ttk.Frame(trading_canvas,padding=8);trading_window=trading_canvas.create_window((0,0),window=trading,anchor='nw')
+    trading.bind('<Configure>',lambda e:trading_canvas.configure(scrollregion=trading_canvas.bbox('all')))
+    trading_canvas.bind('<Configure>',lambda e:trading_canvas.itemconfigure(trading_window,width=e.width))
     allocation=ttk.Frame(app.tabs);archive=ttk.Frame(app.tabs)
-    for frame,label in ((paper_tab,'Auto Trader'),(trading,'Trading Settings'),(allocation,'Allocation'),
+    for frame,label in ((paper_tab,'Auto Trader'),(trading_outer,'Trading Settings'),(allocation,'Allocation'),
             (archive,'Research Archive')):app.tabs.add(frame,text=label)
     app.archive_tabs=ttk.Notebook(archive);app.archive_tabs.pack(fill='both',expand=True)
-    growth=ttk.Frame(app.archive_tabs,padding=6);mixer_tab=ttk.Frame(app.archive_tabs,padding=8)
+    growth=ttk.Frame(app.archive_tabs,padding=6);manual_tab=ttk.Frame(app.archive_tabs)
+    mixer_tab=ttk.Frame(archive)  # Retained exact legacy model in RAM, no redundant visible mixer page.
     lab=ttk.Frame(app.archive_tabs,padding=8);legacy_paper=ttk.Frame(app.archive_tabs,padding=8)
-    for frame,label in ((growth,'ETH Growth'),(mixer_tab,'Legacy scenario mixer'),(lab,'AI Lab / notes'),
+    for frame,label in ((growth,'ETH observations'),(manual_tab,'Manual Trade Lab'),(lab,'AI Lab / notes'),
             (legacy_paper,'Legacy paper settings')):app.archive_tabs.add(frame,text=label)
     app.research_page=growth;app.lab_page=lab
     growth.columnconfigure(0,weight=1);growth.columnconfigure(1,weight=0,minsize=286)
@@ -96,12 +105,12 @@ def build_workspace(app):
         'Prices use each actual product’s quote currency. BTC is an ETH companion through ETH-BTC. '
         'Four direct ETH products stay in each full pass; three BTC cross-pairs rotate through remaining slots, at most six books per pass. '
         'Deferred books retain their timestamp and cannot masquerade as a newly synchronized observation. Selecting a row only changes the chart.')
-    ttk.Label(orders,text='CoinCat live orders: 0 · Submission blocked',style='Metric.TLabel').pack(anchor='w')
-    ttk.Label(orders,text='Coinbase account order feed: not loaded',style='Muted.TLabel').pack(anchor='w',pady=6)
+    ttk.Label(orders,text='CoinCat-owned live orders · bounded beta journal',style='Metric.TLabel').pack(anchor='w')
+    ttk.Label(orders,text='Manual Coinbase orders are separate read-only observations in Manual Trade Lab.',style='Muted.TLabel').pack(anchor='w',pady=6)
     app.orders_tree=ttk.Treeview(orders,columns=('market','side','price','amount','state'),show='headings',height=4)
     for name in app.orders_tree['columns']:app.orders_tree.heading(name,text=name.title());app.orders_tree.column(name,width=100,minwidth=70)
     app.orders_tree.pack(fill='both',expand=True)
-    Hover(app.orders_tree,'This is an explicit empty CoinCat order view because submission is blocked. It does not assert that your Coinbase account has no manual orders. '
+    Hover(app.orders_tree,'This view lists only identities created by the separate bounded CoinCat live beta session. It does not assert that your Coinbase account has no manual orders. '
         'An actual accepted resting order normally appears on Coinbase for the same portfolio and matching filters. Filled orders appear in order/trade history. '
         'Quotes, entry touches and hypothetical paper setups never appear on the exchange as orders.')
     app.portfolio_text=tk.Text(portfolio,wrap='word',height=7,background=BG,foreground=TEXT,
@@ -124,7 +133,7 @@ def build_workspace(app):
     row=ttk.Frame(panel);row.pack(fill='x',pady=(0,8))
     for text,command,style in (('Start research',app._start,'Accent.TButton'),('STOP',app._stop,'Stop.TButton')):
         button=ttk.Button(row,text=text,command=command,style=style);button.pack(side='left',padx=(0,6))
-        Hover(button,'Start observes only the approved markets after Apply; STOP cancels research/retries and retains findings. No exchange order is submitted or cancelled.')
+        Hover(button,'Start research observes approved markets after Apply. STOP blocks new live orders, requests cancellation of owned resting orders and reconciles racing fills. Held inventory is retained.')
     apply=ttk.Button(panel,text='Apply research plan',command=app._apply_plan);apply.pack(fill='x',pady=(0,5))
     Hover(apply,'Apply the exact manual research proposal in RAM. This is not allocation reconciliation, order permission or an automatic BTC purchase.')
     app.mixer=ResearchMixer(mixer_tab,app._invalidate);app.mixer.pack(fill='x')
@@ -185,19 +194,17 @@ def build_workspace(app):
         'A 15% alert is a review proposal only, never an automatic liquidation policy.')
     journal_label=ttk.Label(adaptive,textvariable=app.journal_text,wraplength=850)
     journal_label.pack(anchor='w',pady=(8,4))
-    journal_button=ttk.Button(adaptive,text='Register hypothetical experiment…',command=app._open_experiment_dialog)
-    journal_button.pack(anchor='w')
-    Hover(journal_button,'Manually freeze a signal ID, exact ETH what-if slice and future horizon. '
-        'Optional companion funding is an explicit independent simulated assumption, never a real seed. '
-        'Existing scans update the local persistent journal; no automatic predictor or paper trade is started.')
+    ttk.Label(adaptive,text='Historical experiments retained. New manual experiment registration retired from this interface.',style='Muted.TLabel').pack(anchor='w')
     view_button=ttk.Button(adaptive,text='View registered experiments…',command=app._view_experiments)
     view_button.pack(anchor='w',pady=(4,0))
     Hover(view_button,'Read the bounded local experiment journal while running or stopped. '
         'View signal IDs, frozen horizons, gaps and conditional outcomes. This creates no network request or trade.')
+    from coincat_manual_panel import ManualTradePanel
+    app.manual_panel=ManualTradePanel(manual_tab,app);app.manual_panel.pack(fill='both',expand=True)
     app.lab_text=tk.Text(lab,wrap='word',font=('Segoe UI',10),state='disabled',height=7,
         background=BG,foreground=TEXT,insertbackground=TEXT,relief='flat')
     app.lab_text.pack(fill='both',expand=True)
     app._note('Approved seven-market watch network. Independent ETH scenarios; BTC cross-pairs are observations. Fills and profit remain unverified.')
     app.tabs.select(paper_tab)
-    help_tree(shell,DISPLAY+' read-only research. Exact manual controls and native amounts stay local. '
-        'Seven approved markets only; no automatic settings, funding, orders or code updates. Mouse and keyboard help remain available.')
+    help_tree(shell,DISPLAY+' · Paper and deliberate bounded REAL beta. Exact controls and native amounts stay local. '
+        'Seven approved markets only; no automatic settings or code updates. Mouse and keyboard help remain available.')

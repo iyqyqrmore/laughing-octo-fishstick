@@ -1,4 +1,4 @@
-"""Eight v1.02 diagnostic sections. Strict quantity-free projections only."""
+"""Eight v1.03beta diagnostic sections. Strict quantity-free projections only."""
 from contextlib import closing
 from datetime import datetime,timezone
 import sqlite3
@@ -11,10 +11,12 @@ from coincat_research_journal import public_status as journal_public
 from coincat_auto_paper import public_status as paper_public
 from coincat_working_allocation import allocation_diagnostics
 from coincat_continuity import freshness,age
+from coincat_beta_public import project as beta_project
 
 
 def make_report(app,*,now=None):
     now=time.time() if now is None else now
+    beta=beta_project(getattr(app,'live_public',None),getattr(app,'manual_public',None),getattr(app,'book_public',None))
     scanner=app.scanner;result=app.last_result or {}
     allocation=getattr(app,'working_allocation',None) or result.get('working_allocation')
     editor=getattr(app,'allocation_editor',None)
@@ -60,7 +62,8 @@ def make_report(app,*,now=None):
                 for r in result.get('watched_markets',())],
             state=result.get('state','UNOBSERVED'),quote_scheduling=result.get('quote_scheduling',{}),
             quote_errors=result.get('quote_errors',{}),fetch_ms=result.get('fetch_ms','UNOBSERVED'),
-            price_integrity='BOUNDED_LOCAL_REST_OBSERVATIONS_ONLY',
+            price_integrity='REST_BBO_OR_EXPLICIT_OPT_IN_HEALTHY_L2; NO_QUEUE_OR_FILL_INFERENCE',
+            public_book=beta['book'],
             limits='30s age / 0.25% spread / 12s per-decision span; entry/exit separated intentionally')),
         ('ETH MAKER RESEARCH',public_summary(result)),
         ('COST EVIDENCE',dict(account_tier_at_last_good_scan={k:str(tier[k]) for k in
@@ -68,9 +71,12 @@ def make_report(app,*,now=None):
             fee_fresh_at_last_good_scan=view['fee_fresh_at_last_good_scan'],
             fee_valid_at_export=view['fee_valid_at_export'],fee_age_s_at_export=view['fee_age_s_at_export'],
             pair_exceptions='NOT VERIFIED',fee_currency='UNVERIFIED_QUOTE_DEBIT_SCENARIO',
+            reconciled_owned_native_fills=beta['live']['fills'],
+            manual_known_native_observations=beta['manual']['known_native_flow'],
+            observed_fee_scope='PER_FILL_REPORTED_DENOMINATION; NOT_FUTURE_FEE_AUTHORITY',
             maker='LIMIT_PRICES_WITH_ACCOUNT_MAKER_ESTIMATE; NO_TAKER_SLIPPAGE',
             taker='BID_ASK_PLUS_ACCOUNT_TAKER_ESTIMATE_AND_EXPLICIT_SLIPPAGE_STRESS',
-            depth_queue_exchange_event_time='NOT VERIFIED',cost_status='MODELED_ONLY')),
+            depth_queue_exchange_event_time='VISIBLE_L2_WHEN_HEALTHY; QUEUE_AND_FILLS_NOT_INFERRED',cost_status='SCENARIOS_MODELED; RECONCILED_OWNED_RECEIPTS_SEPARATE')),
         ('ALLOCATION AND LOCAL RECORDS',dict(
             working_allocation=allocation_diagnostics(allocation) if allocation else 'UNOBSERVED',
             portfolio_reference=dict(basis='WATCHED_BASKET_MIDPOINT_BEFORE_EXIT_FEES',flow_adjusted=False,
@@ -79,26 +85,28 @@ def make_report(app,*,now=None):
                 basket_priced=getattr(app,'portfolio_result',{}).get('watched_value_eth') is not None,
                 outside_asset_count=len(getattr(app,'portfolio_result',{}).get('outside_assets',())),
                 unpriced_asset_count=len(getattr(app,'portfolio_result',{}).get('missing_assets',()))),
-            reconciliation='NOT VERIFIED',reserve='PROPOSED_CALCULATOR_ONLY_NO_EARMARKING',
+            reconciliation='PER_ORDER_NATIVE_FLOW_IS_DISTINCT_FROM_ACCOUNT_RECONCILIATION',reserve='SEPARATE_LIVE_BETA_RESERVATIONS_WHEN_EXPLICITLY_STARTED',
             preferences='RAM_ONLY',sqlite_integrity=ledger_state,local_unresolved_orders=pending,
             financial_mutations='NONE_BY_RESEARCH',earned_eth='NOT_ESTABLISHED')),
         ('PASSIVE RESEARCH',dict(adaptive_eth=adaptive_public(result.get('adaptive')),
             auto_paper=paper_public(getattr(app,'paper_public',None)),
+            manual_trade_lab=beta['manual'],
             prospective_journal=journal_public(result.get('prospective_journal',getattr(app,'journal_status',None))),
             observations=result.get('study_counts',{}),
             current_continuity=scanner.maker_study.diagnostics() if scanner is not None else 'UNOBSERVED',
-            guidance='Explicit research and opt-in simulated paper sessions only. No live funding, ARM or execution authority.',
+            guidance='Manual importer is view-only. Auto Paper is simulated. Explicit bounded live beta uses a separate owned-order journal.',
             fill_evidence='TOUCH_OR_CROSSING_IS_NOT_A_FILL',hypothetical_full_fills=0,
-            verified_fills=0,partial_fill_returns='UNVERIFIED_NO_CREDIT',actual_profit='NOT_ESTABLISHED',
+            verified_fills=beta['live']['fills'],partial_fill_returns='ONLY_EXACT_RECONCILED_NATIVE_RECEIPTS',actual_profit='NOT_ESTABLISHED',
             observations_persisted='PUBLIC_QUOTES_AND_EXPLICIT_PROSPECTIVE_CASES; MAKER_SETUPS_RAM_ONLY')),
-        ('EXECUTION AND ACCEPTANCE',dict(LIVE='BLOCKED_UNCONDITIONALLY',
-            broker_settlement_recovery='NOT VERIFIED',Windows_DPAPI='NOT VERIFIED_BY_CLOUD',
-            GUI='LOCAL_ACCEPTANCE_REQUIRED',orders_submitted=0,previews_submitted=0,
+        ('EXECUTION AND ACCEPTANCE',dict(LIVE='BLOCK_ON' if beta['live']['blocked'] else 'BOUNDED_REAL_BETA_ENABLED',
+            live_beta=beta['live'],
+            broker_settlement_recovery='OFFLINE_FIXTURES_ONLY; CONNECTED_ACCEPTANCE_NOT_RUN',Windows_DPAPI='NOT VERIFIED_BY_CLOUD',
+            GUI='LOCAL_WINDOWS_ACCEPTANCE_REQUIRED',orders_journaled=beta['live']['orders'],previews_submitted=0,
             no_qualified_evidence='VALID_RESEARCH_OUTCOME',
             note='Source verification and offline tests cannot establish market eligibility, actual fees, fills or profit.'))]
     lines=[DISPLAY+' — ETH GROWTH COMPLETE DIAGNOSTICS',
         'Snapshot '+datetime.fromtimestamp(now,timezone.utc).isoformat(),
-        'RESEARCH ONLY • native quantities, receipts, account IDs, keys and private paths omitted',
+        'PAPER / EXPLICIT REAL BETA • native quantities, receipts, account IDs, keys and private paths omitted',
         'SECTION COMPLETENESS: COMPLETE (8/8)',
         'No network requests, order calls or financial writes are performed by this export.']
     for title,body in sections:lines.extend(('',title,str(body)))

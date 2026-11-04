@@ -12,12 +12,12 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class ReleaseCore(unittest.TestCase):
-    def test_submission_is_still_unconditionally_blocked_before_other_work(self):
+    def test_submission_requires_new_bounded_dispatch_before_other_work(self):
         tree=ast.parse((ROOT/'app/coincat_live.py').read_text())
         cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='LiveBroker')
         method=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=='submit')
-        self.assertIsInstance(method.body[0],ast.Raise)
-        self.assertIn('LiveBlocked',ast.unparse(method.body[0]))
+        self.assertIsInstance(method.body[1],ast.If)
+        self.assertIn('LiveBlocked',ast.unparse(method.body[1]))
         with self.assertRaises(LiveBlocked):LiveBroker.__new__(LiveBroker).submit('BUY','BTC-USD','1')
 
     def test_no_order_or_preview_adapters_in_active_scanner(self):
@@ -32,7 +32,7 @@ class ReleaseCore(unittest.TestCase):
 
     def test_all_shipped_source_hashes_and_python_syntax(self):
         manifest=json.loads((ROOT/'SHA256_MANIFEST.json').read_text())
-        self.assertEqual(manifest['build'],'1.02-global-paper-candidate')
+        self.assertEqual(manifest['build'],'1.03beta-live-candidate')
         self.assertGreater(len(manifest['files']),30)
         for name,expected in manifest['files'].items():
             p=ROOT/name
@@ -58,9 +58,8 @@ class ReleaseCore(unittest.TestCase):
             self.assertTrue(handles)
             self.assertTrue(all(db.closed for db in handles),'SQLite handles must close before temporary-folder deletion')
 
-    def test_seven_protected_modules_exactly_match_the_verified_v91_baseline(self):
+    def test_six_protected_modules_and_legacy_ledger_match_prior_baseline(self):
         hashes={
-            'coincat_live.py':'582744bde0497df22c8bad1d6092c6092bb64c99d171f783eec7ac5f86d3ffe4',
             'coincat_unified_fifo_v501.py':'c2cc83616bc3ebe4df04b3b9355ecddd2dd3e2b16f86987c100119ad9103493a',
             'coincat_state_v50.py':'93cf2add1878c3f2b48221eb53a9a556270ee8672e2a0746fed1c60ccb3e984b',
             'coincat_data_transfer.py':'b797413e3108bfb45a4986514ae2ded15e907b7c8edcb3e34217c2efe04be216',
@@ -70,3 +69,7 @@ class ReleaseCore(unittest.TestCase):
         root=Path(__file__).resolve().parents[1]/'app'
         for name,expected in hashes.items():
             self.assertEqual(hashlib.sha256((root/name).read_bytes()).hexdigest(),expected,name)
+        source=(root/'coincat_live.py').read_text()
+        ledger=next(n for n in ast.parse(source).body if isinstance(n,ast.ClassDef) and n.name=='LiveLedger')
+        self.assertEqual(hashlib.sha256(ast.get_source_segment(source,ledger).encode()).hexdigest(),
+            '15a496420f75ae64c28bad69fecf78816f19cc3c397d1a46f4c556d994d43f26')

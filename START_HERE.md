@@ -1,76 +1,91 @@
-# CoinCat v1.02 — test in a separate installation
+# CoinCat v1.03beta — separate Windows installation
 
-Preserve the existing installation, private records and backups. Extract this
-source into a new folder; never overlay a running version or share its data
-folder between app processes. Use normal 64-bit Windows Python 3.11.
+Preserve the installed folder, private records and backups. Extract into a new
+folder; never overlay a running version or share its data between app processes.
+Use normal 64-bit Windows Python 3.11 and the locked setup dependencies.
 
-1. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Expect source
-   hashes, syntax verification and numbered isolated tests with elapsed times
-   and a 30-second heartbeat. Prior Windows runs took about 22 minutes; a slow
-   named test with heartbeats can still be working. Wait for the final COUNTS
-   and PASS/FAIL. Errors or failures block acceptance; report the exact traceback.
-   A host symlink capability skip is distinct from a test error.
-2. Run **tools\RUN_PAPER_REPLAY.bat** without an account connection. This is a
-   finite scripted toy-event lifecycle, not a market session or profit test.
-   Expect two terminal orders, four simulated fills, zero real orders/verified
-   exchange fills and exactly two fictitious SOL. It normally finishes far
-   sooner than full verification; do not leave it running overnight.
-3. For new data only, **04_FIRST_TIME_SETUP.bat** requires explicit confirmation
-   and an empty destination. A new dataset/key cannot recover old tax basis.
-   Existing verified recovery tools only copy to a separate empty destination.
-4. Launch **01_START_COINCAT.bat**; confirm **CoinCat v1.02** and LIVE blocked.
-   Check the larger transparent logo in the upper header. Import any key JSON
-   locally on the PC, never into chat. Existing DPAPI/permission checks remain.
-5. **Connect / refresh**, then inspect **Allocation**. Review/apply ETH working,
-   manual, protected and excluded proposals. These remain RAM proposals, not
-   real transfers or allocation reconciliation. Other balances cannot seed the
-   paper wallet. An unavailable catalog/fee/funding input means HOLD.
-6. Open **Trading Settings**. Start with minimum **$0.01**, initial **50% of
-   working ETH**, subsequent source **50%**, review **30s**, reconsider **120s**.
-   A custom initial ETH amount must be within the approved working percentage;
-   native minima block small orders instead of increasing size. Apply all
-   Trading Settings. The first eligible order can use that initial slice once,
-   without halving it again. One wallet serves all fourteen directions.
-7. In **Auto Trader**, explicitly opt in and press **Start Auto Paper Trader**.
-   Inspect shared holdings, available/reserved amounts, every market's native
-   bid/ask and direction reasons. **With the current BBO feed, expect zero new
-   orders and HOLD/UNKNOWN** because sized exits and verified fee-currency
-   evidence are missing. A fresh ETH-USD valuation reference cannot supply
-   those missing inputs. Do not loosen gates to force an order.
-8. Try the global $0.05/$0.10 presets or type a whole-cent target and Apply.
-   The applied summary must show the new version/floor across all directions.
-   Draft fields are not applied settings. Profit-only Apply preserves applied
-   capital percentages and timing, including any separate unapplied draft.
-   Existing orders keep original price/version/expiry and receive a safe review;
-   cancellation must reconcile before replacement. STOP retains reservations
-   and holdings; it does not confirm cancellation or liquidate inventory.
-9. Test **Pause**, **STOP**, clean close, relaunch and **Reconcile paper**.
-   A saved session restores RECONCILIATION_REQUIRED; reconciliation leaves
-   PAUSED. Pressing Start again is explicit; no new seed or baseline is created.
-   New paper session retains the old database and requires new opt-in/Apply.
-10. Export diagnostics while open. Confirm v1.02, COMPLETE (8/8), safe policy/
-    settings-version/completion counts, actual profit NOT ESTABLISHED. Do not
-    upload private paper/financial SQLite files, keys or monitor tokens.
+1. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Wait for final
+   COUNTS and PASS/FAIL. Prior Windows verification took about 22 minutes;
+   numbered tests and 30-second heartbeats distinguish progress from a hang.
+   Any error/failure needs its final traceback. A host symlink capability skip
+   is separate from an error. Tests use disposable state and no exchange calls.
+2. Run **tools\RUN_PAPER_REPLAY.bat** without an account connection. This finite
+   toy replay normally finishes quickly: two terminal orders, four simulated
+   fills, two fictitious SOL, zero real orders. It is not an overnight market
+   or profit test. **tools\STORAGE_REPORT.py** reports source caches; only
+   `--clean-source-cache` removes source `.pyc`. No financial/history deletion.
+3. Use **04_FIRST_TIME_SETUP.bat** only for explicitly confirmed new empty data.
+   Verified recovery copies to a separate empty destination. A new dataset
+   cannot recover missing historical tax basis. Preserve original backups.
+4. Launch **01_START_COINCAT.bat**. Confirm **v1.03beta**, the transparent header
+   logo, **Live orders blocked ON**, stream OFF and no automatic start. Import
+   keys only on your PC. Never upload keys, private SQLite or monitor tokens.
+5. With block ON, **Connect / refresh**, inspect **Allocation** and review/apply
+   working ETH, manual/protected carve-outs and exclusions. These are RAM
+   proposals, not transfers. Apply Trading Settings: **$.01**, initial **50%**,
+   subsequent source **50%**, review **30s**, reconsider **120s**. Profit-only
+   Apply changes no capital/risk/timing setting or accepted order price.
+6. Test PAPER first: opt in, **Start Auto Paper Trader**. One hypothetical ETH
+   slice serves all fourteen directions. Expect **HOLD/UNKNOWN** if sized exits,
+   explicit native fee units or residual valuation are missing. Touches never
+   fill. STOP/reconcile/restart must retain prices, reserves and original expiry.
+7. Optionally enable **Public order-book stream**. Four ETH anchors plus two BTC
+   crosses are observed at a time; a selected cross can replace a scheduled
+   cross. ETH-BTC price is BTC per ETH, amount ETH. Grouping/quote amount affect
+   display only. Gaps/stale heartbeats/product data must show stale/resyncing.
+   **Use healthy public L2** defaults OFF; enabling it cannot prove fee currency.
+8. Stop scanning before deliberate history reads. In **Research Archive → Manual
+   Trade Lab**, read the complete order ID locally or a narrow **1–168 UTC hour**
+   window. A view-only key can use this importer even if main Connect requires
+   stricter permissions. Inspect quantity/gross/commission/currency, native
+   changes, coverage and maker/taker fields. Missing/contradictory data remains
+   UNKNOWN. Creation-to-fill is not measured acceptance or queue time.
+   **Statement math…** reads local CSV without importing records/changing fees.
+9. Export diagnostics: **v1.03beta**, **COMPLETE (8/8)**, separate manual/bot/paper
+   counts, correct live gate, no native amounts/IDs/paths. Enable Local monitor
+   in **Research Archive → AI Lab / notes**, then run
+   **tools\START_LOCAL_MONITOR.bat**. Check safe live/manual/book counts and
+   stale/missing-response clearing. The helper has no trading/update channel.
 
-Enable **Local monitor** in **Research Archive → AI Lab / notes**, then run
-**tools\START_LOCAL_MONITOR.bat**. Confirm its v1.02 title, global paper policy
-and aggregate version/counts; no native amounts/settings/receipts are exported.
-Check missing-response/stale states clear earlier current claims. This helper
-is read-only and offers no trading/update channel. See docs/V100_MONITOR.md.
+Keep the first connected read-only observation supervised for **60–120 minutes**.
+Check native Tk/DPI/hover/resize, rapid tab selection, STOP during reads/retries,
+fresh fees, reconnects and clean shutdown. Cloud tests cannot establish the
+current server contract, Windows DPAPI or actual account settlement.
 
-Keep the first connected read-only session supervised for **60–120 minutes**.
-Check STOP during a request/retry, bounded reconnects, fresh account fee evidence,
-quote age/spread/gaps, small-window/DPI tooltips and clean shutdown. Preserve
-original expiries through outages. A network interruption must not invent fills
-or recreate a seed. Native Windows/DPAPI/single-instance and connected product/
-fee evidence require that PC's checks. Proceed to longer observation only after
-these pass; time running alone cannot demonstrate predictive improvement.
+## Deliberate bounded REAL beta
 
-The old **ETH Growth**, **Legacy scenario mixer**, journal and passive **AI Lab**
-are in Research Archive. Their independent hypothetical comparisons never fund
-a global paper intent. Existing manual entry/Reset/Apply, chart intervals and
-hover controls remain available. For archived workflows see docs/V100_RESEARCH.md,
-docs/V100_WORKSPACE.md, docs/PROSPECTIVE_JOURNAL.md and docs/AUTO_PAPER_V1_01.md.
+This source can send actual orders. Native Windows, connected settlement and
+independent operational/financial review are **not proven** by offline checks.
+See [the acceptance ledger](docs/BETA_1_03_ACCEPTANCE.md).
 
-Read docs/GLOBAL_PAPER_V1_02.md for the exact qualification, partial-completion
-semantics and copyable discussion handoff. No real order can be submitted.
+1. Stop PAPER/research and wait for current reads. In Trading Settings apply
+   proposed REAL limits: **.005 ETH session, $5/order, one open, four attempts,
+   1800s, maximum fee 2%**. The fee ceiling is not an assumed actual fee. Native
+   minima block small orders; size is never increased to meet them.
+2. Confirm allocation/global settings. Deliberately switch **Live orders blocked
+   OFF**, then **Start REAL Beta Trader**. Fresh exact portfolio permissions must
+   explicitly allow view+trade and disable transfers. No USD, margin, borrowing,
+   futures or outside product/portfolio is traded.
+3. OFF **does not force a trade**. Missing fee/depth/FX/residue/profit evidence
+   means HOLD, not guessed fees. BUY rests at bid; SELL at ask. Fee-adjusted ASK
+   is a cost benchmark, not authorization for a marketable/taker BUY. Qualifying
+   autonomous orders run without repeated approval.
+4. Watch the matching owned order on Coinbase: fixed price/quantity, Post Only,
+   portfolio, actual fills/fees. Reconsideration requests cancellation at 120s
+   from acknowledgment. No replacement spends reserved/partial proceeds before
+   terminal reconciliation. Every child consumes the original attempt budget.
+5. Use **STOP** or block **ON**. Keep the app open until owned orders are terminal
+   and reconciled. A cancellation request/ack is not final; inspect Coinbase
+   if identity/read/fee uncertainty remains. Holdings, losses and dust remain.
+   Closing makes one bounded cancel/read pass and preserves unresolved locks;
+   it cannot guarantee exchange cancellation after shutdown.
+6. Restart restores ON and reconciliation required. **Reconcile owned live orders**
+   leaves PAUSED only after terminal native evidence; another Start is explicit
+   and cannot reseed or extend the original limits/expiry. An expired session
+   needs operator review, not automatic new funding. **View private live journal…**
+   stays local. The beta journal records native flow, not tax/FIFO lots or all
+   account cash flows; keep exchange statements for tax records.
+
+Manual consumption/unknown commissions remain unresolved instead of being
+attributed as bot profit. AI Lab stays passive. No demonstrated predictive edge,
+guaranteed profit or verified after-cost portfolio liquidation is claimed.

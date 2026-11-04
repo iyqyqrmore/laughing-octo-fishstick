@@ -1,3 +1,26 @@
+# CoinCat v1.03beta — explicit bounded REAL maker execution
+
+Replaces the permanent block with an ON-at-boot **Live orders blocked** switch.
+Deliberate OFF plus applied limits and Start permits actual Post Only maker
+orders under canonical native/profit/UNKNOWN gates. Separate live journal,
+once-only dispatch, identity recovery, cancel/fill races, partial commissions,
+original caps/expiry and restart reconciliation preserve owned inventory.
+Proposed draft beta limits: .005 ETH, $5/order, one open, four attempts, 30min.
+
+Adds optional bounded public L2 with native order-book tabs/grouping/totals,
+read-only Manual Trade Lab, private CSV fee reconstruction, safe aggregate
+live/manual/book monitor status and eight updated diagnostics sections.
+Retires the visible scenario mixer/new-experiment registration and unreachable
+market-submit body; removes unused new-module imports/source caches. Historical
+data, frozen sessions, shared financial modules/ledger, dependencies and true
+transparent logo are retained. No actual cloud account trade or independent
+Windows/connected signoff is claimed. Strict missing fee units can still HOLD
+all normal entries; OFF never substitutes guessed evidence.
+
+See START_HERE.md, docs/BETA_1_03.md and docs/BETA_1_03_ACCEPTANCE.md.
+The following sections are historical evidence for their named source builds;
+their permanent live-block descriptions do not describe v1.03beta.
+
 # CoinCat v1.02 — shared global paper settings
 
 Adds the whole-cent USD-equivalent ETH-return floor, approved initial working

@@ -1,4 +1,43 @@
-# Codex instructions — CoinCat v1.02
+# Codex instructions — CoinCat v1.03beta
+
+CURRENT OWNER OVERRIDE — NOVEMBER 4, 2026
+The owner explicitly requested replacing the unconditional live submission
+block with a "Live orders blocked" switch, ON by default, and real trading
+when deliberately switched OFF for beta testing. This overrides the attached
+beta handoff's permanent LiveBlocked invariant and the historical restrictions
+below for the new bounded adapter only. Keep ordinary risk/funding/fee/depth/
+precision/profit/UNKNOWN checks. No blind retry, taker fallback, startup resume
+or implicit fee units. Delete unreachable legacy market-order submission logic;
+do not expose it by merely deleting its first raise. Existing financial/FIFO/
+tax/import/key/lock modules and datasets remain protected. Use a separate live
+beta journal and only known CoinCat order identities for cancellation/recovery.
+The live block resets ON at startup/restart. STOP/reblocking prevents new orders,
+requests cancellation of owned resting orders and reconciles racing fills;
+it never liquidates positions. Read-only adapters cannot submit/cancel orders.
+
+The owner explicitly authorized commit and push "when complete as 1.03beta".
+Use coincat-v1.03beta from freshly matched a09a1f3eab106f8d775e2ba76e80e29743292bd4;
+preserve v1.02/v1.01/v100, and package source only after checks. No running-PC
+installation or actual account trade from this cloud session is authorized or
+possible here: no Coinbase credentials/network access are configured.
+
+The owner requested fee-adjusted ASK pricing, with decimal/percentage education.
+Use fresh authenticated applicable fee rates, not a universal 0.5% inferred
+from one statement. BUY cost at ASK with quote fee is quantity*ASK*(1+rate);
+SELL limit retaining a desired net quote amount divides by (1-rate). These
+benchmarks are distinct from post-only execution prices. Current clarification
+about marketable ASK BUY versus maker-only execution is pending; do not silently
+enable taker fills. Initial live cap defaults are conservative and unapplied
+until local settings/Start; the owner was asked to choose beta limits.
+
+Keep the new book stream/data provider and manual importer optional/read-only,
+strictly separate from the live controller. Retire old experimental UI/clutter
+and genuinely unreachable code, preserve historical datasets and shared pure
+financial compatibility. Storage cleanup defaults to a report, never financial
+or research-record deletion. Report unresolved connected/native evidence honestly.
+
+The following is the retained v1.02/historical contract; the current override
+above controls conflicts about live submission/publication only.
 
 Read docs/GLOBAL_PAPER_V1_02.md first. The owner requested shared whole-cent
 USD-equivalent completed-rotation settings, 50% working ETH initially and up to

@@ -499,7 +499,7 @@ class LiveLedger:
 
 class LiveBroker:
     def __init__(self,ledger,client,*,per_order_max='5',daily_buy_cap='20',exposure_cap='30',max_orders_day=8):
-        self.ledger=ledger;self.client=client
+        self.ledger=ledger;self.client=client;self.live_runtime=None
         self.per_order_max=dec(per_order_max);self.daily_buy_cap=dec(daily_buy_cap)
         self.exposure_cap=dec(exposure_cap);self.max_orders_day=int(max_orders_day)
         self.armed=False
@@ -815,124 +815,87 @@ class LiveBroker:
         return verified_cross_order(order=order,fills=fills,pair=pair,side=side,
              books=books,source=books_source,max_usd_notional=max_usd_notional)
 
-    def submit(self,side,pair,usd_value,expected_quote=None,*,profit_target_usd=None,protective_exit=False):
-        raise LiveBlocked('Unified all-spot order submission not certified; no legacy-only pilot or live POST allowed')
-        """Fresh recheck + Coinbase preview, durable stage before EXACTLY ONE POST.
-        No retries on ambiguous POST response. Does not assume successful create = fill.
-        """
-        side=side.upper();pair=pair.upper()
-        if side not in ('BUY','SELL'):raise LiveBlocked('Only BUY/SELL spot orders')
-        # Ordinary fee/spread limits ONLY; retired manual ETH conversion has no order path.
-        fee_limit=Decimal('.05');spread_limit=Decimal('.0025')
-        self.risk_check(side,pair,usd_value)
-        p=self.product(pair)
-        base,quote=pair.split('-')
-        live=self.balances()
-        ticker=as_dict(self.client.get_market_trades(product_id=pair,limit=1))
-        bid=dec(ticker.get('best_bid'));ask=dec(ticker.get('best_ask'))
-        if not 0<bid<=ask:raise LiveBlocked('No valid fresh Coinbase bid/ask')
-        price=ask if side=='BUY' else bid
-        if expected_quote is not None:
-            prev=D(expected_quote)
-            if prev<=0 or abs(price/prev-1)>Decimal('0.003'):
-                raise LiveBlocked('Market moved over 0.30% since forward signal; no chase')
-        if (ask-bid)/ask>spread_limit:raise LiveBlocked('Bid/ask spread exceeds authorized tolerance')
-        amount=dec(usd_value)
-        if amount<dec(p.get('quote_min_size') or '0'):raise LiveBlocked('Below Coinbase quote minimum for '+pair)
-        if p.get('quote_max_size') and amount>dec(p['quote_max_size']):raise LiveBlocked('Above Coinbase quote maximum for '+pair)
-        inc=p.get('base_increment')
-        base_size=floor_to(amount/price,inc)
-        if base_size<dec(p.get('base_min_size') or '0') or base_size<=0:raise LiveBlocked('Below Coinbase base minimum for '+pair)
-        if p.get('base_max_size') and base_size>dec(p['base_max_size']):raise LiveBlocked('Above Coinbase base maximum for '+pair)
-        # Rounding SELL base size down may push its actual quote proceeds under
-        # Coinbase's advertised pair minimum even when planned USD was enough.
-        if side=='SELL' and base_size*bid<dec(p.get('quote_min_size') or '0'):
-            raise LiveBlocked('Rounded SELL proceeds below Coinbase quote minimum for '+pair)
-        managed=self.ledger.asset(quote if side=='BUY' else base)
-        if not managed:raise LiveBlocked('Asset not in approved managed pool')
-        if side=='BUY':
-            existing_base=self.ledger.asset(base)
-            if existing_base and dec(existing_base['remaining_qty'])>0:
-                try:
-                    with sql(self.ledger.path) as conn:
-                        lots.verify(conn,base)
-                except ValueError as ex:raise LiveBlocked(str(ex)) from ex
-                # Unknown original basis remains unknown in its separate legacy lot.
-                # New bot fills get their own true acquisition-cost lot.
-            if min(D(managed['remaining_qty']),live.get(quote,Decimal(0)))<amount*Decimal('1.10'):
-                raise LiveBlocked('Insufficient enrolled/current quote funds plus reserve')
-            # cash-only portfolio risk: local invested notional at current midpoint for newly acquired coins.
-            # Never assumes personal non-managed holdings are available.
-            # Exposure cap applies to *additional automated acquisitions*.
-            # Pre-existing individually approved holdings remain available to
-            # sell after basis approval, but do not consume the new-buy budget.
-            with sql(self.ledger.path) as conn:
-                bought=conn.execute("SELECT base_qty,price FROM fills WHERE side='BUY'").fetchall()
-                sold=conn.execute("SELECT base_qty,price FROM fills WHERE side='SELL'").fetchall()
-            added_exposure=max(Decimal(0),sum((D(r['base_qty'])*D(r['price']) for r in bought),Decimal(0))-
-                           sum((D(r['base_qty'])*D(r['price']) for r in sold),Decimal(0)))
-            if added_exposure+amount>self.exposure_cap:
-                raise LiveBlocked('Maximum new-buy exposure reached')
-            preview=as_dict(self.client.preview_market_order_buy(product_id=pair,quote_size=fmt(amount)))
-            request_size=fmt(amount)
-        else:
-            if managed.get('trading_basis_unit_quote') is None:
-                raise LiveBlocked('No complete verified lot performance basis; cannot sell')
-            if managed.get('snapshot_unit_usd') is not None and quote!='USD':
-                raise LiveBlocked('USD performance snapshot requires a USD-denominated sell pair; no implicit USDC=USD conversion')
-            if min(D(managed['remaining_qty']),live.get(base,Decimal(0)))<base_size:
-                raise LiveBlocked('Sell exceeds approved/current available quantity')
-            preview=as_dict(self.client.preview_market_order_sell(product_id=pair,base_size=fmt(base_size)))
-            request_size=fmt(base_size)
-        if preview.get('success') is False or preview.get('errs') or preview.get('errors') or preview.get('error_response'):
-            raise LiveBlocked('Coinbase rejected order preview')
-        fee_v=preview.get('commission_total',preview.get('fee'))
-        if fee_v is None:raise LiveBlocked('Coinbase preview missing commission; blocked')
-        fee=dec(fee_v)
-        if fee>amount*fee_limit:raise LiveBlocked('Coinbase preview commission exceeds authorized fee tolerance')
-        # For an ordinary targeted SELL, check Coinbase's latest preview fees plus
-        # a slippage allowance against the per-order dollar target. Protective
-        # exits must remain possible when the requested profit is unattainable.
-        if side=='SELL' and profit_target_usd is not None and not protective_exit:
-            expected_proceeds=base_size*bid*(1-Decimal('0.0015'))
-            try:lot_cost=self.ledger.sale_basis(base,base_size,quote)['performance_basis']
-            except ValueError as ex:raise LiveBlocked(str(ex)) from ex
-            est_net=expected_proceeds-fee-lot_cost
-            if est_net<dec(profit_target_usd):
-                raise LiveBlocked(f'Expected net sell ${est_net:.3f} after Coinbase preview fee and 15bps reserve is below ${dec(profit_target_usd):.2f}; no profit-taking sell')
-        # Explicit net-cost gate: exit would need at least target net after TWO costs.
-        if side=='BUY':
-            buy_rate=fee/amount
-            min_exit=minimum_exit_price(ask,buy_rate,max(buy_rate,Decimal('0.006')),
-                                         Decimal('0.0075'),expected_sell_slippage_bps=15)
-            if min_exit/ask-1>Decimal('0.05'):
-                raise LiveBlocked('Fee/spread means target would require >5% appreciation')
-        # Refresh risk/STOP immediately before durable staging.
-        self.risk_check(side,pair,amount)
-        cid=self.ledger.stage(pair,side,request_size,fee,purpose='AUTOTRADE')
-        # STOP may arrive after staging but before the network POST. In that case
-        # preserve the record, do NOT transmit, and require review/reconciliation.
-        if not self.armed or self.ledger.setting('halted','0')=='1':
-            self.ledger.update_order(cid,state='REJECTED',detail='Local pre-POST stop: confirmed not sent')
-            self.disarm()
-            return {'cid':cid,'state':'REJECTED','message':'Disarmed BEFORE Coinbase submission. No POST attempted.'}
-        # After POST, DO NOT allow automatic retries regardless of error, including timeout.
+    def submit(self,side=None,pair=None,usd_value=None,expected_quote=None,*,profit_target_usd=None,
+               protective_exit=False,live_dispatch=None):
+        runtime=getattr(self,'live_runtime',None)
+        if runtime is None or live_dispatch is None:
+            raise LiveBlocked('LIVE_ORDERS_BLOCKED: bounded beta session/dispatch required')
+        from coincat_live_beta import LiveBeta
+        from coincat_watchlist import product_eligibility
+        from coincat_eth_maker import post_only_eligible
+        if not isinstance(runtime,LiveBeta):raise LiveBlocked('INVALID_LIVE_BETA_RUNTIME')
+        try:order=runtime.claim(live_dispatch)
+        except ValueError as error:raise LiveBlocked(str(error)) from None
+        attempted=False
         try:
-            if side=='BUY':
-                response=as_dict(self.client.market_order_buy(client_order_id=cid,product_id=pair,quote_size=request_size))
-            else:
-                response=as_dict(self.client.market_order_sell(client_order_id=cid,product_id=pair,base_size=request_size))
+            state=runtime.private_state()
+            permissions=as_dict(self.client.get_api_key_permissions())
+            if (permissions.get('can_view') is not True or permissions.get('can_trade') is not True or
+                    permissions.get('can_transfer') is not False or permissions.get('portfolio_uuid')!=state['portfolio']):
+                raise LiveBlocked('LIVE_PERMISSION_OR_PORTFOLIO_RECHECK_FAILED')
+            product=as_dict(self.client.get_product(product_id=order['pair'],get_tradability_status=True))
+            if product_eligibility(order['pair'],{order['pair']:product}) is not None:
+                raise LiveBlocked('LIVE_PRODUCT_RULES_RECHECK_FAILED')
+            if (D(product.get('price_increment',product.get('quote_increment')))!=order['price_increment'] or
+                    order['base_size']%D(product['base_increment'])):
+                raise LiveBlocked('LIVE_NATIVE_PRECISION_CHANGED')
+            from coincat_multicurrency import _rule
+            increment,minbase,minquote,maxbase,maxquote=_rule({order['pair']:product},order['pair'])
+            gross=order['base_size']*order['limit_price']
+            if (order['base_size']<minbase or gross<minquote or
+                    maxbase is not None and order['base_size']>maxbase or maxquote is not None and gross>maxquote):
+                raise LiveBlocked('LIVE_NATIVE_MINIMUM_OR_MAXIMUM_CHANGED')
+            fresh=as_dict(self.client.get_product_book(product_id=order['pair'],limit=20)).get('pricebook')
+            if not isinstance(fresh,dict) or fresh.get('product_id')!=order['pair']:
+                raise LiveBlocked('LIVE_FRESH_BOOK_UNAVAILABLE')
+            bid,ask=D(fresh['bids'][0]['price']),D(fresh['asks'][0]['price'])
+            if not 0<bid<ask or (ask-bid)/ask>D('.0025'):
+                raise LiveBlocked('LIVE_FRESH_BOOK_INVALID_OR_WIDE')
+            if not post_only_eligible(order['side'],order['limit_price'],(bid,ask,runtime.clock()),order['price_increment']):
+                raise LiveBlocked('LIVE_POST_ONLY_RECHECK_WOULD_CROSS')
+            # A slow preflight cannot reuse an expired decision/balance grant.
+            if runtime.clock()-runtime.last_frame.at>30 or runtime.clock()-runtime.account['at']>30:
+                raise LiveBlocked('LIVE_DECISION_EXPIRED_DURING_PREFLIGHT')
+            runtime._eligible(runtime.private_state(),runtime.clock())
+            # This is the sole create-order path. The durable grant precedes the
+            # request; an uncertain response is locked and never retried.
+            attempted=True
+            method=self.client.limit_order_gtc_buy if order['side']=='BUY' else self.client.limit_order_gtc_sell
+            response=as_dict(method(client_order_id=order['client_order_id'],product_id=order['pair'],
+                base_size=fmt(order['base_size']),limit_price=fmt(order['limit_price']),post_only=True,
+                retail_portfolio_id=state['portfolio']))
+            runtime.sent_result(live_dispatch,response)
+            return response
         except Exception:
-            self.ledger.update_order(cid,state='UNKNOWN',checked_at=int(time.time()),detail='Submit response uncertain; investigate on Coinbase')
-            self.disarm()
-            return {'cid':cid,'state':'UNKNOWN','message':'Coinbase response uncertain; NO retry. Inspect orders directly.'}
-        oid=(response.get('success_response') or {}).get('order_id') or response.get('order_id')
-        if not oid:
-            self.ledger.update_order(cid,state='REJECTED' if response.get('success') is False else 'UNKNOWN',checked_at=int(time.time()))
-            self.disarm()
-            return {'cid':cid,'state':'UNKNOWN' if response.get('success') is not False else 'REJECTED','message':'No verified order ID; auto trading stopped'}
-        self.ledger.update_order(cid,order_id=str(oid),state='ACKNOWLEDGED',checked_at=int(time.time()))
-        return {'cid':cid,'state':'ACKNOWLEDGED','order_id':str(oid),'message':'Exchange accepted request; awaiting confirmed fills'}
+            if attempted:runtime.placement_unknown(live_dispatch)
+            else:runtime.sent_result(live_dispatch,{},definitely_not_sent=True)
+            raise LiveBlocked('LIVE_PLACEMENT_UNKNOWN_LOCKED' if attempted else 'LIVE_LOCAL_RECHECK_REJECTED_NO_POST') from None
+
+    def cancel_live_beta(self,reference):
+        runtime=getattr(self,'live_runtime',None)
+        if runtime is None:raise LiveBlocked('NO_MANAGED_LIVE_SESSION')
+        from coincat_live_beta import LiveBeta
+        if not isinstance(runtime,LiveBeta):raise LiveBlocked('INVALID_LIVE_BETA_RUNTIME')
+        order=runtime.claim_cancel(reference)
+        if order is None:return {'state':'AWAIT_RECONCILIATION'}
+        actual=as_dict(self.client.get_order(order_id=order['order_id'])).get('order') or {}
+        state=runtime.private_state()
+        if (actual.get('order_id')!=order['order_id'] or actual.get('client_order_id')!=order['client_order_id'] or
+                actual.get('retail_portfolio_id')!=state['portfolio'] or actual.get('product_id')!=order['pair'] or actual.get('side')!=order['side']):
+            runtime.lock_unknown(reference,'LIVE_CANCEL_IDENTITY_MISMATCH')
+            raise LiveBlocked('LIVE_CANCEL_IDENTITY_MISMATCH')
+        if actual.get('status') in ('FILLED','CANCELED','CANCELLED','EXPIRED','FAILED','REJECTED'):
+            return {'state':'TERMINAL_READ_RECONCILE_FILLS'}
+        # Reblocking still permits cancellation of an OWNED order. It never
+        # authorizes another placement or a sale of held inventory.
+        try:
+            response=as_dict(self.client.cancel_orders(order_ids=[order['order_id']]))
+            runtime.cancel_result(reference,response)
+            return response
+        except Exception:
+            runtime.lock_unknown(reference,'LIVE_CANCEL_RESPONSE_UNCERTAIN')
+            raise LiveBlocked('LIVE_CANCEL_RESPONSE_UNCERTAIN') from None
+
     def recover_receipt(self,order):
         """READ-ONLY lookup for an ambiguous POST, matching exact client_order_id.
         Never infers that absence of an order means the POST was not executed.

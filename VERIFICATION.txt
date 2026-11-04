@@ -1,3 +1,86 @@
+COINCAT v1.03beta — BOUNDED REAL MAKER SOURCE CANDIDATE
+Base: published v1.02 a09a1f3eab106f8d775e2ba76e80e29743292bd4.
+Branch: coincat-v1.03beta. Earlier v1.02/v1.01/v100 remain preserved.
+
+PERSONALLY EXECUTED CHECKS — NOVEMBER 4, 2026
+Full offline source run: 450 discovered / 450 distinct / 450 run, zero failures,
+errors, skips or expected failures in 45.207s. HTTP and WebSocket forbidden
+before discovery and during execution. Python 3.11.17 / SQLite 3.53.1 /
+Tk-Tcl 9.0 / Linux Xvfb. Canonical financial/native/frozen-session/UTF-8 tests
+remain, with intentional current-version/default-live-gate assertions updated.
+Forty-five new beta cases cover both maker dispatch directions, fee/native
+math, shared caps, explicit UNKNOWN entry, no POST retry, partial/cancel races,
+restarts, fee corrections (including terminal review), view-only/cursor imports,
+L2 absolute sequencing/invalidations/grouping, privacy and actual Tk bindings.
+
+Supplementary Python 3.13.5 / SQLite 3.46.1 / Tk-Tcl 8.6: 56 core/GUI tests pass,
+zero failures/errors/skips, 7.228s. This uses the same pure dependency directory;
+it is a Tk diagnostic, not native Windows or supported-runtime acceptance.
+A subsequent compact-row adjustment was checked with five actual Tk 8.6 GUI
+cases (2.334s) and synthetic captures at 1380x900 and 1040x780: healthy book bid
+and ask panes fit, with scroll access to extended details and true-alpha header.
+No native background ThemeChanged error was suppressed. The final exact package
+is independently extracted/rechecked; its full-suite log/checksum is delivered
+beside the ZIP rather than represented as Windows/connected proof.
+
+Actual localhost monitor: GET / and /monitor.js 200; unauthenticated status 401;
+authenticated status 200; POST 405; /stop 404. Node DOM harness verifies current
+bounded-live status, stale-current-gate clearing, absent snapshot and helper
+failure clearing for paper/manual/book/live. Strict projections reject unknown
+nested keys and export no quantities, settings, IDs, raw errors or private paths.
+
+Finite --synthetic replay passes: two terminal paper orders, four simulated
+fills, exactly two fictitious SOL, zero real orders/verified exchange fills.
+Touch alone cannot fill. The legacy holdout remains an uncalibrated synthetic
+stress exercise; no predictive or real profitability inference is made.
+The supplied owner statement's native-note calculation was read locally and
+matches .000151340 BTC gross / .0001505833 received / .0000007567 implied
+historical deduction / .5%; USD arithmetic agrees. This is not authenticated
+commission-currency, account reconciliation or an identifier join. No private
+statement/IDs/financial records are packaged or committed.
+
+All 59 other preexisting app files remain byte-identical to a09a1f3; only eight
+preexisting app files (UI/version/diagnostics/monitor/broker) are changed.
+The LiveLedger class remains byte-identical, SHA256:
+15a496420f75ae64c28bad69fecf78816f19cc3c397d1a46f4c556d994d43f26
+Financial/FIFO/state/import/key/lot/lock/native/global/transport libraries,
+requirements/lock, logo/icon and old datasets are preserved. The explicitly
+authorized broker edit removes unreachable market submission and adds only
+the bounded Post Only adapter. No legacy financial schema/basis/lot mutation
+was introduced. Source cache cleanup removed three .pyc files; no financial,
+research/session/import/key/backup/lock deletion. Twelve installed dependency
+versions match the unchanged lock; uv --offline pip check passes.
+
+Live block starts ON. Deliberate OFF + applied limits + explicit Start can
+send actual maker orders. Old positional broker calls remain blocked, and
+missing critical data means HOLD. Proposed unapplied initial caps: .005 ETH,
+$5/order, one open, four attempts, 30min, fee ceiling 2%. New live/manual stores
+are isolated native-flow/observation journals, not tax records or paper funds.
+STOP/reblock cancels only owned resting identities and reconciles racing fills;
+acknowledgment is not terminal. Closing can retain unresolved locks. Restart
+never resumes/reseeds. These behaviors are synthetic test evidence, not a
+connected guarantee. The source guard checker validates the new default-ON /
+maker-only boundary; it no longer falsely asserts a permanent global block.
+
+NOT RUN / NOT CLAIMED
+Native Windows setup/DPAPI/single-instance/DPI/reconnect soak; current Coinbase
+server sequencing/fee-denomination contract; actual saved-key manual order
+reproduction; real partial/cancel/timeout/balance reconciliation; prospective
+frozen-plan strategy evidence; independent operational/financial review.
+Coinbase hosts are unavailable and no Coinbase credentials are configured in
+this cloud environment. No cloud Coinbase create/edit/cancel/preview/transfer
+request, account allocation change or actual trade was made. Normal fee metadata
+may omit explicit denominations, so even enabled REAL mode may HOLD/UNKNOWN.
+No demonstrated edge, guaranteed profit or beta readiness signoff is claimed.
+See START_HERE.md, docs/BETA_1_03.md and docs/BETA_1_03_ACCEPTANCE.md.
+
+Source-only package uses regenerated SHA256_MANIFEST.json and independent ZIP
+checksum; excludes private data/backups, keys, uploads/CSV, logs, monitor/token
+files, virtual environments and bytecode. Final extracted checks are delivered
+separately. GitHub Actions/Windows/independent results are not inferred from
+local source tests. Prior verification entries below apply only to their named
+historical versions; their permanent-live-block text is superseded above.
+
 COINCAT v1.02 — GLOBAL PAPER SETTINGS SOURCE CANDIDATE
 Base: published bba4dfea67b45e6f4eff7f15b7ba4398ab486a08, separate coincat-v1.02.
 Previous coincat-v1.01 and coincat-v100 branches/installations are preserved.

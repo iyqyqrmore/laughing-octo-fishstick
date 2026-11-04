@@ -275,8 +275,8 @@ class PortablePaths(unittest.TestCase):
             run=subprocess.run([sys.executable,str(root/'verification/run_verification.py'),'pilot'],
                                capture_output=True,text=True,timeout=10)
             self.assertEqual(run.returncode,0,run.stdout+run.stderr)
-            self.assertIn('unconditional first-statement POST block',run.stdout)
-            self.assertIn('NOT APPROVED',run.stdout)
+            self.assertIn('default-ON bounded beta guard / maker-only adapter',run.stdout)
+            self.assertIn('NOT VERIFIED',run.stdout)
 
 
 if __name__=='__main__':unittest.main()

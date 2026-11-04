@@ -1,4 +1,4 @@
-"""CoinCat v1.02: a small ETH Growth research shell. Live orders stay blocked."""
+"""CoinCat v1.03beta: explicit paper / bounded real maker workspace."""
 from datetime import datetime,timezone
 from pathlib import Path
 from queue import Queue,Empty
@@ -26,13 +26,14 @@ from coincat_adaptive_eth import Frame
 from coincat_research_journal import ResearchJournal,register_from_eth,public_status as journal_public
 from coincat_auto_paper import AutoPaper
 from coincat_paper_policy import DIRECTIONS
+from coincat_beta_ui import BetaUI
 import sqlite3
 import uuid
 
 
-class CoinCatApp:
+class CoinCatApp(BetaUI):
     def __init__(self,root):
-        self.root=root;root.title(DISPLAY+' | ETH Growth — Research / Paper Only | LIVE blocked')
+        self.root=root;root.title(DISPLAY+' | Maker workspace | LIVE block ON by default')
         root.geometry(f'{max(1000,min(1380,root.winfo_screenwidth()-40))}x{max(740,min(900,root.winfo_screenheight()-70))}')
         root.minsize(1000,740)
         self.data=data_root();self.ledger=LiveLedger(self.data/'CoinCat_Live_Orders.sqlite3')
@@ -44,6 +45,7 @@ class CoinCatApp:
         self.applied_eth_key=None;self.recovery=Recovery();self.retry_kind=None
         self.paper=AutoPaper(self.data/'research_data'/'auto_paper')
         self.paper_public=self.paper.public();self.paper_observe=False
+        self._beta_init()
         self.connected=False;self.running=False;self.closed=False;self.busy=False;self.generation=0
         self.cancel=threading.Event();self.jobs=Queue();self._after={};self.last_error=None
         self.worker_thread=None;self.shutdown_complete=threading.Event()
@@ -68,6 +70,8 @@ class CoinCatApp:
         self.root.protocol('WM_DELETE_WINDOW',self._close);self._schedule('poll',100,self._poll)
         self._schedule('history',200,self.chart.refresh)
         self._schedule('freshness',1000,self._freshness_tick)
+        self._schedule('beta_tick',1000,self._beta_tick)
+        self._schedule('book_tick',200,self._book_tick)
 
     def _ui(self):
         from coincat_workspace import build_workspace
@@ -208,6 +212,8 @@ class CoinCatApp:
 
     def _import_key(self):
         if self.busy:self.status.set('Wait for the read-only request to finish.');return
+        if self.live.public()['unresolved']:
+            self.status.set('Reconcile owned live orders before changing the saved key. Current identities and reserves are retained.');return
         path=filedialog.askopenfilename(title='Choose Coinbase CDP JSON',filetypes=[('JSON','*.json')])
         if not path:return
         self._invalidate()
@@ -239,11 +245,15 @@ class CoinCatApp:
         if self.running:return
         if not self.connected or self.scanner is None:self.status.set('Connect first.');return
         if self.applied_config is None:self.status.set('Apply a research plan first.');return
+        self.live.set_blocked(True);self.live_orders_blocked.set(True);self.live_observe=False
         self.paper_observe=False
         self.running=True;self.cancel=threading.Event();self.recovery.start()
         self.status.set('RUNNING · Observing direct ETH markets · No live orders');self._scan()
 
     def _stop(self):
+        self.live.set_blocked(True);self.live_orders_blocked.set(True)
+        self.live_coordinator.last_poll_mono=None
+        self.manual_cancel.set()
         self.running=False;self.cancel.set();self.generation+=1;self.recovery.stop()
         try:self.paper.pause(at=time.time())
         except (ValueError,OSError,sqlite3.Error):pass
@@ -256,8 +266,11 @@ class CoinCatApp:
                 except tk.TclError:pass
         self.status.set('STOPPED · Findings and paper reserves retained · LIVE orders blocked')
         if hasattr(self,'paper_panel'):self.paper_panel.refresh()
+        self._beta_refresh()
 
     def _paper_scan_config(self):
+        if self.live_observe and self.live.config is not None:
+            return MakerConfig(companions=('BTC','ADA','LINK','SOL'),amount_eth=self.live.config.amount_eth,observe_watchlist=True).validate()
         if not self.paper_observe:return self.applied_config
         config=self.paper.config
         if config is None:return None
@@ -269,6 +282,7 @@ class CoinCatApp:
         if self.closed:return
         if self.busy:self.paper_panel.message.set('Wait for the current read-only request to finish.');return
         if self.scanner is None or not self.connected:self.paper_panel.message.set('Connect and verify the current working proposal first.');return
+        self.live_observe=False
         try:
             now=time.time()
             if self.paper.engine is None:
@@ -329,8 +343,8 @@ class CoinCatApp:
         if self.busy:self._schedule('scan',250,self._scan);return
         config=self._paper_scan_config();cancel=self.cancel
         if config is None:return
-        draft=self.allocation_editor.parameters()['allocation_draft'];funding_key=None if self.paper_observe else self.applied_eth_key
-        usd=bool(self.paper_observe and self.paper.engine is not None and
+        draft=self.allocation_editor.parameters()['allocation_draft'];funding_key=None if self.paper_observe or self.live_observe else self.applied_eth_key
+        usd=bool(self.live_observe or self.paper_observe and self.paper.engine is not None and
             self.paper.engine.private_state()['auto'].get('global_history'))
         self._submit('scan',lambda:self.scanner.scan_growth(config,cancel=cancel,allocation_draft=draft,
                      applied_eth_key=funding_key,force_refresh=force_refresh,include_usd_reference=usd))
@@ -373,11 +387,14 @@ class CoinCatApp:
             while True:
                 kind,generation,payload,error=self.jobs.get_nowait();self.busy=False
                 if generation!=self.generation:continue
+                if kind.startswith('beta_') or kind=='manual_import':
+                    self._beta_result(kind,payload,error);continue
                 if error:self._handle_failure(kind,error);continue
                 if payload.get('state')=='CANCELLED':continue
                 self.last_error=None
                 if kind=='connect':
                     self.connected=True;self.recovery.authenticated();self._render_wallet()
+                    self.live_coordinator.bind(self.scanner.client)
                     excluded=tuple(r['asset'] for r in self.ledger.assets() if not r.get('enabled',1))
                     available=available_companions(self.scanner.catalog,self.scanner.rules,excluded)
                     for box in self.companion_boxes:box.configure(values=('',*available))
@@ -400,9 +417,12 @@ class CoinCatApp:
                     self.last_result=payload;self._render(payload)
                     # Only a current accepted Tk generation can mutate the paper
                     # wallet. The collector/worker has no paper order authority.
+                    accepted_frame=self._beta_frame(payload['research_frame'])
                     if self.last_result is payload and generation==self.generation and self.paper_observe:
-                        self.paper.on_frame(payload['research_frame'],usd_reference=payload.get('usd_reference'))
+                        self.paper.on_frame(accepted_frame,usd_reference=payload.get('usd_reference'))
                         self.paper_public=self.paper.public();self.paper_panel.refresh(payload)
+                    if self.last_result is payload and generation==self.generation and self.live_observe:
+                        self._queue_live_frame(accepted_frame,payload.get('usd_reference'))
                     if time.time()-self.last_note_at>=180:
                         self._note(payload['lab_note']);self.last_note_at=time.time()
                     if self.running and self._paper_scan_config() is not None:
@@ -442,6 +462,7 @@ class CoinCatApp:
         self._set_journal_status((self.last_result or {}).get('prospective_journal',self.journal_status))
         self._update_market_view(now)
         if hasattr(self,'paper_panel'):self.paper_panel.refresh(self.last_result,at=now)
+        self._beta_refresh()
 
     def _set_journal_status(self,value):
         journal=journal_public(value);self.journal_status=journal
@@ -522,7 +543,7 @@ class CoinCatApp:
             role='ETH scenario' if row.get('mode')=='ETH_SCENARIO' else 'Await BTC inventory' if 'ETH' not in pair.split('-') else 'Watch only'
             self.watch_tree.item(pair,values=(pair,price,label,role))
         result=self.last_result or {};counts=result.get('study_counts',{})
-        self.counter_text.set(f'Scans {result.get("scan",0)} · Setups {counts.get("setups",0)}\nVerified bot fills 0 · Bot orders 0')
+        self.counter_text.set(f'Scans {result.get("scan",0)} · Setups {counts.get("setups",0)}\nVerified bot fills {self.live_public["fills"]} · Bot orders {self.live_public["orders"]}')
         if self.scanner is None:return
         # Display only snapshots accepted on the GUI thread. A late worker from
         # an invalidated generation must not update the reference basket either.
@@ -549,8 +570,10 @@ class CoinCatApp:
         if self.last_result is not result:return  # A changed default invalidates this queued plan.
         self.chart.set_products([r['market']['pair'] for r in result['rows']]);self.chart.refresh(live=True)
         self._render_rows(result,freshness(result,time.time(),fee_ttl=self.fees.ttl))
-        mode='Auto Paper '+self.paper.public()['state']+' · ' if self.paper_observe else ''
-        self.status.set(f"{self.recovery.state} · {mode}Scan {result['scan']} · {result['state']}")
+        if self.live_observe:self.status.set(f"{self.recovery.state} · REAL beta {self.live_public['state']} · Native scan {result['scan']}")
+        else:
+            mode='Auto Paper '+self.paper.public()['state']+' · ' if self.paper_observe else ''
+            self.status.set(f"{self.recovery.state} · {mode}Scan {result['scan']} · {result['state']}")
         self._select_row()
         self._update_freshness()
 
@@ -608,15 +631,15 @@ class CoinCatApp:
         self.monitor.stop(final)
 
     def _export(self):
-        path=filedialog.asksaveasfilename(title='Save v1.02 diagnostics',defaultextension='.txt',
-            initialfile='CoinCat_v1.02_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
+        path=filedialog.asksaveasfilename(title='Save v1.03beta diagnostics',defaultextension='.txt',
+            initialfile='CoinCat_v1.03beta_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
         if path:
             try:Path(path).write_text(make_report(self),encoding='utf-8')
             except OSError as exc:messagebox.showerror('Diagnostics',f'Export failed ({type(exc).__name__}).')
 
     def _close(self):
         if self.closed:return
-        self._stop();self.closed=True
+        self._stop();self.book_stream.stop();self.closed=True
         if self.monitor.enabled:self._monitor_stop('CLOSED')
         for task in self._after.values():
             try:self.root.after_cancel(task)
@@ -630,10 +653,18 @@ class CoinCatApp:
         from coincat_v701_transport import SCOUT
         worker=self.worker_thread
         with SCOUT.lock:scouting=any(not f.done() for f in SCOUT.inflight)
-        if (worker is not None and worker.is_alive()) or scouting:
-            self.status.set('Closing · Waiting for the canceled read-only request to finish')
+        if (worker is not None and worker.is_alive()) or scouting or self.book_stream.alive():
+            self.status.set('Closing · Waiting for bounded workers; live block ON')
             self.root.after(50,self._finish_close);return
         if worker is not None:worker.join()
+        if not self._beta_shutdown_started and self.live_coordinator.needs_poll():
+            self._beta_shutdown_started=True
+            def settle_before_close():
+                # One bounded read/cancel pass; unknown orders stay durably locked.
+                # It cannot place an order because STOP already set the gate ON.
+                self.live_coordinator.cycle()
+            self.worker_thread=threading.Thread(target=settle_before_close,name='CoinCat-live-stop-reconcile',daemon=False)
+            self.worker_thread.start();self.root.after(50,self._finish_close);return
         self.root.destroy();self.shutdown_complete.set()
 
 
