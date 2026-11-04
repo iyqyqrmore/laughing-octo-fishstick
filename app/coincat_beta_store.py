@@ -70,8 +70,11 @@ class BetaStore:
     def _db(self):
         if self.path.is_symlink() or self.path.parent.is_symlink():raise BetaBlocked('BETA_SYMLINK_REJECTED')
         db=sqlite3.connect(self.path.resolve().as_uri()+'?mode=rw',uri=True,timeout=1)
-        if db.execute('PRAGMA application_id').fetchone()[0]!=self.application_id:
-            db.close();raise BetaBlocked('WRONG_BETA_DATABASE')
+        try:
+            if db.execute('PRAGMA application_id').fetchone()[0]!=self.application_id:
+                raise BetaBlocked('WRONG_BETA_DATABASE')
+        except BaseException:
+            db.close();raise
         return db
 
     def state(self):

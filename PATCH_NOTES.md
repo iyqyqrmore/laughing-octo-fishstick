@@ -1,3 +1,24 @@
+# CoinCat v1.03beta — Windows verification handle cleanup
+
+The owner's native run of 5bb6273 checked all 150 hashes and ran 450 tests in
+1613.266s: zero assertion failures, one Windows file-lock cleanup error and one
+host-symlink capability skip. The new foreign-database fixture used SQLite's
+transaction context manager without closing the connection; Windows correctly
+refused to remove that still-open synthetic database.
+
+Close that fixture explicitly. Hold SQLite objects strongly in the regression
+probe and assert every handle is closed before temporary-directory cleanup,
+including rejected stores and duplicate/conflicting events. Also close the beta
+store's connection if its initial application-ID query raises, such as with a
+corrupt header, preserving the file unchanged. No cleanup-error suppression,
+garbage-collection workaround or weakened assertion is used. Trading behavior,
+fees, limits, privacy, financial datasets and UI are unchanged. Native Windows
+verification of this corrected source still needs a fresh run.
+
+Corrected offline source: 451 distinct tests pass with HTTP/WebSocket forbidden;
+the 15 focused cases also pass on a second Python/SQLite runtime. The regression
+probe detects the original corrupt-header leak and confirms the corrected path.
+
 # CoinCat v1.03beta — explicit bounded REAL maker execution
 
 Replaces the permanent block with an ON-at-boot **Live orders blocked** switch.

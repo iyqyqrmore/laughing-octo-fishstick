@@ -1,5 +1,6 @@
 """No real network. An enabled beta can POST only its qualified bounded intent."""
 from copy import deepcopy
+from contextlib import closing
 from dataclasses import replace
 from decimal import Decimal as D
 from pathlib import Path
@@ -16,6 +17,7 @@ from coincat_global_paper import GlobalSettings
 from coincat_fee_prices import ask_costs
 from offline_tests import test_global_paper as g
 from offline_tests import test_auto_paper as old
+from offline_tests.sqlite_resources import held_sqlite_connections
 
 NOW=old.NOW
 PORTFOLIO='00000000-0000-0000-0000-000000000002'
@@ -127,15 +129,28 @@ class LiveBetaGate(unittest.TestCase):
     def test_live_journal_rejects_financial_database_and_conflicting_event_ids(self):
         path=Path(self.temp.name)/'unrelated.sqlite3'
         import sqlite3
-        with sqlite3.connect(path) as db:db.execute('CREATE TABLE original(value)');db.commit()
-        before=path.read_bytes()
-        with self.assertRaises((ValueError,sqlite3.Error)):BetaStore(path,7,initial={})
-        self.assertEqual(path.read_bytes(),before)
-        self.funded();store=self.engine.store
-        store.change('TEST','fixed',{'x':D(1)},lambda s:None)
-        revision=store.revision;store.change('TEST','fixed',{'x':D(1)},lambda s:None)
-        self.assertEqual(store.revision,revision)
-        with self.assertRaises(BetaBlocked):store.change('TEST','fixed',{'x':D(2)},lambda s:None)
+        with held_sqlite_connections() as handles:
+            with closing(sqlite3.connect(path)) as db,db:db.execute('CREATE TABLE original(value)')
+            self.assertTrue(handles[0].closed,'The fixture must close before Windows temporary-directory cleanup')
+            before=path.read_bytes()
+            with self.assertRaises((ValueError,sqlite3.Error)):BetaStore(path,7,initial={})
+            self.assertEqual(path.read_bytes(),before)
+            self.funded();store=self.engine.store
+            store.change('TEST','fixed',{'x':D(1)},lambda s:None)
+            revision=store.revision;store.change('TEST','fixed',{'x':D(1)},lambda s:None)
+            self.assertEqual(store.revision,revision)
+            with self.assertRaises(BetaBlocked):store.change('TEST','fixed',{'x':D(2)},lambda s:None)
+            self.assertTrue(all(db.closed for db in handles),'Rejected stores and duplicate/conflicting events must close every handle')
+
+    def test_corrupt_live_store_rejection_closes_handle_without_mutating_the_file(self):
+        import sqlite3
+        path=Path(self.temp.name)/'malformed.sqlite3';before=b'SYNTHETIC non-SQLite data; preserve unchanged'
+        path.write_bytes(before)
+        with held_sqlite_connections() as handles:
+            with self.assertRaises(sqlite3.DatabaseError):BetaStore(path,7,initial={})
+            self.assertTrue(handles,'The rejection must exercise an actual SQLite connection')
+            self.assertTrue(all(db.closed for db in handles),'Corrupt-header rejection must release its SQLite handle')
+            self.assertEqual(path.read_bytes(),before)
 
     def receipt(self,cid,*,fraction=D(1),currency='BTC',status='FILLED'):
         order=self.engine.private_state()['orders'][cid];quantity=order['base_size']*fraction;gross=quantity*order['limit_price'];fee=gross*D('.005')

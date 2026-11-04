@@ -1,3 +1,37 @@
+COINCAT v1.03beta — WINDOWS VERIFICATION HANDLE REPAIR
+Parent: published 5bb62739df56ae933e90770e75ca324f929b47f7.
+
+OWNER-SUPPLIED NATIVE RESULT FOR THE PARENT
+Windows Python 3.11.9 / SQLite 3.45.1 / Tk-Tcl 8.6. All 150 source hashes
+matched; 450 discovered/distinct/run, 1613.266s, zero assertion failures,
+one error and one host-symlink skip. The error was WinError 32 removing a
+synthetic unrelated.sqlite3 at test teardown, not an exchange call or an
+application trading assertion. That run is FAILED, not an acceptance pass.
+
+REPAIR
+SQLite's connection context manager commits/rolls back but does not close.
+The fixture now explicitly closes before cleanup. Strong-reference resource
+probes assert closure on success, foreign-store rejection and duplicate/conflict
+returns. A corrupt-header rejection test also asserts file preservation and
+handle closure; the beta store now closes on a failed initial identity query.
+No skipped error, forced garbage collection or cleanup exception suppression.
+Only this isolated storage error path, tests and release evidence change;
+trading decisions, gates, fees, limits, UI, protected financial code, logo and
+locked dependencies retain the parent's bytes.
+
+EXECUTED REPAIR CHECKS
+451 discovered/distinct/run, zero failures/errors/skips/expected failures in
+45.525s, Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0. HTTP/WebSocket
+forbidden before discovery and throughout execution. Fifteen focused live/store
+tests pass in 0.194s, and pass on supplementary Python 3.13.5 / SQLite 3.46.1
+in 0.240s. The corrupt-header regression deliberately detects the prior store's
+unclosed handle and passes with the correction, without relying on GC.
+
+The corrected source requires a new native Windows run. Exact package
+extraction results are delivered with the corrected ZIP.
+The following release ledger is historical evidence for the parent unless
+explicitly superseded above; it is not a native pass for this repair.
+
 COINCAT v1.03beta — BOUNDED REAL MAKER SOURCE CANDIDATE
 Base: published v1.02 a09a1f3eab106f8d775e2ba76e80e29743292bd4.
 Branch: coincat-v1.03beta. Earlier v1.02/v1.01/v100 remain preserved.
