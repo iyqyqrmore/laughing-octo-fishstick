@@ -1,5 +1,6 @@
 """Real Tk controls with fake venue events; offline, no private installation."""
 from copy import deepcopy
+import csv
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
@@ -98,6 +99,41 @@ class ManualWorkspace(unittest.TestCase):
             self.assertNotIn(secret,raw);self.assertNotIn(secret,report)
         changed=deepcopy(snapshot);changed['manual_execution']['price']='0.03'
         with self.assertRaises(ValueError):encode(changed)
+    def test_imported_filled_trade_and_csv_corroboration_reach_exports_without_execution_credit(self):
+        from offline_tests.test_beta_evidence import native_record
+        from offline_tests.test_spot_manual import iso,NOW,OID
+        order,fills=native_record(currency=None)
+        self.venue.orders[OID]=order;self.venue.fills[OID]=fills
+        self.connect();self.clock.tick(110)
+        self.app.import_history(OID);self.pump(lambda:not self.app.busy)
+        def exported():return capture(self.app,session='0'*32,sequence=1,now=self.clock.wall())
+        before=exported();history=before['beta']['manual'];own=before['manual_execution']
+        self.assertEqual((history['state'],history['orders'],history['filled'],history['known_native_flow'],history['unknown']),
+            ('OBSERVED',1,1,0,1))
+        self.assertEqual((own['orders'],own['fills'],own['unresolved']),(0,0,0))
+        self.assertFalse(history['execution_authority'])
+        report=diagnostic(self.app)
+        self.assertIn('Imported Coinbase history: OBSERVED; orders 1; filled 1',report)
+        self.assertIn('order attempts 0; CoinCat fills 0',report)
+        # Re-reading an identical order must not inflate imported counts.
+        self.app.import_history(OID);self.pump(lambda:not self.app.busy)
+        self.assertEqual(exported()['beta']['manual']['orders'],1)
+        path=Path(self.tmp.name)/'statement.csv'
+        with path.open('w',newline='',encoding='utf-8') as file:
+            writer=csv.DictWriter(file,fieldnames=['ID','Timestamp','Transaction Type','Asset','Quantity Transacted','Notes'])
+            writer.writeheader();writer.writerow(dict(ID='synthetic_statement',Timestamp=iso(NOW+106),
+                **{'Transaction Type':'Advanced Trade Sell','Asset':'ETH','Quantity Transacted':'-.005',
+                   'Notes':'Sold 0.005 ETH for 0.0001505833 BTC on ETH-BTC at 0.030268 BTC/ETH'}))
+        with patch('coincat_spot_app.filedialog.askopenfilename',return_value=str(path)):self.app.import_statement()
+        self.pump(lambda:not self.app.busy);after=exported();history=after['beta']['manual']
+        self.assertEqual((history['orders'],history['filled'],history['known_native_flow'],history['unknown']),(1,1,1,0))
+        self.assertEqual((after['manual_execution']['orders'],after['manual_execution']['fills']),(0,0))
+        self.assertEqual(self.app.history_store.records()[0]['fills'],fills)
+        self.assertEqual(self.app.history_store.records()[0]['report']['fee_currencies'],[None])
+        self.assertEqual((self.venue.posts,self.venue.cancels),([],[]))
+        for text in (encode(after).decode(),diagnostic(self.app)):
+            for private in (OID,self.tmp.name,'0.030268','0.0001505833'):
+                self.assertNotIn(private,text)
     def test_close_during_unknown_cancel_is_bounded_and_preserves_lock(self):
         self.connect();p=self.app.panel();p.use_price('ASK');p.size.set('.001');self.app.blocked.set(False);self.app.toggle_block()
         self.app.place(p);self.pump(lambda:not self.app.busy)

@@ -29,8 +29,8 @@ def main():
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
     data=dict(build='1.03beta-manual-candidate',
-        description='Manual spot workspace with native-resize synchronization in verification and an isolated focused window check. Application/trading behavior unchanged; native Windows rerun and connected acceptance pending.',
-        base_commit='2e9fa6959abee08f07dbdb4bec2221cbffcd679b',
+        description='Manual spot workspace with separate current-session execution and imported Coinbase history summaries in diagnostics/monitor. Read-only imports and corroborated flow never become execution credit; native Windows and connected acceptance pending.',
+        base_commit='5342a3fb512a87b7ef910b40df95ceaa591b9021',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))

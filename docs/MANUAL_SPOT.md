@@ -107,3 +107,13 @@ journals are retained beside it. Historical read-only observations retain their
 existing store. Eight-section diagnostics and the strict optional monitor-v3
 `manual_execution` extension export controlled states/counts only. The monitor
 remains GET-only and cannot place, cancel, reprice or update the app.
+
+The history-reporting follow-up copies the saved read-only history summary
+into `beta.manual` for the manual workspace as well as archived clients.
+Diagnostics section 4 and the monitor execution panel label the current
+CoinCat session. Section 6 and a visible Imported Coinbase history panel show
+historical order/filled/partial/canceled/native-flow/unresolved-settlement
+counts. Missing fee denomination does not erase a reported filled order.
+API-supported or uniquely CSV-corroborated native flows count as known
+arithmetic; account reconciliation remains UNKNOWN. No imported record becomes
+an execution, a fundable position, a new order or a changed fee setting.

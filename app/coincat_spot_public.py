@@ -22,15 +22,20 @@ def diagnostic(app):
     except OSError:manifest_sha=None
     snap=capture(app,session='0'*32,sequence=1,manifest_sha256=manifest_sha)
     manual=validate(snap['manual_execution'])
+    history=snap['beta']['manual']
     lines=[DISPLAY+' Manual Spot — redacted diagnostics','SECTION COMPLETENESS: COMPLETE (8/8)',
         '[1/8] Build: MANUAL_SPOT; authenticated LIMIT GTC; no automatic orders.',
         'Source manifest SHA256: '+str(manifest_sha),
         '[2/8] Connection: '+snap['health']['connection_state'],
         '[3/8] Quotes: REST pricebooks; exchange trade candles; displayed snapshots are not fills.',
-        '[4/8] Execution: '+manual['state']+'; live block '+('ON' if manual['blocked'] else 'OFF')+
-            '; orders '+str(manual['orders'])+'; fills '+str(manual['fills'])+'; unresolved '+str(manual['unresolved']),
+        '[4/8] CoinCat current session: '+manual['state']+'; live block '+('ON' if manual['blocked'] else 'OFF')+
+            '; order attempts '+str(manual['orders'])+'; CoinCat fills '+str(manual['fills'])+'; unresolved '+str(manual['unresolved']),
         '[5/8] Fees: authenticated maker/taker estimates; preview does not prove realized fee units.',
-        '[6/8] History: local API records and optional statement corroboration; no tax-ledger writes.',
+        '[6/8] Imported Coinbase history: '+history['state']+'; orders '+str(history['orders'])+
+            '; filled '+str(history['filled'])+'; partials '+str(history['partials'])+
+            '; canceled unfilled '+str(history['canceled_unfilled'])+
+            '; known native flows (API or CSV) '+str(history['known_native_flow'])+
+            '; unresolved settlement '+str(history['unknown'])+'. Read-only; account reconciliation UNKNOWN.',
         '[7/8] Automation: OFF; no profit forecast or completed-rotation admission gate.',
         '[8/8] Storage: separate manual identity journal; private financial records preserved.',
         'Connected acceptance and native Windows verification must be run locally.',

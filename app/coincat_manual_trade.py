@@ -284,6 +284,7 @@ class ManualTradeStore:
             orders=len(reports),filled=sum(r['state']=='FILLED' for r in reports),
             partials=sum(r['state'] in ('PARTIAL','CANCELED_PARTIAL') for r in reports),
             canceled_unfilled=sum(r['state']=='CANCELED_UNFILLED' for r in reports),
-            known_native_flow=sum(r['native_settlement']=='KNOWN_FILL_FLOW_NOT_ACCOUNT_RECONCILIATION' for r in reports),
+            known_native_flow=sum(r['native_settlement'] in ('KNOWN_FILL_FLOW_NOT_ACCOUNT_RECONCILIATION',
+                'STATEMENT_CORROBORATED_NATIVE_FLOW') for r in reports),
             unknown=sum(r['state']=='HISTORY_INCOMPLETE' or r['native_settlement']=='UNKNOWN' for r in reports),
             account_reconciliation='UNKNOWN',execution_authority=False,sample_warning='SMALL_SELECTED_SAMPLE_NO_DEMONSTRATED_EDGE')

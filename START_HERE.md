@@ -6,10 +6,10 @@ Use normal 64-bit Windows Python 3.11 and the locked setup dependencies.
 
 For the Windows resize-verification follow-up, first run
 **tools\VERIFY_MANUAL_WINDOW.bat** after setup. It verifies the source hashes
-and runs only the **nine** isolated manual-window checks, including delayed
+and runs only the **ten** isolated manual-window checks, including delayed
 native resizing. This provides a quick check before repeating the full suite;
 its focused PASS does not replace full verification. The corrected full suite
-discovers **487 tests** and source verification checks **158 files**.
+discovers **488 tests** and source verification checks **158 files**.
 
 1. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Wait for the
    final COUNTS and PASS/FAIL. Windows previously took about 22–30 minutes;
@@ -35,7 +35,10 @@ discovers **487 tests** and source verification checks **158 files**.
    Ambiguous/missing/conflicting rows stay unresolved. No order is placed here.
 7. Use **Diagnostics** and optional **Local monitor** in the toolbar, then
    **tools\START_LOCAL_MONITOR.bat**. Confirm the manual LIMIT provider,
-   current gate, order/fill/unresolved counts and Automation OFF. Exports have
+   current gate, current CoinCat session counts and Automation OFF. Imported
+   Coinbase history has its own order/filled/known-flow/unresolved-settlement
+   counts, updated after history reads and CSV cross-checks. A filled imported
+   order remains visible while its settlement arithmetic is UNKNOWN. Exports have
    no native amounts, prices, limits, IDs, key material or private paths.
 
 ## One bounded real manual order

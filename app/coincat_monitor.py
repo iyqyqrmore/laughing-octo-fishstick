@@ -84,7 +84,8 @@ def capture(app,*,session,sequence,manifest_sha256=None,now=None,lifecycle='OPEN
             captured_at=tier.get('at'),fresh=bool(tier and 0<=now-tier['at']<=3600))),
             scanner=SimpleNamespace(account_at=account_at),recovery=SimpleNamespace(diagnostics=lambda:dict(connection_state=state)),
             companions=[],running=bool(app.connected),busy=bool(app.busy),applied_config=None,
-            connected=bool(app.connected),last_error='READ_FAILED' if app.last_error else None)
+            connected=bool(app.connected),last_error='READ_FAILED' if app.last_error else None,
+            manual_public=getattr(app,'history_public',None))
         snapshot=capture(legacy,session=session,sequence=sequence,manifest_sha256=manifest_sha256,now=now,lifecycle=lifecycle)
         snapshot['manual_execution']=manual_validate(dict(app.manual_public));validate(snapshot);return snapshot
     result=app.last_result or {};scanner=app.scanner;tier=result.get('fee_evidence',{})

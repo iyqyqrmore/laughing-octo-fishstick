@@ -1,3 +1,27 @@
+# CoinCat v1.03beta — imported history in diagnostics and monitor
+
+Manual Spot previously exported only the current session's execution counters.
+Its read-only history store was not connected to the monitor projection, the
+diagnostic history section was static text, and the monitor's manual panel
+overwrote the read-only history text with current-session counts. A successfully
+imported filled Coinbase order could therefore be missing from both reports.
+
+Cache and export the read-only history summary after imports, CSV corroboration
+and startup. Give imported Coinbase history its own visible monitor panel and
+diagnostic counts, and label current-session execution separately. Count known
+native arithmetic from explicit API flow or unique statement corroboration;
+keep reported fills visible even when settlement remains UNKNOWN. No imported
+order/fill is credited to execution or used for funding. Existing monitor-v3
+schemas, redaction and record/fee provenance remain intact.
+
+The regression imports a synthetic filled order without fee units, verifies
+both reports show it alongside zero session execution, re-reads without count
+inflation, then checks CSV corroboration updates only native-flow counts.
+The focused window/history checker now runs ten tests; full verification runs
+488. Source hashes cover 158 files. Native Windows/connected acceptance still
+requires local evidence. Order submission, caps and financial accounting do
+not change in this follow-up.
+
 # CoinCat v1.03beta — Windows resize verification
 
 The owner's native Windows run matched all 157 source hashes and completed

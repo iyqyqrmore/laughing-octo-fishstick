@@ -26,6 +26,7 @@ HTML='''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <h2>Prospective experiment journal</h2><p id="journal"></p>
 <h2>Auto maker PAPER session</h2><p id="paper"></p></section>
 <h2>Order execution</h2><p id="beta"></p><p id="manual"></p><p id="book"></p>
+<section id="imported_section" hidden><h2>Imported Coinbase history</h2><p id="imported"></p></section>
 <button id="download">Save redacted snapshot</button>
 <details><summary>Technical detail</summary><pre id="detail"></pre></details>
 <p class="note">The helper records while this chat is inactive. An assistant reads it only during an active session with private access configured.
@@ -64,9 +65,11 @@ async function refresh(){
   put("manual",b?"Read-only manual history: "+b.manual.state+" · Orders "+b.manual.orders+" · Known native flows "+b.manual.known_native_flow+" · Unknown "+b.manual.unknown+" · Account reconciliation UNKNOWN; not bot fills":"Manual history unavailable");
   put("book",b?"Public book: "+b.book.state+" · Healthy "+b.book.healthy+" / "+b.book.subscribed+" · Visible levels are not queue or fill evidence":"Public book unavailable");
   const m=s?.manual_execution;document.getElementById("legacy").hidden=!!m;
-  if(m){put("beta",(latest.state==="APP_REPORTING"?(m.blocked?"LIVE BLOCK ON":"LIVE ENABLED · MANUAL CLICKS ONLY"):"LAST CAPTURE · CURRENT LIVE GATE UNVERIFIED")+" · "+m.state+" · Orders "+m.orders+" · Exchange fills "+m.fills+" · Unresolved "+m.unresolved+" · Automation OFF");put("manual","Manual LIMIT GTC · Completed "+m.completed+" · Canceled "+m.canceled+" · Profit NOT ASSESSED");put("book","REST pricebook snapshots · visible prices do not establish a fill");}
+  document.getElementById("imported_section").hidden=!m;
+  put("imported",b?"At capture: "+b.manual.state+" · Imported orders "+b.manual.orders+" · Filled "+b.manual.filled+" · Partials "+b.manual.partials+" · Canceled unfilled "+b.manual.canceled_unfilled+" · Known native flows (API or CSV) "+b.manual.known_native_flow+" · Unresolved settlement "+b.manual.unknown+" · Read-only; account reconciliation UNKNOWN":"Imported history unavailable");
+  if(m){put("beta",(latest.state==="APP_REPORTING"?(m.blocked?"LIVE BLOCK ON":"LIVE ENABLED · MANUAL CLICKS ONLY"):"LAST CAPTURE · CURRENT LIVE GATE UNVERIFIED")+" · "+m.state+" · Current CoinCat session: order attempts "+m.orders+" · CoinCat fills "+m.fills+" · Unresolved "+m.unresolved+" · Automation OFF");put("manual","Manual LIMIT GTC · Completed "+m.completed+" · Canceled "+m.canceled+" · Profit NOT ASSESSED");put("book","REST pricebook snapshots · visible prices do not establish a fill");}
   put("detail",JSON.stringify(latest,null,2));
- }catch(e){latest=null;put("beta","Current live gate unverified");put("manual","Current manual history unavailable");put("book","Current public book unavailable");put("paper","Current paper status unavailable");put("journal","Current journal unavailable");put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
+ }catch(e){latest=null;put("beta","Current live gate unverified");put("manual","Current manual history unavailable");put("imported","Current imported history unavailable");put("book","Current public book unavailable");put("paper","Current paper status unavailable");put("journal","Current journal unavailable");put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
 }
 document.getElementById("download").addEventListener("click",()=>{if(!latest)return;const u=URL.createObjectURL(new Blob([JSON.stringify(latest,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download="CoinCat_v1.03beta_Monitor_Snapshot.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});
 refresh();setInterval(refresh,5000);

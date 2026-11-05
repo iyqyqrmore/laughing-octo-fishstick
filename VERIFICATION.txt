@@ -1,3 +1,58 @@
+COINCAT v1.03beta — IMPORTED HISTORY REPORTING FOLLOW-UP
+Source base: published 5342a3fb512a87b7ef910b40df95ceaa591b9021.
+
+CONFIRMED REPORTING GAP
+The manual workspace retained imported Coinbase orders in its read-only
+history store, but supplied only current-session execution counters to its
+monitor wrapper. The wrapper left beta.manual at its default UNOBSERVED/zero
+projection. The diagnostic history section contained static text, and the
+browser replaced its read-only history line with current execution status.
+Thus a filled historical order could be absent from both reports even after
+a successful read. The zero current-session execution count remains correct
+for an order placed externally; imported history needs its own visible count.
+
+REPAIR
+Cache read-only history status at startup and after imports/CSV cross-checks;
+pass it through the existing strict beta.manual schema. Diagnostics now label
+the current CoinCat session and imported history separately. The browser has
+a dedicated Imported Coinbase history panel. Filled-order counts do not
+depend on settlement certainty. Explicit API native flow and uniquely
+CSV-corroborated native flow both count as known arithmetic; imported records
+never receive execution credit, paper capital or authority to place orders.
+No public schema fields, monetary exports or raw records are added.
+
+EXECUTED FOCUSED CHECKS
+Ten isolated manual-window/history checks pass with HTTP/WebSocket forbidden
+before discovery: 5.762s on Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0;
+6.442s on supplementary Linux Python 3.13.5 / SQLite 3.46.1 / Tk-Tcl 8.6.
+The full source run discovers/runs 488 distinct tests in 52.136s with zero
+failures/errors/skips/expected failures and HTTP/WebSocket forbidden.
+The new regression imports one synthetic filled order without fee units,
+checks both diagnostic and monitor show imported filled=1 with current
+execution=0, re-reads without count inflation, then cross-checks a synthetic
+CSV and verifies known-flow=1/unknown=0 while execution stays zero. Original
+API fills and unreported fee currencies remain intact. Private IDs, native
+prices, proceeds and paths do not enter the exported summaries.
+
+Node DOM checks exercise the actual monitor script/markup: imported filled
+orders with unresolved settlement, CSV-known arithmetic without execution
+credit, stale-capture labeling, legacy v3 compatibility, missing snapshots and
+helper-failure clearing. Full 488-case source and extracted-package results
+are retained with external release artifacts. The focused launcher runs ten
+checks and explicitly does not replace the full verifier. There remain 158
+hashed source files. Restart the updated app and helper, carry over verified
+private history, and create fresh exports after completed imports.
+
+BOUNDARIES
+Only read-only history counting, cached/public projections, report/monitor
+labels and associated verification/release documentation change. Order
+submission, fee calculations, balances, limits, financial/FIFO/key/import/
+lock modules, datasets and dependencies are not changed. No cloud account
+request or real trade is performed. Native Windows rerun and connected
+execution acceptance remain local checks.
+
+The following is historical evidence for the previous source candidate.
+
 COINCAT v1.03beta — WINDOWS RESIZE VERIFICATION FOLLOW-UP
 Source base: published 2e9fa6959abee08f07dbdb4bec2221cbffcd679b.
 

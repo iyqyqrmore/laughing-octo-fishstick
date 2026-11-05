@@ -40,12 +40,15 @@ Financial/FIFO/tax data, keys, backups, prior research records and the transpare
 upper-right logo are preserved. Manual order identities use a separate journal.
 Diagnostics and the optional read-only local monitor support this workspace and
 export controlled counts/states without private amounts, IDs or raw responses.
+Imported Coinbase history has a separate summary from the current CoinCat
+session. Historical filled orders appear even when fee-unit evidence remains
+unresolved. API-supported and CSV-corroborated native-flow arithmetic updates
+the history summary without adding CoinCat execution credit or paper funding.
 
 Follow [START_HERE.md](START_HERE.md) and [the manual design/test guide](docs/MANUAL_SPOT.md).
 The Windows resize-verification follow-up waits for native events before
 measuring the requested window. After setup, `tools\VERIFY_MANUAL_WINDOW.bat`
-runs a hash-checked nine-test quick check; the full verifier still runs all
-487 tests. Application and trading behavior retain the previous build's bytes.
+runs a hash-checked ten-test quick check; the full verifier runs all 488 tests.
 Cloud offline checks do not establish native Windows or connected acceptance.
 No account order is placed from this development session. Branch:
-`coincat-v1.03beta`; base for the resize follow-up: `2e9fa69`.
+`coincat-v1.03beta`; base for the history-reporting follow-up: `5342a3f`.

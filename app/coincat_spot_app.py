@@ -194,6 +194,7 @@ class SpotApp:
         self.reader=SpotReader(client or Unconnected(),clock=clock,budget=None if client is not None else BUDGET)
         self.engine=ManualExecution(self.data/'research_data'/'spot_manual'/'active.sqlite3',self.reader,clock=clock,legacy_pending=lambda:legacy_pending(self.data))
         self.history_store=ManualTradeStore(self.data/'research_data'/'manual_trade_lab'/'observations.sqlite3')
+        self.history_public=self.history_store.public()
         self.account=None;self.connected=False;self.busy=False;self.closed=False;self.closing=False;self.jobs=Queue();self.worker=None
         self.status=tk.StringVar(value='Connect / refresh to read markets and balances. Automation is OFF.')
         self.market=tk.StringVar(value='ETH-BTC');self.blocked=tk.BooleanVar(value=True);self.monitor_on=tk.BooleanVar(value=False)
@@ -366,6 +367,7 @@ class SpotApp:
         for tree in self.trees.values():
             for row in tree.get_children():tree.delete(row)
         state=self.engine.state();owned_ids=set();self.records=self.history_store.records()
+        self.history_public=self.history_store.public()
         for cid,o in state['orders'].items():
             if o['order_id']:owned_ids.add(o['order_id'])
             values=(o['pair'],o['side'],fmt(o['price']),fmt(o['size']),fmt(o['filled']),o['state'],(o['order_id'] or o['cid'])[:8]+'…')
