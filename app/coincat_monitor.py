@@ -12,7 +12,7 @@ import time
 import uuid
 
 from coincat_version import DISPLAY
-from coincat_auto_paper import public_status as paper_public,validate_public as validate_paper_public
+from coincat_paper_public import public_status as paper_public,validate_public as validate_paper_public
 from coincat_adaptive_eth import public_summary as adaptive_public,validate_public
 from coincat_research_journal import public_status as journal_public,validate_public as validate_journal_public
 from coincat_beta_public import project as beta_project,validate as beta_validate
@@ -87,7 +87,9 @@ def capture(app,*,session,sequence,manifest_sha256=None,now=None,lifecycle='OPEN
             connected=bool(app.connected),last_error='READ_FAILED' if app.last_error else None,
             manual_public=getattr(app,'history_public',None))
         snapshot=capture(legacy,session=session,sequence=sequence,manifest_sha256=manifest_sha256,now=now,lifecycle=lifecycle)
-        snapshot['manual_execution']=manual_validate(dict(app.manual_public));validate(snapshot);return snapshot
+        snapshot['manual_execution']=manual_validate(dict(app.manual_public))
+        from coincat_shadow_public import project as trial_project
+        snapshot['shadow_trial']=trial_project(getattr(app,'shadow_public',None));validate(snapshot);return snapshot
     result=app.last_result or {};scanner=app.scanner;tier=result.get('fee_evidence',{})
     recovery=app.recovery.diagnostics();failure=recovery.get('last_failure')
     last_failure=None if not failure else dict(stage=_enum(failure.get('stage'),STAGES),
@@ -138,7 +140,8 @@ def validate(value):
     fields='schema version session sequence manifest_sha256 captured_at lifecycle companions health products observations adaptive prospective_journal'
     exact(value,fields+(' auto_paper' if isinstance(value,dict) and 'auto_paper' in value else '')+
         (' beta' if isinstance(value,dict) and 'beta' in value else '')+
-        (' manual_execution' if isinstance(value,dict) and 'manual_execution' in value else ''))
+        (' manual_execution' if isinstance(value,dict) and 'manual_execution' in value else '')+
+        (' shadow_trial' if isinstance(value,dict) and 'shadow_trial' in value else ''))
     if value['schema']!=SCHEMA or value['version']!=DISPLAY:raise ValueError('INVALID_MONITOR_VERSION')
     if not isinstance(value['session'],str) or not re.fullmatch(r'[0-9a-f]{32}',value['session']):raise ValueError('INVALID_MONITOR_SESSION')
     if type(value['sequence']) is not int or not 1<=value['sequence']<=2**53:raise ValueError('INVALID_MONITOR_SEQUENCE')
@@ -175,6 +178,9 @@ def validate(value):
     if 'manual_execution' in value:
         from coincat_spot_public import validate as manual_validate
         manual_validate(value['manual_execution'])
+    if 'shadow_trial' in value:
+        from coincat_shadow_public import validate as trial_validate
+        trial_validate(value['shadow_trial'])
     exact(value['observations'],' '.join(COUNTS))
     for raw in value['observations'].values():count(raw)
     return value

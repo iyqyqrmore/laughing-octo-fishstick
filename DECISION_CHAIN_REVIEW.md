@@ -1,3 +1,11 @@
+# Current v1.04 decision chain
+
+The active trial objective is risk-adjusted total portfolio USD versus the original
+five-asset HOLD benchmark. See docs/V1_04_RESUMABLE_TRIAL.md for persistence,
+policy and lifecycle, and docs/V1_04_RETIREMENT.md for the active dependency map.
+No completed ETH cycle or one-cent profit gate controls the new shadow trial.
+The following review documents earlier retained compatibility behavior.
+
 # CoinCat v1.03beta decision and execution chain
 
 1. Start with process live block ON; no restart resume. Market stream and its

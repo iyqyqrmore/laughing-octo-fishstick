@@ -24,7 +24,7 @@ def diagnostic(app):
     manual=validate(snap['manual_execution'])
     history=snap['beta']['manual']
     lines=[DISPLAY+' Manual Spot — redacted diagnostics','SECTION COMPLETENESS: COMPLETE (8/8)',
-        '[1/8] Build: MANUAL_SPOT; authenticated LIMIT GTC; no automatic orders.',
+        '[1/8] Build: MANUAL_SPOT + RESUMABLE_SHADOW_V1_04; authenticated manual LIMIT GTC; no automatic live orders.',
         'Source manifest SHA256: '+str(manifest_sha),
         '[2/8] Connection: '+snap['health']['connection_state'],
         '[3/8] Quotes: REST pricebooks; exchange trade candles; displayed snapshots are not fills.',
@@ -36,7 +36,11 @@ def diagnostic(app):
             '; canceled unfilled '+str(history['canceled_unfilled'])+
             '; known native flows (API or CSV) '+str(history['known_native_flow'])+
             '; unresolved settlement '+str(history['unknown'])+'. Read-only; account reconciliation UNKNOWN.',
-        '[7/8] Automation: OFF; no profit forecast or completed-rotation admission gate.',
+        '[7/8] Resumable shadow trial: '+snap.get('shadow_trial',{}).get('state','OFF')+
+            '; valid seconds '+str(snap.get('shadow_trial',{}).get('valid_seconds',0))+
+            ' / 604800; restarts '+str(snap.get('shadow_trial',{}).get('restart_count',0))+
+            '; full-market coverage '+str(snap.get('shadow_trial',{}).get('coverage_percent',0))+
+            '%. Risk-adjusted portfolio USD vs original HOLD; forecast UNVALIDATED; automatic live authority NONE.',
         '[8/8] Storage: separate manual identity journal; private financial records preserved.',
         'Connected acceptance and native Windows verification must be run locally.',
         'No amounts, prices, limits, private paths, account IDs, order IDs or raw API responses are exported.']

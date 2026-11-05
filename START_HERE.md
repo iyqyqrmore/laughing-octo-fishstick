@@ -1,86 +1,60 @@
-# CoinCat v1.03beta — manual trading test
+# CoinCat v1.04 — Windows acceptance
 
-Use a separate extracted folder. Preserve the installed folder, private records
-and backups; do not overlay a running version or share data between processes.
-Use normal 64-bit Windows Python 3.11 and the locked setup dependencies.
+Use a separate extracted v1.04 folder. Preserve the installed folder and all
+private records/backups; never overlay a running installation or share its data
+between processes. Use normal 64-bit Windows Python 3.11.
 
-For the Windows resize-verification follow-up, first run
-**tools\VERIFY_MANUAL_WINDOW.bat** after setup. It verifies the source hashes
-and runs only the **ten** isolated manual-window checks, including delayed
-native resizing. This provides a quick check before repeating the full suite;
-its focused PASS does not replace full verification. The corrected full suite
-discovers **488 tests** and source verification checks **158 files**.
+1. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Wait for final
+   COUNTS and PASS. Numbered tests and 30-second heartbeats show progress; earlier
+   Windows runs took 20–30 minutes. Any failure needs its final traceback.
+   **tools\VERIFY_RESUMABLE_TRIAL.bat** is a focused quick check, not full acceptance.
+2. Recover verified private data into a separate empty destination. Use
+   **04_FIRST_TIME_SETUP.bat** only for an explicitly intended fresh installation.
+   Preserve financial records, basis and keys; never upload credentials.
+3. Launch **01_START_COINCAT.bat**. Confirm v1.04, seven native market tabs,
+   dropdown/favorite star, transparent upper-right logo and **Live orders blocked
+   ON**. Connect while blocked. Manual Spot remains available; shadow research
+   cannot send, preview or cancel a Coinbase order.
+4. Open **Resumable Trial — 168 Valid Hours**. Review the initial shadow caps:
+   $5/order, $10 lifetime turnover, four lifetime proposals, up to 50% available
+   source inventory, one open proposal, 30-day original intent deadline.
+   These are frozen research limits, separate from manual real-order limits.
+   Start once. The five-coin actual snapshot is copied as hypothetical inventory
+   and the original HOLD benchmark. Subsequent account changes do not fund it.
+5. Observe for 15–30 minutes. PRIMING/RECOVERING transitions to RUNNING only with
+   fresh validated seven-market coverage, a valuation reference and authenticated
+   fee estimates. Confirm valid hours, remaining hours, coverage and HOLD value.
+   Default decisions can remain HOLD. No price touch creates a fill. Proposed
+   orders are local hypotheses; modeled fills require explicit replay receipts.
+6. On Windows, minimize/close to the tray. Confirm the icon opens CoinCat and
+   progress continues. Tray Pause stops valid hours; Resume keeps the same trial.
+   Use **Exit safely** in the tray to quit. Restart after a short or overnight
+   break: confirm the same trial, holdings, benchmark, limits and accumulated
+   hours. Offline hours must not appear as valid time. User-paused stays paused.
+   Windows shutdown must proceed normally; recovery uses the last checkpoint.
+7. Disconnect the network, wait beyond quote freshness, reconnect. The state must
+   show a gap without growing valid time; recovery needs fresh full coverage.
+   Check multiple restarts and a several-day gap. Preserve a review-required
+   database; do not delete it to manufacture a fresh trial. At 168 hours the
+   trial freezes and writes a private summary; it never starts another trial.
+8. Export **Diagnostics** and optionally enable **Local monitor**, then run
+   **tools\START_LOCAL_MONITOR.bat**. Confirm v1.04, separate current manual and
+   imported-history counts, and shadow state/progress/counts. Exports contain
+   no monetary amounts, prices, IDs, trial UUIDs or private paths. The detailed
+   trial dashboard and summary remain private on your PC.
+9. For the November 4 evidence, choose **November 4 fee audit…** in the trial
+   dashboard, or run **tools\AUDIT_MANUAL_FILLS.bat** and select the statement CSV.
+   It uses the saved key for bounded GET-only history reads. Keep the detailed
+   JSON local. Partial history, absent fee currencies and unmatched rows remain
+   UNKNOWN; CSV arithmetic never changes future authenticated fee settings.
 
-1. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Wait for the
-   final COUNTS and PASS/FAIL. Windows previously took about 22–30 minutes;
-   numbered tests and 30-second heartbeats show progress. Any failure/error
-   needs its final traceback. A host symlink-capability skip is separate.
-2. Recover verified private data to a separate empty destination, or use
-   **04_FIRST_TIME_SETUP.bat** only for explicitly confirmed fresh data.
-   Preserve financial backups; an empty setup cannot recover historical basis.
-3. Launch **01_START_COINCAT.bat**. Confirm **Manual Spot**, seven market tabs,
-   market dropdown with favorite star, upper-right transparent logo,
-   **Live orders blocked ON**, and **Automation OFF**.
-4. Import the key JSON locally if needed, then **Connect / refresh**. Never
-   upload keys, private databases or monitor tokens. Confirm ETH-BTC prices
-   are BTC per ETH, amounts ETH, and balances distinguish available from held.
-   Read-only REST pricebooks are sufficient; WebSocket is not required.
-5. Switch between all seven tabs, try grouping and the base/quote amount
-   selector, and resize the window. The scrollable ticket keeps its order
-   button visible. Stale books clear; they never become simulated fills.
-6. In **Trade details / CSV**, select an order or enter its full ID and click
-   **Read order & fills**. Then **Cross-check statement CSV**. Reopen details
-   to inspect the saved report revision. A unique consistent native/time match
-   can corroborate settlement while API fee currencies remain unchanged.
-   Ambiguous/missing/conflicting rows stay unresolved. No order is placed here.
-7. Use **Diagnostics** and optional **Local monitor** in the toolbar, then
-   **tools\START_LOCAL_MONITOR.bat**. Confirm the manual LIMIT provider,
-   current gate, current CoinCat session counts and Automation OFF. Imported
-   Coinbase history has its own order/filled/known-flow/unresolved-settlement
-   counts, updated after history reads and CSV cross-checks. A filled imported
-   order remains visible while its settlement arithmetic is UNKNOWN. Exports have
-   no native amounts, prices, limits, IDs, key material or private paths.
+Shadow acceptance does not require turning off the manual live block. Turning
+it OFF still enables actual manual Buy/Sell clicks under the existing caps;
+it never grants automatic live permission. A future bounded autonomous live
+pilot needs separate authorization and connected accounting/recovery acceptance.
+See [the trial design](docs/V1_04_RESUMABLE_TRIAL.md),
+[retirement map](docs/V1_04_RETIREMENT.md), and
+[fee audit evidence](docs/V1_04_FEE_AUDIT.md).
 
-## One bounded real manual order
-
-This step can move real funds. Offline tests cannot prove that today's connected
-exchange contract or Windows DPAPI works. Keep Coinbase open alongside CoinCat.
-
-1. Open **Caps…** and review the defaults: **$5/order, .005 ETH-equivalent
-   session turnover, four submissions, one open order, 1800 seconds, .02 fee
-   buffer fraction (2%)**. They are active risk limits for manual tickets.
-   Pick a small valid amount within the caps and exchange minimums. If a native
-   minimum exceeds the cap, stop and review; CoinCat will not enlarge the order.
-2. Choose the native market and side. **SELL at ASK** normally rests.
-   **BUY at ASK with Post Only OFF** may take immediately. Its fee estimate
-   uses the maximum authenticated maker/taker rate. With **Post Only ON**, use
-   BID to buy or ASK to sell; a crossing price must be rejected without fallback.
-3. Deliberately switch **Live orders blocked OFF**. It enables manual clicks;
-   it does not start a trader. Click the ticket's Buy/Sell button once.
-   Fresh scope/permissions, rules, funds, valuation caps and exchange preview
-   precede the one create request. There is no predicted-profit prerequisite.
-4. Find the matching order on Coinbase. Compare market, side, size, native
-   limit, Post Only and status. Inspect actual fills/fees, not quote touches.
-   Use **Open orders → Cancel selected**, or **Cancel & refresh ticket**.
-   Wait for terminal cancellation and complete reported fills. A refreshed
-   remainder is only a draft; inspect it and click again to send it.
-5. Test a partial fill/cancel if naturally available. A racing full fill must
-   leave no remainder. A network timeout/unknown result must lock the original
-   identity rather than retry. Refresh/reconcile and inspect Coinbase before
-   doing anything else. External/manual Coinbase orders are read-only here.
-6. Switch block ON before finishing. Keep CoinCat open until owned orders
-   reconcile. Closing performs one bounded cancel/read pass and retains locks
-   if it cannot establish the outcome; verify uncertain orders on Coinbase.
-   Restart always blocks live creation and never repeats a submission.
-7. Limits survive reconnect/restart. After every order is terminal, **New
-   session · archive completed** preserves the completed journal and starts
-   blocked with the same caps. It cannot clear an unresolved order.
-
-The older paper replay remains available at **tools\RUN_PAPER_REPLAY.bat** as a
-finite offline simulation. It does not run this manual client or test live
-connectivity. **tools\STORAGE_REPORT.py** is report-only unless source-cache
-cleanup is explicitly selected; financial/history data is never deleted.
-
-First establish manual placement, fills and cancellation locally. Automation,
-automatic refreshed replacement and predictive-performance claims are separate
-future work. Historical guides describe archived workflows, not today's launcher.
+Historical guides and **RUN_PAPER_REPLAY.bat** describe retained compatibility
+workflows. The replay is finite offline simulation, not a live venue test.

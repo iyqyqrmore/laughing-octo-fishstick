@@ -1,4 +1,67 @@
-# Codex instructions — CoinCat v1.03beta
+# Codex instructions — CoinCat v1.04
+
+RESUMABLE V1.04 OWNER OVERRIDE — NOVEMBER 5, 2026
+The latest pasted v1.04 handoff is the controlling scope. Build a restart-safe
+autonomous portfolio RESEARCH system with 168 cumulative valid observation
+hours, not a new bounded ETH-cycle experiment. Prioritize recovery correctness.
+Persist the trial ID/start, strategy/parameters, exact hypothetical inventory,
+reservations, orders, original HOLD quantities, observations, fees/outcomes and
+clock/run checkpoints transactionally. Use monotonic validated intervals;
+paused, disconnected, partial, suspended and offline time never counts as
+full valid hours. Preserve partial coverage/downtime/restarts separately.
+Automatically recover and resume an opted-in SHADOW trial after integrity,
+version, market and unresolved-order checks; user-paused trials stay paused.
+Never invent downtime fills or reset budgets/baselines/accumulated valid hours.
+The new shadow collector may read all SEVEN native books plus the ETH-USD
+valuation reference within sixteen paced GETs; the old six-book research
+rotation is archived and cannot silently define full seven-market coverage.
+Use Windows native tray support; close/minimize-to-tray keeps monitoring,
+pause stops valid time, explicit Exit checkpoints, OS shutdown is never vetoed.
+At 168 valid hours freeze/preserve the trial and produce a review report; no
+new trial or real-money permission starts automatically. All unattended real
+execution remains unavailable; live/manual block resets ON after restart.
+Deliver v1.04 source on a separate coincat-v1.04 branch, preserving v1.03beta
+and earlier releases. Existing source publication preference continues for
+this shadow-only release, with no real-money automation publication, account
+trade, PC installation or deployment from this session.
+
+PRIMARY PORTFOLIO OBJECTIVE OVERRIDE — NOVEMBER 5, 2026
+The owner changes the new shadow automation objective to maximize risk-adjusted
+total portfolio USD value, net of all trading costs, against simply holding the
+original portfolio quantities. BTC/ETH/SOL/LINK/ADA may remain as inventory.
+No forced ETH return, no trades mandated at 120 seconds, and no one-cent trigger.
+This supersedes ETH-cycle qualification and ETH-only shadow funding below for
+the new automation. Freeze the original five-asset portfolio baseline; preserve
+actual available/hold semantics, explicit simulated budget/limits and original
+expiry. Attribute performance only to reconciled modeled fills/costs; keep
+open exposures, residuals and uncertainty visible. HOLD when a risk-adjusted
+edge does not justify costs/uncertainty. Shadow forecasts are unvalidated and
+cannot authorize unattended live execution. Historical ETH-policy modules and
+records remain compatibility artifacts, not active strategy requirements.
+
+SHADOW AUTOMATION OWNER OVERRIDE — NOVEMBER 5, 2026 (America/Chicago)
+The owner requests the next automation design patch on Manual Spot: audit all
+November 4 fills against the statement; retire active legacy controller wiring;
+extract reusable authenticated order/inventory services; add a seven-market,
+fourteen-direction maker-limit selector and auditable 30s/120s lifecycle.
+Implement read-only/shadow automation only. No unattended live authorization,
+live automatic submit/cancel, taker fallback, fabricated quote-touch fills or
+promotion of imported account history into simulation funding. Preserve manual
+click trading and its default-ON live block separately. Live pilot authorization
+is a later explicit step after local execution/accounting acceptance.
+Historical CSV-derived fees are evidence for those trades, never live fee
+settings. Missing API receipt/currency/liquidity remains UNKNOWN. Shadow uses
+an explicitly selected capped ETH simulation allocation; evaluate all fourteen
+directions but spend only funded, unreserved simulated assets. Only explicit
+replay receipts may advance simulated fills/holds; current quotes cannot fill.
+Keep durable attempts/capital/original expiry, one open order, STOP/restart
+reconciliation and cancel/remaining/hold checks. Complete after-cost ETH-return
+evaluation precedes any labeled simulated win; no shadow result is real profit.
+Preserve all private data, canonical financial/fee math, key/import/lock guards
+and historical compatibility. Deliver retirement map, audit evidence, state
+machine, regression/acceptance report and a source-only package after checks.
+Earlier source commit/push authorization on coincat-v1.03beta continues; no
+deployment, PC installation or real account trade is authorized here.
 
 MANUAL-FIRST OWNER OVERRIDE — NOVEMBER 4, 2026 (America/Chicago)
 The owner now explicitly requests a much simpler Coinbase-style manual spot

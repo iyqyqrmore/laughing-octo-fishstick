@@ -1,4 +1,4 @@
-"""Regenerate the v1.03beta manifest and optional source-only ZIP; no private inputs."""
+"""Regenerate the v1.04 manifest and optional source-only ZIP; no private inputs."""
 import argparse
 import hashlib
 import json
@@ -28,9 +28,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
-    data=dict(build='1.03beta-manual-candidate',
-        description='Manual spot workspace with separate current-session execution and imported Coinbase history summaries in diagnostics/monitor. Read-only imports and corroborated flow never become execution credit; native Windows and connected acceptance pending.',
-        base_commit='5342a3fb512a87b7ef910b40df95ceaa591b9021',
+    data=dict(build='1.04-resumable-shadow-candidate',
+        description='Resumable 168-valid-hour portfolio USD shadow research; isolated transactional trial clock, recovery, GET-only observations, native Windows tray and private fee audit. Automatic live authority unavailable. Native Windows and connected acceptance pending.',
+        base_commit='902320907843dcbca67a0b26de29896ae8a675ad',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))
@@ -39,7 +39,7 @@ def main():
         if path==ROOT or ROOT in path.parents:raise ValueError('Keep package outside source checkout')
         with zipfile.ZipFile(path,'w',compression=zipfile.ZIP_DEFLATED) as archive:
             for name in names+['SHA256_MANIFEST.json']:
-                archive.write(ROOT/name,'CoinCat_v1.03beta/'+name)
+                archive.write(ROOT/name,'CoinCat_v1.04/'+name)
         digest=hashlib.sha256(path.read_bytes()).hexdigest()
         path.with_suffix(path.suffix+'.sha256').write_text(digest+'  '+path.name+'\n',encoding='utf-8')
         print('Source ZIP:',path.name,'SHA256',digest)

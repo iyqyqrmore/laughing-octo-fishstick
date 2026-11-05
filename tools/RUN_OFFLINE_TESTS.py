@@ -46,12 +46,13 @@ class ProgressResult(unittest.TextTestResult):
         self.progress.update(f'between tests ({self.testsRun}/{self.total} finished)')
 
 
-def main(*,manual_window=False):
+def main(*,manual_window=False,trial=False):
     root=Path(__file__).resolve().parents[1]
     sys.path[:0]=[str(root/'app'),str(root)]
     import tkinter
     print('RUNTIME',sys.platform,'Python',sys.version.split()[0],
           'SQLite',sqlite3.sqlite_version,'Tk',tkinter.TkVersion,'Tcl',tkinter.TclVersion,flush=True)
+    if trial:print('FOCUSED RESUMABLE TRIAL CHECKS ONLY; no connected or native Windows acceptance.',flush=True)
     if manual_window:print('FOCUSED MANUAL WINDOW CHECKS ONLY; full source verification is still required.',flush=True)
     with Progress(sys.stderr) as progress,TemporaryDirectory(prefix='CoinCat_Offline_Disposable_') as data:
         with patch.dict(os.environ,{'COINCAT_DATA_DIR':data,'PYTHONDONTWRITEBYTECODE':'1'}):
@@ -59,7 +60,7 @@ def main(*,manual_window=False):
                     patch('websockets.sync.client.connect',side_effect=AssertionError('OFFLINE_WS_FORBIDDEN')), \
                     patch('websockets.connect',side_effect=AssertionError('OFFLINE_WS_FORBIDDEN')):
                 suite=unittest.defaultTestLoader.discover(str(root/'offline_tests'),
-                    pattern='test_spot_workspace.py' if manual_window else 'test*.py')
+                    pattern='test_spot_workspace.py' if manual_window else 'test_*trial*.py' if trial else 'test*.py')
                 def cases(node):
                     for item in node:
                         if isinstance(item,unittest.TestSuite):yield from cases(item)
@@ -82,4 +83,5 @@ def main(*,manual_window=False):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manual-window',action='store_true',help='Run only the isolated manual-window checks; not a full verification pass.')
-    args=parser.parse_args();raise SystemExit(main(manual_window=args.manual_window))
+    parser.add_argument('--trial',action='store_true',help='Focused resumable trial checks only; not full acceptance.')
+    args=parser.parse_args();raise SystemExit(main(manual_window=args.manual_window,trial=args.trial))

@@ -197,7 +197,7 @@ class PaperPanel(ttk.Frame):
     def copy_global_settings(self):
         try:settings=self._global_draft()
         except (ValueError,ArithmeticError):self.global_status.set('Correct the draft settings before copying.');return
-        text=('CoinCat v1.03beta proposed global maker settings\nMinimum completed-rotation net profit: $'+format(settings.min_net_usd,'.2f')+
+        text=('CoinCat v1.04 proposed global maker settings\nMinimum completed-rotation net profit: $'+format(settings.min_net_usd,'.2f')+
             ' USD-equivalent\nInitial working ETH allocation: '+str(settings.initial_pct)+'% (once, not halved again)'+
             '\nSubsequent available/unreserved source per order: up to '+str(settings.source_pct)+'%'+
             f'\nReview {settings.review_s}s; reconsider {settings.reconsider_s}s.\n'+

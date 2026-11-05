@@ -17,10 +17,14 @@ from tkinter import ttk,filedialog
 import uuid
 
 from coinbase_account import parse_key_json,save_encrypted,load_encrypted
-from coincat_beta_controller import protect_sdk_logs
+from coincat_sdk_logging import protect_sdk_logs
+from coincat_shadow_trader import ShadowTrader
+from coincat_shadow_source import ShadowMarketSource
+from coincat_portfolio_policy import PortfolioConfig
+from coincat_tray import TrayController
 from coincat_beta_store import BetaBlocked,unpack
 from coincat_live import client_from_credentials
-from coincat_live_beta import LiveLimits
+from coincat_execution_limits import LiveLimits
 from coincat_manual_trade import ManualTradeStore,identity
 from coincat_monitor import MonitorPublisher
 from coincat_order_book import BookView,display_levels
@@ -189,18 +193,23 @@ class MarketPanel(ttk.Frame):
 
 class SpotApp:
     manual_workspace=True
-    def __init__(self,root,*,data=None,client=None,clock=time.time):
+    def __init__(self,root,*,data=None,client=None,clock=time.time,monotonic_ns=time.monotonic_ns):
         self.root=root;self.data=Path(data) if data is not None else data_root();self.clock=clock;self.client=client
         self.reader=SpotReader(client or Unconnected(),clock=clock,budget=None if client is not None else BUDGET)
         self.engine=ManualExecution(self.data/'research_data'/'spot_manual'/'active.sqlite3',self.reader,clock=clock,legacy_pending=lambda:legacy_pending(self.data))
         self.history_store=ManualTradeStore(self.data/'research_data'/'manual_trade_lab'/'observations.sqlite3')
         self.history_public=self.history_store.public()
+        self.shadow=ShadowTrader(self.data/'research_data'/'resumable_trial'/'active.sqlite3',clock=clock,monotonic_ns=monotonic_ns)
+        self.shadow_source=ShadowMarketSource(self.reader);self.trial_window=None;self.shadow_due=0;self.clock_due=0;self.shadow_public=self.shadow.public()
         self.account=None;self.connected=False;self.busy=False;self.closed=False;self.closing=False;self.jobs=Queue();self.worker=None
         self.status=tk.StringVar(value='Connect / refresh to read markets and balances. Automation is OFF.')
         self.market=tk.StringVar(value='ETH-BTC');self.blocked=tk.BooleanVar(value=True);self.monitor_on=tk.BooleanVar(value=False)
         self.publisher=MonitorPublisher();self.last_read_at=None;self.last_error=False;self.reads=0;self.history={};self.favorites=set()
         self.manual_public=self.engine.public();self._after=None;self.refresh_due=0;self.poll_due=0;self.stop_requested=False
-        self._ui();self._load_favorites();self.refresh_local();root.protocol('WM_DELETE_WINDOW',self.close)
+        self._ui();self._load_favorites();self.refresh_local()
+        self.tray=TrayController(root,status=self.tray_status,toggle=self.toggle_trial,open_trial=self.open_trial,exit_safely=self.close,shutdown=self.os_shutdown)
+        root.protocol('WM_DELETE_WINDOW',self.window_close);root.bind('<Unmap>',self.tray.minimized,add='+')
+        if self.shadow.store and self.shadow.store.clock['wanted']:root.after(500,self.connect)
         self._after=root.after(100,self.tick)
 
     def _ui(self):
@@ -215,6 +224,8 @@ class SpotApp:
         self.logo_source=tk.PhotoImage(width=source.width(),height=445)
         self.logo_source.tk.call(self.logo_source,'copy',source,'-from',0,145,source.width(),590)
         self.logo=self.logo_source.subsample(8);self.logo_label=ttk.Label(head,image=self.logo);self.logo_label.grid(row=0,column=1,rowspan=2,sticky='e',padx=10)
+        self.trial_badge=ttk.Button(head,text='Resumable Trial — 168 Valid Hours · OFF',command=self.open_trial)
+        self.trial_badge.grid(row=2,column=0,sticky='w',pady=3)
         toolbar=ttk.Frame(shell);toolbar.grid(row=1,column=0,sticky='ew',pady=(4,7))
         self.market_box=ttk.Combobox(toolbar,textvariable=self.market,values=WATCH_PAIRS,state='readonly',width=12);self.market_box.pack(side='left')
         self.market_box.bind('<<ComboboxSelected>>',lambda e:self.select_market(self.market.get()))
@@ -321,6 +332,7 @@ class SpotApp:
             save_encrypted(parse_key_json(p.read_text(encoding='utf-8')))
             self.engine.set_blocked(True);self.blocked.set(True);self.connected=False;self.client=None
             self.reader=SpotReader(Unconnected(),clock=self.clock);self.engine.reader=self.reader;self.engine.client=self.reader.client
+            self.shadow_source=ShadowMarketSource(self.reader);self.pause_trial()
             self.account=None
             for panel in self.panels.values():panel.snap=None;panel.draw_book()
             self.status.set('Key saved with Windows DPAPI. Connect to refresh. Live block is ON.')
@@ -358,7 +370,7 @@ class SpotApp:
     def refresh_controls(self):
         if self.engine.expired():self.engine.set_blocked(True)
         self.manual_public=self.engine.public();self.blocked.set(self.manual_public['blocked'])
-        self.badge.configure(text='LIVE BLOCK '+('ON' if self.blocked.get() else 'OFF')+' · Automation OFF · '+self.manual_public['state'])
+        self.badge.configure(text='LIVE BLOCK '+('ON' if self.blocked.get() else 'OFF')+' · Shadow '+self.shadow.public()['state']+' · '+self.manual_public['state'])
         self.root.title(DISPLAY+' · Manual Spot · Live '+('blocked' if self.blocked.get() else 'enabled for manual clicks'))
         limits=self.engine.state()['limits'];self.cap_text.set('Session caps: $'+fmt(limits['max_order_usd'])+' / order · '+str(limits['max_orders'])+' orders\n'+fmt(limits['max_eth'])+' ETH equivalent · '+str(limits['duration_s']//60)+' minutes')
         for panel in self.panels.values():panel.estimate_ticket()
@@ -467,7 +479,7 @@ class SpotApp:
         if self.work('statement',crosscheck):self.status.set('Matching CSV native fields to saved API fills; no orders or fee settings change…')
     def export(self):
         from coincat_spot_public import diagnostic
-        path=filedialog.asksaveasfilename(parent=self.root,initialfile='CoinCat_v1.03beta_Manual_Diagnostics.txt',defaultextension='.txt')
+        path=filedialog.asksaveasfilename(parent=self.root,initialfile='CoinCat_v1.04_Diagnostics.txt',defaultextension='.txt')
         if not path:return
         try:Path(path).write_text(diagnostic(self),encoding='utf-8');self.status.set('Eight redacted manual-workspace diagnostic sections exported.')
         except (ValueError,OSError):self.status.set('Diagnostic export failed.')
@@ -475,6 +487,61 @@ class SpotApp:
         if self.monitor_on.get():
             if not self.publisher.start():self.monitor_on.set(False)
         else:self.publisher.stop(self.publisher.sample(self,lifecycle='DISABLED'))
+
+    def open_trial(self):
+        from coincat_trial_ui import TrialWindow
+        if self.trial_window is None or not self.trial_window.root.winfo_exists():self.trial_window=TrialWindow(self)
+        else:self.trial_window.root.deiconify();self.trial_window.root.lift()
+    def start_trial(self,config):
+        if self.busy:return
+        if not self.connected:self.connect();self.status.set('Connect first, then press Start / resume shadow trial.');return
+        def start():
+            account=self.shadow_source.starting_inventory();self.shadow.start(account,config);return True
+        self.work('shadow_started',start)
+    def pause_trial(self):
+        self.shadow.stop();self.shadow_public=self.shadow.public();self.status.set('Shadow trial paused. Saved progress and inventory are preserved.')
+    def toggle_trial(self):
+        s=self.shadow.state()
+        if s is not None and self.shadow.store.clock['wanted']:self.pause_trial()
+        elif s is not None:self.start_trial(PortfolioConfig(**s['config']))
+        else:self.open_trial()
+    def save_trial_report(self):
+        try:
+            path=self.shadow.write_report();self.status.set('Private trial summary saved beside its isolated database.' if path else 'Start a shadow trial first.')
+        except (OSError,ValueError):self.status.set('Private trial summary could not be saved; records preserved.')
+    def tray_status(self):
+        p=self.shadow.progress();s=self.shadow.state();perf={} if s is None else s['last_performance'] or {}
+        return ('Shadow '+self.shadow.public()['state'],
+            '168 h progress: '+('not started' if p is None else f"{p['valid_seconds']/3600:.3f} valid h"),
+            'Shadow USD vs HOLD: '+fmt(perf.get('outperformance_usd')))
+    def window_close(self):
+        if not self.tray.hide():
+            if self.shadow.store and self.shadow.store.clock['wanted']:
+                self.status.set('Tray unavailable. Use Pause shadow or Exit safely; monitoring continues while this window is open.')
+                self.open_trial()
+            else:self.close()
+    def os_shutdown(self):
+        # Never veto Windows shutdown or wait for a network request here.
+        self.engine.set_blocked(True)
+        try:self.shadow.shutdown()
+        except Exception:pass # Last durable checkpoint remains recoverable.
+        self.closing=True;self.stop_requested=False
+    def fee_audit_dialog(self):
+        from coincat_fee_audit import statement_day,audit_day,collect_day
+        from coincat_beta_store import pack
+        path=filedialog.askopenfilename(parent=self.root,title='November 4 historical audit · select local CSV',filetypes=[('CSV','*.csv')])
+        if not path or self.busy:return
+        def audit():
+            statement=statement_day(path,'2026-11-04');records=self.history_store.records();coverage='PROVIDED_RECORDS_ONLY'
+            if self.client is not None:
+                collected=collect_day(self.client,'2026-11-04',clock=self.clock,budget=self.reader.budget)
+                records=collected['records'];coverage=collected['coverage']
+                self.history_store.append(dict(collected,reason=collected['coverage']))
+            report=audit_day(records,statement,api_coverage=coverage)
+            out=self.data/'research_data'/'manual_trade_lab'/'november-04-fee-audit.json'
+            if out.is_symlink():raise BetaBlocked('AUDIT_REPORT_PATH_REJECTED')
+            out.write_text(pack(report),encoding='utf-8');return report
+        self.work('fee_audit',audit)
 
     def tick(self):
         if self.closed:return
@@ -484,6 +551,7 @@ class SpotApp:
                 if self.worker is not None:self.worker.join();self.worker=None
                 if error:
                     if kind in ('refresh','reconcile'):self.last_error=True
+                    if kind=='shadow_scan':self.shadow.observation_gap(self.clock())
                     if kind=='refresh':self.connected=False
                     if kind=='reconcile':self.engine.set_blocked(True)
                     self.blocked.set(self.engine.block.is_set())
@@ -502,6 +570,10 @@ class SpotApp:
                         self.select_market(draft['pair']);p=self.panels[draft['pair']];p.side.set(draft['side']);p.post.set(draft['post_only'])
                         p.price.set(fmt(draft['price']));p.size.set(fmt(draft['size']));p.replaces=draft['replaces'];p.trade_button.configure(text=draft['side'].title()+' '+p.base)
                     self.refresh_due=0
+                elif kind=='shadow_started':self.shadow_due=0;self.status.set('Shadow trial started / resumed. Live automation has no authority.')
+                elif kind=='shadow_scan':self.status.set('Seven-market shadow observation refreshed · '+self.shadow.public()['state'])
+                elif kind=='fee_audit':
+                    self.status.set('Private historical audit saved: '+str(result['matched'])+'/'+str(result['csv_trade_rows'])+' native matches; '+str(result['api_fee_currency_confirmed'])+' API fee currencies confirmed. '+result['coverage'])
                 elif kind=='history':self.status.set('Native order saved locally: '+result+'. Reopen trade details to inspect.')
                 elif kind=='statement':self.status.set(str(result)+' saved order(s) uniquely corroborated by CSV. Raw API fills and future fee settings preserved.')
                 elif kind=='archive':
@@ -510,6 +582,16 @@ class SpotApp:
                 self.refresh_local()
         except Empty:pass
         now=self.clock()
+        if not self.closing and self.shadow.store is not None:
+            try:
+                persist=time.monotonic()>=self.clock_due;self.shadow.heartbeat(persist=persist)
+                if persist:self.clock_due=time.monotonic()+5
+            except (ValueError,OSError,sqlite3.Error):
+                self.shadow.stop_flag.set();self.shadow.store.clock.update(phase='REVIEW_REQUIRED',previous_valid=False,reason='CHECKPOINT_WRITE_REVIEW_REQUIRED')
+        self.shadow_public=self.shadow.public();p=self.shadow.progress()
+        self.trial_badge.configure(text='Resumable Trial — 168 Valid Hours · '+self.shadow_public['state']+('' if p is None else f" · {p['valid_seconds']/3600:.3f} h"))
+        if self.trial_window is not None and self.trial_window.root.winfo_exists() and time.monotonic()>=getattr(self,'trial_render_due',0):
+            self.trial_render_due=time.monotonic()+1;self.trial_window.render()
         if not self.busy:
             active=self.engine.public()['unresolved']
             if self.stop_requested:
@@ -517,6 +599,13 @@ class SpotApp:
                 if active:self.work('reconcile',self.engine.poll)
             elif active and not self.closing and now>=self.poll_due and self.client is not None:
                 self.poll_due=now+10;self.work('reconcile',self.engine.poll)
+            elif not self.closing and self.shadow.store is not None and self.shadow.store.clock['wanted'] and self.shadow.public()['state'] not in ('COMPLETE','REVIEW_REQUIRED') and time.monotonic()>=self.shadow_due:
+                self.shadow_due=time.monotonic()+10
+                if not self.connected:self.connect()
+                else:
+                    def scan():
+                        frame=self.shadow_source.collect();self.shadow.review(frame);return True
+                    self.work('shadow_scan',scan)
             elif self.connected and not self.closing and now>=self.refresh_due:
                 self.refresh_due=now+8;p=self.panel();self.refresh(candles=p.chart_data is None or now-p.chart_data['at']>=60,history=now-(getattr(self,'history_at',0))>=60)
         for panel in self.panels.values():
@@ -530,10 +619,12 @@ class SpotApp:
             if self.client is not None and hasattr(self.client,'session'):
                 try:self.client.session.close()
                 except OSError:pass
-            self.root.destroy();return
+            self.tray.close();self.root.destroy();return
         self._after=self.root.after(100,self.tick)
     def close(self):
         if self.closing:return
+        try:self.shadow.shutdown()
+        except (ValueError,OSError,sqlite3.Error):pass
         self.closing=True;self.engine.set_blocked(True);self.blocked.set(True);self.stop_requested=True
         self.status.set('Closing · live block ON; waiting for the bounded worker and owned-order reconciliation.')
 

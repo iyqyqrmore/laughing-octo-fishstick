@@ -1,4 +1,4 @@
-"""CoinCat v1.03beta: explicit paper / bounded real maker workspace."""
+"""CoinCat v1.04: explicit paper / bounded real maker workspace."""
 from datetime import datetime,timezone
 from pathlib import Path
 from queue import Queue,Empty
@@ -631,8 +631,8 @@ class CoinCatApp(BetaUI):
         self.monitor.stop(final)
 
     def _export(self):
-        path=filedialog.asksaveasfilename(title='Save v1.03beta diagnostics',defaultextension='.txt',
-            initialfile='CoinCat_v1.03beta_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
+        path=filedialog.asksaveasfilename(title='Save v1.04 diagnostics',defaultextension='.txt',
+            initialfile='CoinCat_v1.04_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
         if path:
             try:Path(path).write_text(make_report(self),encoding='utf-8')
             except OSError as exc:messagebox.showerror('Diagnostics',f'Export failed ({type(exc).__name__}).')
@@ -669,15 +669,10 @@ class CoinCatApp(BetaUI):
 
 
 def main():
-    from coincat_single_instance import SingleInstance,AnotherCoinCatRunning
-    from coincat_state_v50 import state_status,StateError
-    directory=data_root()
-    try:
-        state_status(directory)
-        with SingleInstance(directory):
-            root=tk.Tk();CoinCatApp(root);root.mainloop()
-    except (AnotherCoinCatRunning,StateError) as exc:
-        print('CoinCat launch blocked:',type(exc).__name__);raise SystemExit(2) from exc
+    # Retired legacy entrypoint. Historical classes remain for record and
+    # financial compatibility tests; executable launches use the current client.
+    from coincat_spot_app import main as spot_main
+    return spot_main()
 
 
 if __name__=='__main__':main()

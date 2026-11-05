@@ -11,11 +11,10 @@ import threading
 import time
 import uuid
 
-from coinbase_account import as_dict
 from coincat_beta_store import BetaStore,BetaBlocked,digest
-from coincat_live_beta import LiveLimits,native_math
-from coincat_manual_trade import HistoryReader,ReadOnlyAPI,identity
-from coincat_spot_market import limit_rules
+from coincat_execution_limits import LiveLimits,native_math
+from coincat_manual_trade import identity
+from coincat_order_services import LimitOrderServices,PortfolioInventory,ticket_values,bind_owned_order
 from coincat_v80_immediate import exact
 from coincat_watchlist import WATCH_PAIRS
 
@@ -46,30 +45,16 @@ def validate(state):
     if active>1:raise BetaBlocked('ONE_MANUAL_ORDER_AT_A_TIME')
 
 
-def ticket_values(ticket,rules,book):
-    pair=ticket.get('pair');side=ticket.get('side');post=ticket.get('post_only')
-    if pair not in WATCH_PAIRS or side not in ('BUY','SELL') or type(post) is not bool:
-        raise BetaBlocked('INVALID_MANUAL_TICKET')
-    size,price=exact(ticket.get('size')),exact(ticket.get('price'))
-    (inc,minimum,min_quote,maximum,max_quote),tick=limit_rules(pair,rules)
-    with localcontext() as context:
-        context.prec=80
-        if size<=0 or price<=0 or size%inc or price%tick:raise BetaBlocked('USE_EXACT_NATIVE_SIZE_AND_PRICE_INCREMENTS')
-        value=size*price
-        if size<minimum or (maximum is not None and size>maximum) or value<min_quote or (max_quote is not None and value>max_quote):
-            raise BetaBlocked('ORDER_OUTSIDE_EXCHANGE_NATIVE_MINIMUM_OR_MAXIMUM')
-    if rules.get('post_only') is True and not post:raise BetaBlocked('EXCHANGE_REQUIRES_POST_ONLY')
-    if post and (price>=book['ask'] if side=='BUY' else price<=book['bid']):
-        raise BetaBlocked('POST_ONLY_PRICE_WOULD_TAKE_USE_BID_FOR_BUY_OR_ASK_FOR_SELL')
-    return dict(pair=pair,side=side,size=size,price=price,post_only=post)
-
-
 class ManualExecution:
     def __init__(self,path,reader,*,clock=time.time,legacy_pending=lambda:False):
         self.reader=reader;self.client=reader.client;self.clock=clock;self.legacy_pending=legacy_pending
         self.block=threading.Event();self.block.set();self.dispatch_lock=threading.Lock()
         self.store=BetaStore(Path(path),APP_ID,initial=dict(schema=1,classification='MANUAL_REAL_LIMIT_NOT_TAX_LEDGER',
             portfolio=None,started=None,limits=asdict(LiveLimits()),orders={}),validate=validate)
+        self.services=LimitOrderServices(lambda:self.reader,clock=clock,
+            manual_guard=lambda cid:not self.block.is_set() and not self.expired() and
+                self.state()['orders'].get(cid,{}).get('state')=='SENDING',
+            owned_guard=lambda cid,oid:oid is not None and self.state()['orders'].get(cid,{}).get('order_id')==oid)
         # Any interrupted dispatch is ambiguous on restart. Never resubmit it.
         if any(o['state']=='SENDING' for o in self.state()['orders'].values()):
             self._change('RESTART_LOCK',{},lambda s:[o.update(state='UNKNOWN') for o in s['orders'].values() if o['state']=='SENDING'])
@@ -138,7 +123,7 @@ class ManualExecution:
         with localcontext() as context:
             context.prec=80
             gross=t['size']*t['price'];reserve=(t['size'] if t['side']=='SELL' else gross)*(1+limits.max_fee_fraction)
-            if account['available'].get(source,D(0))<reserve:raise BetaBlocked('INSUFFICIENT_AVAILABLE_SOURCE_INCLUDING_FEE_BUFFER')
+            if PortfolioInventory(account).available(source)<reserve:raise BetaBlocked('INSUFFICIENT_AVAILABLE_SOURCE_INCLUDING_FEE_BUFFER')
             # A low SELL limit cannot evade the cap by undervaluing its source.
             exposure=t['size']*(max(t['price'],book['ask']) if t['side']=='SELL' else t['price'])*(1+limits.max_fee_fraction)
             usd=exposure*fx['usd_upper'];eth=exposure*fx['eth_upper']
@@ -164,15 +149,9 @@ class ManualExecution:
             t,evidence=self._preflight(ticket)
             # SDK 1.8.4 uses requests.Session with zero retries. Refuse an
             # externally replaced adapter that might replay a create POST.
-            session=getattr(self.client,'session',None)
-            if session is not None:
-                retries=session.get_adapter('https://api.coinbase.com').max_retries
-                if retries.total not in (0,False):raise BetaBlocked('AUTOMATIC_TRANSPORT_RETRIES_NOT_ALLOWED')
-            side=t['side'].lower()
+            self.services.check_no_retries()
             try:
-                preview=as_dict(getattr(self.client,'preview_limit_order_gtc_'+side)(product_id=t['pair'],
-                    base_size=format(t['size'],'f'),limit_price=format(t['price'],'f'),post_only=t['post_only'],
-                    retail_portfolio_id=evidence['portfolio']))
+                preview=self.services.preview(t,evidence['portfolio'])
                 if not isinstance(preview.get('errs'),list) or preview['errs']:raise BetaBlocked('EXCHANGE_PREVIEW_REJECTED_TICKET')
                 if exact(preview.get('base_size'))!=t['size']:raise BetaBlocked('EXCHANGE_PREVIEW_SIZE_CONFLICT')
                 fee=exact(preview.get('commission_total'))
@@ -195,9 +174,8 @@ class ManualExecution:
                 self._change('STOP_BEFORE_POST',dict(cid=cid),lambda s:s['orders'][cid].update(state='REJECTED'))
                 raise BetaBlocked('STOPPED_BEFORE_ORDER_DISPATCH')
             try:
-                ack=as_dict(getattr(self.client,'limit_order_gtc_'+side)(client_order_id=cid,product_id=t['pair'],
-                    base_size=format(t['size'],'f'),limit_price=format(t['price'],'f'),post_only=t['post_only'],
-                    retail_portfolio_id=evidence['portfolio']))
+                grant=self.services.manual_grant(cid,t,evidence['portfolio'])
+                ack=self.services.create(t,evidence['portfolio'],grant)
                 if ack.get('success') is False and isinstance(ack.get('error_response'),dict) and ack['error_response']:
                     self._change('EXCHANGE_REJECTED',dict(cid=cid),lambda s:s['orders'][cid].update(state='REJECTED'))
                 else:
@@ -215,16 +193,10 @@ class ManualExecution:
             return self.state()['orders'][cid]
 
     def _history(self,oid,portfolio):
-        reader=HistoryReader(ReadOnlyAPI(self.client),clock=self.clock,monotonic=self.reader.monotonic)
-        reader.portfolio=portfolio;reader.read=lambda name,**kwargs:self.reader.call(name,**kwargs)
-        return reader.one(oid)
+        return self.services.history(oid,portfolio)
 
     def _bind(self,o,raw):
-        s=self.state();config=(raw.get('order_configuration') or {}).get('limit_limit_gtc') or {}
-        if (raw.get('client_order_id')!=o['cid'] or raw.get('retail_portfolio_id')!=s['portfolio'] or
-                raw.get('product_id')!=o['pair'] or raw.get('side')!=o['side'] or
-                exact(config.get('base_size'))!=o['size'] or exact(config.get('limit_price'))!=o['price'] or
-                config.get('post_only') is not o['post_only']):raise BetaBlocked('OWNED_ORDER_IMMUTABLE_FIELDS_CONFLICT')
+        bind_owned_order(o,raw,self.state()['portfolio'])
 
     @native_math
     def reconcile(self,cid):
@@ -278,7 +250,7 @@ class ManualExecution:
             return self.reconcile(cid)
         self._change('EXPLICIT_CANCEL',dict(cid=cid),lambda s:s['orders'][cid].update(state='CANCEL_PENDING'))
         try:
-            result=as_dict(self.client.cancel_orders(order_ids=[o['order_id']]))
+            result=self.services.cancel_owned(o)
             rows=result.get('results')
             if not isinstance(rows,list) or len(rows)!=1 or rows[0].get('order_id')!=o['order_id']:
                 raise BetaBlocked('CANCEL_ACK_UNVERIFIED')

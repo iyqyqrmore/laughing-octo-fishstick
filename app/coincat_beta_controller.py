@@ -1,7 +1,7 @@
 """Worker-side real beta orchestration. Tk receives cached safe status only."""
 from copy import deepcopy
 from datetime import datetime,timezone
-import logging
+from coincat_sdk_logging import protect_sdk_logs,_RedactedSDKLog
 
 from coincat_adaptive_eth import Frame
 from coincat_beta_store import BetaBlocked
@@ -9,18 +9,6 @@ from coincat_live import LiveBroker,LiveBlocked
 from coincat_live_beta import LiveBeta,TERMINAL
 from coincat_manual_trade import HistoryReader,ReadOnlyAPI
 from coincat_global_paper import settings_at
-
-
-class _RedactedSDKLog(logging.Filter):
-    def filter(self,record):
-        record.msg='Coinbase SDK operation reported a failure; private response omitted'
-        record.args=();record.exc_info=None;record.exc_text=None
-        return True
-
-
-def protect_sdk_logs():
-    logger=logging.getLogger('coinbase.RESTClient')
-    if not any(isinstance(f,_RedactedSDKLog) for f in logger.filters):logger.addFilter(_RedactedSDKLog())
 
 
 class LiveCoordinator:

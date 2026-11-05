@@ -1,3 +1,18 @@
+# CoinCat v1.04 — resumable portfolio research
+
+- Persistent 168-valid-hour shadow trial with atomic model/clock checkpoints,
+  original HOLD benchmark and frozen budgets across interruptions.
+- Monotonic quality-gated time; no offline/paused/partial hours or invented fills.
+- Seven-market/fourteen-direction cost/risk policy, HOLD allowed, no forced ETH cycle.
+- Native Windows tray; close/minimize keeps monitoring, shutdown is not vetoed.
+- Separate shadow dashboard, strict monitor progress and updated diagnostics.
+- Shared manual execution utilities extracted from obsolete controller imports;
+  manual real-order behavior and default-ON live block preserved.
+- November 4 historical evidence audit and local saved-key GET-only checker.
+- Unattended live authority unavailable; connected/native Windows acceptance pending.
+
+The entries below are historical release notes.
+
 # CoinCat v1.03beta — imported history in diagnostics and monitor
 
 Manual Spot previously exported only the current session's execution counters.

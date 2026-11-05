@@ -14,8 +14,8 @@ from coincat_monitor import monitor_directory,status
 
 HTML='''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CoinCat v1.03beta · Monitor</title><link rel="stylesheet" href="/monitor.css"></head>
-<body><main><h1>CoinCat <small>v1.03beta · Monitor</small></h1>
+<title>CoinCat v1.04 · Monitor</title><link rel="stylesheet" href="/monitor.css"></head>
+<body><main><h1>CoinCat <small>v1.04 · Monitor</small></h1>
 <p>Read-only app health · Manual spot order status · Profit unverified</p>
 <h2 id="state">Connecting…</h2><p id="message"></p>
 <div class="cards"><section><span>Last good scan</span><strong id="scan">—</strong></section>
@@ -26,6 +26,7 @@ HTML='''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <h2>Prospective experiment journal</h2><p id="journal"></p>
 <h2>Auto maker PAPER session</h2><p id="paper"></p></section>
 <h2>Order execution</h2><p id="beta"></p><p id="manual"></p><p id="book"></p>
+<section id="trial_section" hidden><h2>Resumable Trial — 168 Valid Hours</h2><p id="trial"></p></section>
 <section id="imported_section" hidden><h2>Imported Coinbase history</h2><p id="imported"></p></section>
 <button id="download">Save redacted snapshot</button>
 <details><summary>Technical detail</summary><pre id="detail"></pre></details>
@@ -64,14 +65,16 @@ async function refresh(){
   const b=s?.beta;put("beta",b?(latest.state==="APP_REPORTING"?(b.live.blocked?"LIVE BLOCK ON":"LIVE ENABLED · BOUNDED REAL BETA"):"LAST CAPTURE · CURRENT LIVE GATE UNVERIFIED")+" · "+b.live.state+" · Owned orders "+b.live.orders+" · Reconciled bot fills "+b.live.fills+" · Unresolved orders "+b.live.unresolved+" · Profit NOT ESTABLISHED":"Current live gate unverified");
   put("manual",b?"Read-only manual history: "+b.manual.state+" · Orders "+b.manual.orders+" · Known native flows "+b.manual.known_native_flow+" · Unknown "+b.manual.unknown+" · Account reconciliation UNKNOWN; not bot fills":"Manual history unavailable");
   put("book",b?"Public book: "+b.book.state+" · Healthy "+b.book.healthy+" / "+b.book.subscribed+" · Visible levels are not queue or fill evidence":"Public book unavailable");
+  const trial=s?.shadow_trial;document.getElementById("trial_section").hidden=!trial;
+  document.getElementById("trial").textContent=trial?`${latest.state==="APP_REPORTING"?"":"AT CAPTURE · "}${trial.state} · ${(trial.valid_seconds/3600).toFixed(3)} / 168 valid h · ${trial.restart_count} restarts · ${trial.coverage_percent}% coverage · ${trial.orders} proposals · ${trial.fills} replay fills · no automatic live authority`:"";
   const m=s?.manual_execution;document.getElementById("legacy").hidden=!!m;
   document.getElementById("imported_section").hidden=!m;
   put("imported",b?"At capture: "+b.manual.state+" · Imported orders "+b.manual.orders+" · Filled "+b.manual.filled+" · Partials "+b.manual.partials+" · Canceled unfilled "+b.manual.canceled_unfilled+" · Known native flows (API or CSV) "+b.manual.known_native_flow+" · Unresolved settlement "+b.manual.unknown+" · Read-only; account reconciliation UNKNOWN":"Imported history unavailable");
-  if(m){put("beta",(latest.state==="APP_REPORTING"?(m.blocked?"LIVE BLOCK ON":"LIVE ENABLED · MANUAL CLICKS ONLY"):"LAST CAPTURE · CURRENT LIVE GATE UNVERIFIED")+" · "+m.state+" · Current CoinCat session: order attempts "+m.orders+" · CoinCat fills "+m.fills+" · Unresolved "+m.unresolved+" · Automation OFF");put("manual","Manual LIMIT GTC · Completed "+m.completed+" · Canceled "+m.canceled+" · Profit NOT ASSESSED");put("book","REST pricebook snapshots · visible prices do not establish a fill");}
+  if(m){put("beta",(latest.state==="APP_REPORTING"?(m.blocked?"LIVE BLOCK ON":"LIVE ENABLED · MANUAL CLICKS ONLY"):"LAST CAPTURE · CURRENT LIVE GATE UNVERIFIED")+" · "+m.state+" · Current CoinCat session: order attempts "+m.orders+" · CoinCat fills "+m.fills+" · Unresolved "+m.unresolved+" · Automatic live orders OFF");put("manual","Manual LIMIT GTC · Completed "+m.completed+" · Canceled "+m.canceled+" · Profit NOT ASSESSED");put("book","REST pricebook snapshots · visible prices do not establish a fill");}
   put("detail",JSON.stringify(latest,null,2));
- }catch(e){latest=null;put("beta","Current live gate unverified");put("manual","Current manual history unavailable");put("imported","Current imported history unavailable");put("book","Current public book unavailable");put("paper","Current paper status unavailable");put("journal","Current journal unavailable");put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
+ }catch(e){latest=null;put("trial","Current shadow trial status unavailable");put("beta","Current live gate unverified");put("manual","Current manual history unavailable");put("imported","Current imported history unavailable");put("book","Current public book unavailable");put("paper","Current paper status unavailable");put("journal","Current journal unavailable");put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
 }
-document.getElementById("download").addEventListener("click",()=>{if(!latest)return;const u=URL.createObjectURL(new Blob([JSON.stringify(latest,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download="CoinCat_v1.03beta_Monitor_Snapshot.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});
+document.getElementById("download").addEventListener("click",()=>{if(!latest)return;const u=URL.createObjectURL(new Blob([JSON.stringify(latest,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download="CoinCat_v1.04_Monitor_Snapshot.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});
 refresh();setInterval(refresh,5000);
 '''
 
@@ -171,7 +174,7 @@ def main(argv=None):
         server=MonitorServer(args.directory,port=args.port,tailnet_name=args.tailscale_name)
     except (OSError,ValueError):
         print('Monitor could not start. Check that its port is free and support_monitor is writable.');return 2
-    print('CoinCat v1.03beta read-only monitor: http://127.0.0.1:'+str(args.port)+'/')
+    print('CoinCat v1.04 read-only monitor: http://127.0.0.1:'+str(args.port)+'/')
     print('No app commands. Ctrl+C stops this helper; CoinCat research continues.')
     if args.tailscale_name:
         print('Private HTTPS hostname configured. Tailscale Serve and cloud VPN access must be set up separately.')

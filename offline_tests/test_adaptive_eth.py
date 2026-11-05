@@ -261,11 +261,11 @@ class RedactionAndMonitor(unittest.TestCase):
         app.last_result['adaptive']=dict(state='CONDITIONAL_RESEARCH_ONLY',balance='PRIVATE',candidates=[])
         snap=capture(app,session='a'*32,sequence=1,now=NOW)
         self.assertEqual(snap['schema'],SCHEMA);self.assertEqual(SCHEMA,'coincat-monitor/v3')
-        self.assertEqual(snap['version'],'CoinCat v1.03beta')
+        self.assertEqual(snap['version'],'CoinCat v1.04')
         self.assertEqual(snap['products'][0]['setup_state'],'NO_SETUP_UNPRICED')
         self.assertEqual(snap['products'][0]['reasons'][0],'QUOTE_WIDE')
         self.assertNotIn('PRIVATE',encode(snap).decode());self.assertIn('QUOTE_WIDE',JS)
-        self.assertIn('v1.03beta',HTML);self.assertIn('No valid first setup',JS)
+        self.assertIn('v1.04',HTML);self.assertIn('No valid first setup',JS)
         with TemporaryDirectory() as folder:
             snap['adaptive']['private_balance']='PRIVATE';(Path(folder)/'latest.json').write_text(json.dumps(snap))
             with self.assertRaises(ValueError):read_snapshot(folder)
@@ -305,7 +305,7 @@ class AdaptiveWorkspace(unittest.TestCase):
         self.assertEqual(safe['paper_positions'],0);self.assertEqual(safe['decision'],'HOLD')
         self.assertIn('NO DEMONSTRATED EDGE',app.adaptive_text.get())
         report=make_report(app,now=NOW)
-        for text in ('CoinCat v1.03beta','COMPLETE (8/8)','adaptive_eth','NO_DEMONSTRATED_EDGE','BLOCK_ON'):
+        for text in ('CoinCat v1.04','COMPLETE (8/8)','adaptive_eth','NO_DEMONSTRATED_EDGE','BLOCK_ON'):
             self.assertIn(text,report)
         snapshot=capture(app,session='a'*32,sequence=1,now=NOW)
         self.assertEqual(snapshot['adaptive'],safe)

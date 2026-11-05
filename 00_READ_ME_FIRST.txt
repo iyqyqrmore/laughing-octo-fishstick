@@ -1,25 +1,23 @@
-CoinCat v1.03beta — Manual Spot; live block ON at every launch
+CoinCat v1.04 — Resumable Trial / Manual Spot
 
-Read START_HERE.md and docs/MANUAL_SPOT.md. Use a separate installation and
-preserve all private data/backups. Setup, then run isolated source verification.
+Read START_HERE.md. Extract separately; preserve all private records and backups.
+Run setup and the full isolated verification before connected testing.
 
-Default screen: seven market tabs, market dropdown + favorite star, candles,
-REST order book, native Buy/Sell limit ticket, orders and balances. Automation
-is OFF. The old research/automatic controllers do not start with this client.
+Live orders blocked starts ON. Manual clicks remain the only real-order path.
+The new 168-valid-hour trial is SHADOW ONLY and has no automatic live authority.
+Offline time is downtime, not valid monitoring. Restart preserves the same trial,
+hypothetical holdings, original HOLD benchmark, limits and accumulated progress.
 
-Connect while blocked. Review Caps. Deliberate block OFF enables actual manual
-LIMIT GTC orders from your Buy/Sell clicks. BUY at ASK with Post Only OFF may
-fill immediately and incur taker fees. Post Only is explicit; no fallback.
-No research plan, predicted-profit floor or future exit is needed for a manual
-ticket. Permissions, portfolio, precision, native minimums, funds and caps apply.
+Open Resumable Trial — 168 Valid Hours. Start once after connecting while blocked.
+Default shadow caps: $5/order, $10 lifetime turnover, four lifetime proposals,
+50% source fraction, one open proposal and a fixed 30-day intent deadline.
+HOLD is allowed; there is no one-cent trigger or forced return to ETH.
+Quotes/candles cannot create fills. Explicit replay receipts model fills only.
 
-Defaults: $5/order, .005 ETH-equivalent session turnover, four submissions,
-one open order, 30 minutes, 2% fee buffer/ceiling (not an assumed actual fee).
-Cancel & refresh prepares only a confirmed unfilled remainder; it does not send
-another order. Timeouts stay identity-locked. Reblock/close cancels only owned
-orders and reconciles racing fills; it never liquidates or invents settlement.
+Closing/minimizing to the Windows tray keeps monitoring. Pause stops valid hours;
+Exit safely checkpoints. Windows shutdown is allowed. Never delete a damaged
+trial to reset its accounting. At 168 valid hours preserve the summary for review.
 
-Trade details / CSV can uniquely corroborate historical native flow by fields
-and UTC time without rewriting API evidence or setting future fees. Diagnostics
-and Local monitor show redacted manual status. No account trade is run in cloud.
-Native Windows and connected acceptance remain local tests. No profit is promised.
+November 4 audit: tools\AUDIT_MANUAL_FILLS.bat uses the local saved key for GET-only
+history. Detailed financial reports stay private; missing fee units remain UNKNOWN.
+Windows tray/DPAPI and connected Coinbase acceptance are still local tests.

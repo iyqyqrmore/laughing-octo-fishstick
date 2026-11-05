@@ -1,54 +1,37 @@
-# CoinCat v1.03beta — Manual Spot
+# CoinCat v1.04 — resumable portfolio research
 
-CoinCat now opens a simpler manual trading workspace: **seven market tabs**, a
-market dropdown and favorite star, exchange candle chart, red/green order book,
-Buy/Sell limit ticket, orders, trade history and available balances. The previous
-research and automatic controllers do not start with this workspace.
+CoinCat preserves its seven-market Manual Spot workspace and adds an opt-in,
+restart-safe **168 cumulative valid hour shadow trial**. It studies total
+portfolio USD value after modeled costs against holding the original BTC, ETH,
+SOL, LINK and ADA quantities. There is no mandatory ETH return or one-cent trade
+trigger. HOLD is a valid result.
 
-**Live orders blocked starts ON every launch.** Connect while blocked to read
-markets and balances. After reviewing the beta caps, deliberately switch OFF;
-your **Buy / Sell click can send a real Coinbase LIMIT GTC order**. There is no
-extra research plan or predicted-profit requirement. There is no automatic
-placement, liquidation, repricing or retry.
+The isolated SQLite journal stores the original trial identity, frozen settings,
+portfolio, reservations, decisions, replay fills, fees and monotonic checkpoints.
+Offline, paused, stale and incomplete-market intervals add no valid hours.
+Opted-in shadow trials recover only after state and input revalidation. Paused
+trials stay paused; unknown order outcomes remain locked. Completion freezes the
+trial and produces a private report. Windows tray monitoring can continue with
+the main window hidden; Windows shutdown is never vetoed.
 
-For ETH-BTC, prices are **BTC per ETH** and amounts are **ETH**. BUY at ASK with
-Post Only OFF can fill immediately and incur taker fees. Post Only ON normally
-uses BID for BUY and ASK for SELL; a crossing price is rejected. Fee estimates
-use the authenticated account tier, with a fresh exchange preview before the
-order. Missing historical commission units do not block a new manual ticket.
-Realized settlement remains UNKNOWN unless its native evidence supports it.
+Maker hypotheses use LIMIT GTC / Post Only, noncrossing BID buys and ASK sells,
+30-second reviews and conditional 120-second reconsideration. Forecasts remain
+unvalidated. **Quotes never manufacture fills**: explicit replay receipts are
+required to model executions. No queue-calibrated autonomous fill model or
+unattended live authorization is claimed by this release.
 
-The default beta caps are **$5 per order, .005 ETH-equivalent session turnover,
-four submitted orders, one open order and 30 minutes**. A separate **2% fee
-buffer/ceiling** is a risk limit, not an assumed exchange fee. Exchange native
-minimums, precision, available source funds, portfolio and permissions still
-apply. CoinCat never increases an entered amount to meet a minimum.
+**Live orders blocked defaults ON at every launch.** Switching OFF continues to
+enable real manual order clicks under the existing bounds. Shadow authorization
+is a different type and cannot reach authenticated creation or cancellation.
+Manual and shadow journals, ownership and limits remain separate.
 
-**Cancel & refresh ticket** waits for terminal cancellation and reported fills,
-then prepares only the unfilled remainder at a fresh native price. Review it
-and click to send a replacement. An ambiguous submission stays locked to its
-original identity. Reblocking/closing requests cancellation of owned orders;
-it never liquidates holdings or guarantees an offline exchange cancellation.
+Diagnostics and the GET-only local monitor expose controlled states, counts and
+trial progress. Detailed holdings/valuations and audit evidence remain private.
+Legacy controllers are retired from default execution paths; financial/FIFO/tax
+records, backups, historical compatibility and the transparent logo are retained.
 
-**Trade details / CSV** reads an order and its fills, then can corroborate native
-settlement against a local statement using a unique market/side/quantity/price/
-UTC-second match. It preserves raw API evidence and identifies field matching
-separately from an order-ID join or account reconciliation. CSV deductions never
-set future fee rates or establish a predictive trading edge.
-
-Financial/FIFO/tax data, keys, backups, prior research records and the transparent
-upper-right logo are preserved. Manual order identities use a separate journal.
-Diagnostics and the optional read-only local monitor support this workspace and
-export controlled counts/states without private amounts, IDs or raw responses.
-Imported Coinbase history has a separate summary from the current CoinCat
-session. Historical filled orders appear even when fee-unit evidence remains
-unresolved. API-supported and CSV-corroborated native-flow arithmetic updates
-the history summary without adding CoinCat execution credit or paper funding.
-
-Follow [START_HERE.md](START_HERE.md) and [the manual design/test guide](docs/MANUAL_SPOT.md).
-The Windows resize-verification follow-up waits for native events before
-measuring the requested window. After setup, `tools\VERIFY_MANUAL_WINDOW.bat`
-runs a hash-checked ten-test quick check; the full verifier runs all 488 tests.
-Cloud offline checks do not establish native Windows or connected acceptance.
-No account order is placed from this development session. Branch:
-`coincat-v1.03beta`; base for the history-reporting follow-up: `5342a3f`.
+Follow [START_HERE.md](START_HERE.md) for Windows setup, verification and recovery
+acceptance. Native Windows tray/DPAPI behavior, connected Coinbase acceptance
+and an actual 168-hour observation trial must still be validated locally.
+Cloud deterministic tests and a completed shadow trial do not establish profit.
+Source branch: `coincat-v1.04`; base: `9023209` on `coincat-v1.03beta`.

@@ -32,6 +32,14 @@ def main():
     if 'coincat_spot_app' not in imports or 'coincat_app' in imports:
         print('FAIL: launcher is not the manual workspace');return 7
     print('PASS: default-ON manual LIMIT client / explicit-click journal / ambiguous-create lock')
+    shadow=ast.parse((root/'app/coincat_shadow_trader.py').read_text(encoding='utf-8'))
+    attrs={n.attr for n in ast.walk(shadow) if isinstance(n,ast.Attribute)}
+    if attrs & {'create_order','cancel_orders','limit_order_gtc_buy','limit_order_gtc_sell','preview_limit_order_gtc_buy','preview_limit_order_gtc_sell'}:
+        print('FAIL: shadow engine contains an exchange write/preview path');return 8
+    services=(root/'app/coincat_order_services.py').read_text(encoding='utf-8')
+    if 'type(authorization) is not ManualAuthorization' not in services or 'AUTOMATIC_LIVE_PILOT_NOT_IMPLEMENTED' not in services:
+        print('FAIL: shared adapter lacks separate shadow/manual authorization');return 9
+    print('PASS: shadow lifecycle has no exchange write adapter; automatic live grants unavailable')
     print('CONNECTED BETA ACCEPTANCE NOT VERIFIED; no exchange requests or account mutations')
     return 0
 
