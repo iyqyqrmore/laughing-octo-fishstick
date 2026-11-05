@@ -67,6 +67,8 @@ async function refresh(){
   put("book",b?"Public book: "+b.book.state+" · Healthy "+b.book.healthy+" / "+b.book.subscribed+" · Visible levels are not queue or fill evidence":"Public book unavailable");
   const trial=s?.shadow_trial;document.getElementById("trial_section").hidden=!trial;
   document.getElementById("trial").textContent=trial?`${latest.state==="APP_REPORTING"?"":"AT CAPTURE · "}${trial.state} · ${(trial.valid_seconds/3600).toFixed(3)} / 168 valid h · ${trial.restart_count} restarts · ${trial.coverage_percent}% coverage · ${trial.orders} proposals · ${trial.fills} replay fills · no automatic live authority`:"";
+  const evidence=trial?.evidence;
+  if(evidence){document.getElementById("trial").textContent+=` · Policy-qualified episodes ${evidence.opportunity_episodes??"UNKNOWN"} (${evidence.opportunity_history}) · Realistically fillable ${evidence.realistically_fillable_count??"UNKNOWN"} · ${evidence.monitoring_outcome} · ${evidence.strategy_evidence} · Portfolio vs HOLD ${evidence.portfolio_vs_hold}`;}
   const m=s?.manual_execution;document.getElementById("legacy").hidden=!!m;
   document.getElementById("imported_section").hidden=!m;
   put("imported",b?"At capture: "+b.manual.state+" · Imported orders "+b.manual.orders+" · Filled "+b.manual.filled+" · Partials "+b.manual.partials+" · Canceled unfilled "+b.manual.canceled_unfilled+" · Known native flows (API or CSV) "+b.manual.known_native_flow+" · Unresolved settlement "+b.manual.unknown+" · Read-only; account reconciliation UNKNOWN":"Imported history unavailable");

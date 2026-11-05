@@ -1,9 +1,10 @@
 COINCAT v1.04 — RESUMABLE PORTFOLIO SHADOW TRIAL
-Published source base: 902320907843dcbca67a0b26de29896ae8a675ad (v1.03beta).
+Published evidence follow-up base: cc565d994b19d05514089247352caf51e225806d (v1.04).
+Original Manual Spot foundation: 902320907843dcbca67a0b26de29896ae8a675ad.
 Source branch: coincat-v1.04. Previous release branches are preserved.
 
 ACCEPTANCE
-The full source and freshly extracted source suite each run 524 distinct tests,
+The full source and freshly extracted source suite each run 533 distinct tests,
 with zero failures, errors, skips or expected failures. Requests HTTP and
 WebSockets are forbidden before discovery and throughout execution. Disposable
 synthetic state is used; no account key, account request or live trade is used.
@@ -11,17 +12,23 @@ Runtime: Linux Python 3.11.17, SQLite 3.53.1, Tk/Tcl 9.0 under Xvfb.
 Exact console timings and the independent ZIP checksum accompany the external
 release artifacts. VERIFY_SOURCE.py checks every packaged source hash.
 
-The 36 focused trial checks cover monotonic time, actual SQLite recovery,
+The 45 focused trial checks cover monotonic time, actual SQLite recovery,
 partial/stale coverage, frozen identity/benchmark/caps, corruption, idempotency,
 native maker decisions and sized depth, partial/canceled/unknown replay orders,
 fees in native currencies, adverse fee overruns, external account changes,
 HOLD accounting, read-only historical audit, privacy, tray policy and no live
 authority. The exact 6-valid + 10-offline + 4-valid case produces 10 valid hours,
 including through SQLite checkpoint/reload. Interrupted sessions reach exactly
-168 valid hours and freeze. A host-off interval never receives a simulated fill.
+168 valid hours and freeze. A host-off interval never receives a simulated fill. A complete deterministic
+168-valid-hour trial across 28 restarted sessions with zero qualifying trades
+completes with unchanged inventory, zero fees and equal HOLD performance. Its
+trading evidence remains UNPROVEN_NO_QUALIFYING_TRADES. Episode deduplication,
+conditional fee estimates, uncalibrated fill feasibility, unreconciled outcomes,
+legacy instrumentation coverage, atomic evidence writes, privacy and frozen
+completed valuations are covered by additional regressions.
 
-Thirteen manual/trial window checks also pass on supplementary Linux Python
-3.13.5 / SQLite 3.46.1 / Tk-Tcl 8.6 (8.979s). This is not native Windows evidence.
+Fourteen manual/trial window checks also pass on supplementary Linux Python
+3.13.5 / SQLite 3.46.1 / Tk-Tcl 8.6. This is not native Windows evidence.
 The source verification checks the preserved manual default-ON block, explicit
 click, owned identity and ambiguous-create lock. Shadow authorization is rejected
 by the shared write adapter; no automatic-live grant exists.

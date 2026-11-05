@@ -151,3 +151,55 @@ live permission is started automatically. Real Win32 tray/DPAPI/shutdown,
 connected Coinbase permissions/fees/identity/cancel/holds, ambiguous requests
 and actual multi-day monitoring require local acceptance. Offline fixtures are
 not a completed live observation trial and do not predict future returns.
+
+## Opportunity evidence and zero-trade success
+
+The dashboard and private summary separate four questions: how many prospective
+policy-qualified opportunities appeared, whether they could realistically fill,
+what a conditional full fill would cost, and how the modeled portfolio compared
+with the original HOLD quantities after supplied modeled fees.
+
+A qualification **episode** begins when a direction enters SHADOW_CANDIDATE and
+ends when a validated review no longer qualifies it. Repeated matches increment
+qualifying checks, not episodes. Gaps and restarts alone do not reset episodes.
+All fourteen directions are counted; concurrent alternatives are not added as
+simultaneously fundable orders. The current strategy remains unvalidated.
+
+The provider has no calibrated maker queue/fill model. For identified
+opportunities the realistically-fillable count is **UNKNOWN**, even with valid
+sized depth or an explicit replay fill. If a fully instrumented trial has no
+qualified opportunity, the count is zero because no candidate requires a fill
+assessment. Replay-filled orders/events, unresolved fills, partial orders and
+retired unfilled proposals remain separate counts. A canceled local proposal
+is not evidence of a missed actual exchange fill.
+
+Each validated decision writes its fourteen direction classifications,
+opportunity episode identities, conditional price/size, native quote-fee
+estimate, USD fee estimate, signed execution cost versus current marks and
+uncertainty to the same transaction as the model and clock. The canonical native
+receipt supplies the estimated commission. The quote-fee model is explicitly an
+assumption, never API commission-denomination evidence. Price/spread advantages
+can make signed marked execution cost negative; this is not realized profit.
+Unfilled proposals incur no modeled commission. Alternative, canceled and
+replacement full-fill estimates are never summed as executed costs. Supplied
+replay commissions are charged once in the hypothetical wallet; portfolio/HOLD
+comparison does not deduct them a second time. Unreconciled outcomes block a
+claimed net comparison. Full USD liquidation remains UNKNOWN separately.
+
+Model schema 2 accepts an additive, versioned `research_metrics` record. Existing
+ongoing trials preserve their identity, clock, strategy, limits, inventory and
+benchmark. Their instrumentation starts with explicit SINCE_UPGRADE coverage;
+missing historical counts are never invented as zero for the whole trial.
+Detailed per-review evidence uses the append-only event wrapper `input` plus
+`evidence`; pre-instrumentation event payloads remain intact. Completed older
+trials remain frozen with UNINSTRUMENTED opportunity history if none was saved.
+The strict optional public evidence extension exposes only counts and controlled
+classification labels, never monetary estimates, quantities, identifiers or fees.
+
+**Monitoring completion and trading evidence are separate outcomes.** A trial
+may reach COMPLETE_168_VALID_HOURS with zero qualifying opportunities, proposals,
+fills and fees. Its portfolio equals HOLD, and its strategy result is
+UNPROVEN_NO_QUALIFYING_TRADES. This validates the tested clock/recovery path; it
+does not validate a profitable strategy. Explicit replay outperformance remains
+hypothetical and cannot establish predictive edge. Completion never depends on
+making a trade. Frozen completed valuations, evidence and summary survive restart.

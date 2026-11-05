@@ -24,6 +24,9 @@ between processes. Use normal 64-bit Windows Python 3.11.
 5. Observe for 15–30 minutes. PRIMING/RECOVERING transitions to RUNNING only with
    fresh validated seven-market coverage, a valuation reference and authenticated
    fee estimates. Confirm valid hours, remaining hours, coverage and HOLD value.
+   Inspect policy-qualified opportunity episodes and directional checks, realistic
+   fill feasibility (UNKNOWN without a calibrated model), conditional per-proposal
+   costs, modeled native fees and net marked portfolio/HOLD comparison.
    Default decisions can remain HOLD. No price touch creates a fill. Proposed
    orders are local hypotheses; modeled fills require explicit replay receipts.
 6. On Windows, minimize/close to the tray. Confirm the icon opens CoinCat and
@@ -37,6 +40,8 @@ between processes. Use normal 64-bit Windows Python 3.11.
    Check multiple restarts and a several-day gap. Preserve a review-required
    database; do not delete it to manufacture a fresh trial. At 168 hours the
    trial freezes and writes a private summary; it never starts another trial.
+   Zero qualifying opportunities, proposals, fills and fees must also complete:
+   monitoring COMPLETE, portfolio equal to HOLD, profitability UNPROVEN.
 8. Export **Diagnostics** and optionally enable **Local monitor**, then run
    **tools\START_LOCAL_MONITOR.bat**. Confirm v1.04, separate current manual and
    imported-history counts, and shadow state/progress/counts. Exports contain

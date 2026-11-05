@@ -170,6 +170,7 @@ def select_candidates(frame,wallet,available,original,observations,config,*,rema
             execution_uncertainty=(book['ask']-book['bid'])/book['ask']*reserve*marks[source]/2
             edge=projected['utility_usd']-held['utility_usd']-forecast_uncertainty-execution_uncertainty
             row.update(price=price,size=size,reserve=reserve,reserve_usd=reserve*marks[source],maker_fee=fee,
+                projected_fee_usd=receipt['fee_amount_estimate']*marks[quote],
                 receipt=receipt,projected_wallet=after,projected_usd=portfolio_value(after,marks),
                 hold_original_usd=portfolio_value(original,marks),expected_risk_adjusted_edge_usd=edge,
                 trading_cost_mark_usd=portfolio_value(wallet,marks)-portfolio_value(after,marks),
@@ -232,6 +233,7 @@ def assess_ticket(frame,wallet,original,observations,config,ticket):
     uncertainty+=(book['ask']-book['bid'])/book['ask']*reserve*marks[source]/2
     edge=proposed['utility_usd']-held['utility_usd']-uncertainty
     row.update(size=size,reserve=reserve,reserve_usd=reserve*marks[source],receipt=receipt,projected_wallet=after,
+        projected_fee_usd=receipt['fee_amount_estimate']*marks[pair.split('-')[1]],
         projected_usd=portfolio_value(after,marks),hold_original_usd=portfolio_value(original,marks),
         expected_risk_adjusted_edge_usd=edge,uncertainty_usd=uncertainty,
         trading_cost_mark_usd=portfolio_value(wallet,marks)-portfolio_value(after,marks),

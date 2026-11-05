@@ -41,6 +41,10 @@ def diagnostic(app):
             ' / 604800; restarts '+str(snap.get('shadow_trial',{}).get('restart_count',0))+
             '; full-market coverage '+str(snap.get('shadow_trial',{}).get('coverage_percent',0))+
             '%. Risk-adjusted portfolio USD vs original HOLD; forecast UNVALIDATED; automatic live authority NONE.',
+        'Trial evidence: policy-qualified opportunity episodes '+str(snap.get('shadow_trial',{}).get('evidence',{}).get('opportunity_episodes','UNKNOWN'))+
+            '; realistically fillable '+str(snap.get('shadow_trial',{}).get('evidence',{}).get('realistically_fillable_count','UNKNOWN')).replace('None','UNKNOWN')+
+            '; monitoring '+snap.get('shadow_trial',{}).get('evidence',{}).get('monitoring_outcome','IN_PROGRESS')+
+            '; trading '+snap.get('shadow_trial',{}).get('evidence',{}).get('strategy_evidence','UNPROVEN_INCOMPLETE_OPPORTUNITY_HISTORY')+'.',
         '[8/8] Storage: separate manual identity journal; private financial records preserved.',
         'Connected acceptance and native Windows verification must be run locally.',
         'No amounts, prices, limits, private paths, account IDs, order IDs or raw API responses are exported.']

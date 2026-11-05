@@ -32,3 +32,15 @@ class TrialWorkspace(unittest.TestCase):
         self.app.tray.available=True;self.app.window_close();self.assertFalse(self.app.closing)
         self.assertEqual(self.root.state(),'withdrawn');self.app.tray.open();self.root.update()
         self.assertTrue(self.app.blocked.get());self.app.close();self.pump(lambda:self.app.closed)
+    def test_opportunity_evidence_is_visible_but_native_costs_stay_private(self):
+        self.connect();self.app.open_trial();self.app.start_trial(PortfolioConfig());self.pump(lambda:not self.app.busy)
+        self.app.pause_trial();self.app.trial_window.render()
+        self.assertIn('Policy-qualified opportunity episodes',self.app.trial_window.evidence_text.get())
+        self.assertIn('fee',self.app.trial_window.table['columns'])
+        self.assertIn('Trading evidence: UNPROVEN',self.app.trial_window.details.get('1.0','end'))
+        self.app.shadow_public=self.app.shadow.public()
+        snap=capture(self.app,session='0'*32,sequence=1,now=self.clock.wall());public=snap['shadow_trial']['evidence']
+        self.assertEqual(public['opportunity_episodes'],0);self.assertEqual(public['replay_filled_orders'],0)
+        for key in ('projected_fee_usd','modeled_fees_native','net_marked_outperformance_usd'):
+            altered=deepcopy(snap);altered['shadow_trial']['evidence'][key]='private'
+            with self.assertRaises(ValueError):encode(altered)

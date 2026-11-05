@@ -22,6 +22,7 @@ from coincat_manual_trade import identity,fill_identity
 from coincat_order_services import PortfolioInventory,native_fill_changes,ShadowAuthorization
 from coincat_order_services import ticket_values
 from coincat_portfolio_policy import PortfolioConfig,select_candidates,usd_marks,performance,POLICY,assess_ticket
+from coincat_trial_evidence import new_metrics,validate_metrics,observe,summary as evidence_summary
 from coincat_v80_immediate import exact
 from coincat_watchlist import WATCH_ASSETS,WATCH_PAIRS
 
@@ -33,6 +34,7 @@ def validate(state):
     if state.get('schema')!=2 or state.get('strategy')!=POLICY or state.get('config_digest')!=digest(state['config']) or state.get('provider')!='READ_ONLY_SHADOW_WITH_EXPLICIT_REPLAY' or state['mode'] not in MODES:
         raise BetaBlocked('SHADOW_STATE_INVALID')
     config=PortfolioConfig(**state['config']).checked();identity(state['portfolio'])
+    if 'research_metrics' in state:validate_metrics(state['research_metrics'])
     if state['expires_at']!=state['started_at']+config.duration_s:raise BetaBlocked('SHADOW_ORIGINAL_EXPIRY_CHANGED')
     for field in ('wallet','original','venue_holds'):
         if set(state[field])!=set(WATCH_ASSETS) or any(exact(q)<0 for q in state[field].values()):raise BetaBlocked('SHADOW_INVENTORY_INVALID')
@@ -57,14 +59,20 @@ class ShadowTrader:
             try:
                 self.store=TrialStore(self.path,validate=validate)
                 with self.store.lock:
-                    begin_run(self.store.clock,wall=self.clock(),mono_ns=self.monotonic_ns())
-                    state=self.state();active=self._active(state)
-                    unresolved=bool(active and active['dispatch_count'] or any(not f['settled'] for f in state['fills'].values()))
-                    mode='COMPLETE' if self.store.clock['phase']=='COMPLETE' else 'RECONCILIATION_REQUIRED' if unresolved else 'RECOVERING' if self.store.clock['wanted'] else 'PAUSED'
-                    self._change('RECOVERY',{},lambda s:s.update(mode=mode,reason='RESTORED_NO_OFFLINE_FILLS',last_performance=None))
-                    if unresolved:self.store.clock.update(phase='REVIEW_REQUIRED',reason='REPLAY_RECONCILIATION_REQUIRED')
-                    if self.store.clock['wanted'] and not unresolved:self.stop_flag.clear()
-                    self.store.flush_clock()
+                    if self.store.clock['phase']=='COMPLETE':
+                        if self.state()['mode']!='COMPLETE':raise BetaBlocked('COMPLETE_TRIAL_MODEL_CLOCK_CONFLICT')
+                    else:
+                        begin_run(self.store.clock,wall=self.clock(),mono_ns=self.monotonic_ns())
+                        state=self.state();active=self._active(state)
+                        unresolved=bool(active and active['dispatch_count'] or any(not f['settled'] for f in state['fills'].values()))
+                        mode='RECONCILIATION_REQUIRED' if unresolved else 'RECOVERING' if self.store.clock['wanted'] else 'PAUSED'
+                        def recover(s):
+                            if 'research_metrics' not in s:s['research_metrics']=new_metrics(self.clock(),complete_history=False,prior_reviews=s['reviews'])
+                            s.update(mode=mode,reason='RESTORED_NO_OFFLINE_FILLS',last_performance=None)
+                        self._change('RECOVERY',{},recover)
+                        if unresolved:self.store.clock.update(phase='REVIEW_REQUIRED',reason='REPLAY_RECONCILIATION_REQUIRED')
+                        if self.store.clock['wanted'] and not unresolved:self.stop_flag.clear()
+                        self.store.flush_clock()
             except Exception:
                 # Preserve the failed database in place. Never initialize a clean
                 # replacement over an incomplete/corrupt checkpoint.
@@ -73,8 +81,8 @@ class ShadowTrader:
                 try:self.write_report()
                 except (OSError,ValueError):self.report_pending=True
     def state(self):return None if self.store is None else self.store.state()
-    def _change(self,kind,payload,action,event_id=None):
-        return self.store.change(kind,event_id or uuid.uuid4().hex,payload,action)
+    def _change(self,kind,payload,action,event_id=None,*,evidence=None):
+        return self.store.change(kind,event_id or uuid.uuid4().hex,payload,action,evidence=evidence)
     def start(self,account,config):
         if self.load_error:raise BetaBlocked('SAVED_TRIAL_REVIEW_REQUIRED_NO_RESET')
         config=config.checked();PortfolioInventory(account);now=self.clock()
@@ -88,6 +96,7 @@ class ShadowTrader:
                 venue_holds={a:exact(account['holds'].get(a,D(0))) for a in WATCH_ASSETS},
                 config=asdict(config),started_at=now,expires_at=now+config.duration_s,last_at=now,last_review=None,
                 orders={},fills={},observations=[],reviews=0,reason='EXPLICIT_SHADOW_START',last_performance=None,
+                research_metrics=new_metrics(now),
                 initial_usd=None,initial_valuation_at=None,peak_usd=None,max_drawdown=D(0),pending_replacement=None)
             self.store=TrialStore(self.path,initial=state,validate=validate)
             begin_run(self.store.clock,wall=now,mono_ns=self.monotonic_ns())
@@ -123,12 +132,14 @@ class ShadowTrader:
             end_run(self.store.clock,wall=self.clock());self.store.flush_clock()
         self.stop_flag.set()
     def progress(self):return None if self.store is None else progress(self.store.clock,self.clock())
+    def research_summary(self):return None if self.store is None else evidence_summary(self.state(),self.progress())
     def write_report(self):
         if self.store is None:return None
         from coincat_beta_store import pack
         path=self.path.with_name('trial-'+self.state()['trial_id']+'-summary.json')
         if path.is_symlink() or path.with_suffix('.tmp').is_symlink():raise BetaBlocked('TRIAL_REPORT_SYMLINK_REJECTED')
-        raw=pack(dict(classification='HYPOTHETICAL_RESEARCH_NOT_REALIZED_PROFIT',progress=self.progress(),trial=self.state()))
+        raw=pack(dict(classification='HYPOTHETICAL_RESEARCH_NOT_REALIZED_PROFIT',progress=self.progress(),
+            research_summary=self.research_summary(),trial=self.state()))
         path.with_suffix('.tmp').write_text(raw,encoding='utf-8');path.with_suffix('.tmp').replace(path)
         return path
     @staticmethod
@@ -242,6 +253,8 @@ class ShadowTrader:
             if current:charged-=current['risk_usd']
             self.rows,chosen=select_candidates(frame,s['wallet'],available,s['original'],s['observations'],config,
                 remaining_capital=config.max_turnover_usd-charged)
+            if 'research_metrics' not in s:s['research_metrics']=new_metrics(now,complete_history=False,prior_reviews=s['reviews']-1)
+            observe(s['research_metrics'],self.rows,now)
             s['last_performance']=performance(frame,s['wallet'],s['original'],s['observations'],config,
                 initial_usd=s['initial_usd'],fills=s['fills'],
                 accounting_complete=not any(not f['settled'] for f in s['fills'].values()) and
@@ -296,7 +309,12 @@ class ShadowTrader:
                 reconciled=False,reason='LOCAL_SHADOW_PROPOSAL_NO_EXCHANGE_REQUEST',decision=deepcopy(chosen))
             s['reason']='SHADOW_PROPOSAL_ONLY_NO_FILL_ASSUMED'
             s['pending_replacement']=None
-        self._change('MARKET_REVIEW',dict(frame=frame),decide)
+        def recorded_decision(s):
+            result=decide(s);last=(s.get('research_metrics') or {}).get('last_review')
+            if last is not None and last['at']==now:last['execution_reason']=s['reason']
+            return result
+        self._change('MARKET_REVIEW',dict(frame=frame),recorded_decision,
+            evidence=lambda s:deepcopy((s.get('research_metrics') or {}).get('last_review')))
 
     @native_math
     def replay(self,event,event_id):
@@ -396,4 +414,5 @@ class ShadowTrader:
             coverage_percent=0 if p is None else round(p['coverage_percent'],2),
             reviews=0 if s is None else s['reviews'],orders=0 if s is None else len(s['orders']),
             fills=0 if s is None else sum(f['settled'] for f in s['fills'].values()),
-            unresolved=0 if s is None else sum(o['state'] not in TERMINAL for o in s['orders'].values())))
+            unresolved=0 if s is None else sum(o['state'] not in TERMINAL for o in s['orders'].values()),
+            evidence=self.research_summary()))

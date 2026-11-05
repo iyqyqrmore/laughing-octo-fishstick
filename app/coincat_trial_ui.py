@@ -15,6 +15,7 @@ class TrialWindow:
         ttk.Label(shell,text='Shadow research · No automatic live authority · No quote-touch fills · Forecast unvalidated').pack(anchor='w',pady=5)
         self.summary=tk.StringVar();ttk.Label(shell,textvariable=self.summary,wraplength=1000).pack(anchor='w')
         self.bar=ttk.Progressbar(shell,maximum=100);self.bar.pack(fill='x',pady=6)
+        self.evidence_text=tk.StringVar();ttk.Label(shell,textvariable=self.evidence_text,wraplength=1000).pack(anchor='w',pady=(0,6))
         settings=ttk.LabelFrame(shell,text='Frozen on first Start · one shared hypothetical portfolio',padding=6);settings.pack(fill='x')
         self.fields={};config=PortfolioConfig(**app.shadow.state()['config']) if app.shadow.state() else PortfolioConfig()
         for i,(key,label) in enumerate((('max_order_usd','USD / order'),('max_turnover_usd','Lifetime turnover USD'),('max_orders','Lifetime attempts'),('source_fraction','Source fraction (≤ 0.5)'))):
@@ -25,8 +26,8 @@ class TrialWindow:
         ttk.Button(controls,text='Pause shadow',command=app.pause_trial).pack(side='left',padx=6)
         ttk.Button(controls,text='Save private summary',command=app.save_trial_report).pack(side='left')
         ttk.Button(controls,text='November 4 fee audit…',command=app.fee_audit_dialog).pack(side='right')
-        self.table=ttk.Treeview(shell,columns=('pair','side','state','reason'),show='headings',height=9)
-        for k,t,w in (('pair','Market',95),('side','Direction',65),('state','Decision',155),('reason','Reason',620)):
+        self.table=ttk.Treeview(shell,columns=('pair','side','state','fee','reason'),show='headings',height=9)
+        for k,t,w in (('pair','Market',95),('side','Direction',65),('state','Decision',155),('fee','Est. fee USD',110),('reason','Reason',510)):
             self.table.heading(k,text=t);self.table.column(k,width=w,minwidth=60)
         self.table.pack(fill='both',expand=True)
         frame=ttk.LabelFrame(shell,text='Private inventory, orders and performance',padding=5);frame.pack(fill='both',expand=True,pady=(8,0))
@@ -47,9 +48,15 @@ class TrialWindow:
         self.bar['value']=0 if p is None else p['completion_percent']
         for row in self.table.get_children():self.table.delete(row)
         for row in e.rows or [dict(**d,state='HOLD',reason='WAIT_FOR_VALIDATED_OBSERVATIONS') for d in DIRECTIONS]:
-            self.table.insert('','end',values=(row['pair'],row['side'],row['state'],row['reason']))
+            fee=row.get('projected_fee_usd')
+            self.table.insert('','end',values=(row['pair'],row['side'],row['state'],'UNKNOWN' if fee is None else format(fee,'.6g'),row['reason']))
         lines=['No observed quote, candle or downtime interval creates a fill. Explicit replay receipts model fills only.']
+        self.evidence_text.set('Opportunity and performance evidence begins with the first validated review.')
         if s:
+            research=e.research_summary();episodes=research['opportunity_episodes']
+            self.evidence_text.set('Policy-qualified opportunity episodes (unvalidated): '+str(episodes if episodes is not None else 'UNKNOWN')+
+                ' · '+str(research['direction_checks'])+' directional checks\nRealistically fillable: '+('0 — no qualifying opportunities' if research['realistically_fillable_count']==0 else 'UNKNOWN — no calibrated maker-fill evidence')+
+                ' · Replay-filled orders: '+str(research['replay_filled_orders']))
             perf=s['last_performance'] or {};orders=list(s['orders'].values());fees={}
             for record in self.app.history_store.records():
                 for raw in record['fills']:
@@ -59,7 +66,12 @@ class TrialWindow:
                         if asset is None:fees['UNKNOWN']='UNKNOWN (not summed across currencies)';continue
                         if fees.get(asset)!='UNKNOWN':fees[asset]=fees.get(asset,Decimal(0))+Decimal(raw['commission'])
                     except (ValueError,ArithmeticError):fees['UNKNOWN']='UNKNOWN'
-            lines+=['Trial '+s['trial_id']+' · '+s['strategy'],s['reason'],
+            lines+=['Monitoring outcome: '+research['monitoring_outcome'],
+                'Trading evidence: '+research['strategy_evidence']+' · Predictive edge NOT DEMONSTRATED',
+                'Opportunity history: '+research['opportunity_history']+' · qualifying checks '+str(research['qualifying_checks'])+' (repeat reviews are not new episodes)',
+                'Modeled settled native fees: '+str(research['modeled_fees_native'])+' · unsettled fill events '+str(research['unsettled_fill_events']),
+                'Portfolio vs original HOLD: '+research['portfolio_vs_hold']+' · net marked difference USD '+fmt(research['net_marked_outperformance_usd']),
+                'Trial '+s['trial_id']+' · '+s['strategy'],s['reason'],
                 'Hypothetical inventory: '+', '.join(a+' '+fmt(q) for a,q in s['wallet'].items()),
                 'Original HOLD quantities: '+', '.join(a+' '+fmt(q) for a,q in s['original'].items()),
                 'Starting marked USD: '+fmt(s['initial_usd'])+' · Current marked USD: '+fmt(perf.get('portfolio_usd')),
@@ -73,6 +85,10 @@ class TrialWindow:
                 'External actual-account changes excluded: '+str(len(s['external_changes']))+' · Actual realized profit NOT ASSESSED',
                 'Proposals '+str(len(orders))+' · replay fills '+str(sum(f['settled'] for f in s['fills'].values()))+' · unfilled '+str(sum(o['filled']==0 for o in orders))+' · canceled '+str(sum(o['state']=='CANCELED' for o in orders)),
                 'Full USD liquidation / open lot P/L remain UNKNOWN where native exits, fee units or basis are unverified.']
+            for proposal in research['proposed_full_fill_costs']:
+                lines.append('Conditional full-fill cost '+proposal['pair']+' '+proposal['side']+': fee USD '+fmt(proposal['projected_full_fill_fee_usd'])+
+                    ' / '+fmt(proposal['projected_quote_fee'])+' '+str(proposal['quote_fee_currency_model'])+' under quote-fee assumption; marked execution cost USD '+fmt(proposal['marked_execution_cost_usd'])+
+                    '. Unfilled proposals incur no modeled commission; alternative/replaced proposals are not summed as executed costs.')
             for o in orders:
                 market=(e.last_frame or {}).get('books',{}).get(o['pair'],{})
                 lines.append(o['pair']+' '+o['side']+' '+o['state']+' · limit '+fmt(o['price'])+' · BID '+fmt(market.get('bid'))+' / ASK '+fmt(market.get('ask'))+' · base '+fmt(o['size'])+' · filled '+fmt(o['filled'])+' · reserved '+fmt(o['reserved'])+' '+o['source'])

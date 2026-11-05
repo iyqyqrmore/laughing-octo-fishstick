@@ -70,7 +70,7 @@ class TrialStore:
             with closing(self._db()) as db,db:
                 db.execute('BEGIN IMMEDIATE');self._clock_write(db)
             self.clock_revision+=1
-    def change(self,kind,event_id,payload,action):
+    def change(self,kind,event_id,payload,action,*,evidence=None):
         if not isinstance(event_id,str) or not 1<=len(event_id)<=128:raise BetaBlocked('TRIAL_EVENT_ID_INVALID')
         fingerprint=digest(dict(kind=kind,payload=payload))
         with self.lock:
@@ -92,7 +92,8 @@ class TrialStore:
                     raise BetaBlocked('ORIGINAL_TRIAL_BASELINE_OR_LIMITS_CHANGED')
                 db.execute('UPDATE trial_state SET revision=?,payload=?,digest=? WHERE id=1',
                     (self.revision+1,raw,hashlib.sha256(raw.encode()).hexdigest()))
-                db.execute('INSERT INTO trial_events VALUES(?,?,?,?)',(event_id,kind,fingerprint,pack(payload)))
+                event_payload=payload if evidence is None else dict(input=payload,evidence=evidence(state))
+                db.execute('INSERT INTO trial_events VALUES(?,?,?,?)',(event_id,kind,fingerprint,pack(event_payload)))
                 self._clock_write(db)
             self._state=state;self.revision+=1;self.clock_revision+=1
         return result

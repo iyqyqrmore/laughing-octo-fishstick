@@ -30,7 +30,7 @@ def main():
     names=source_files()
     data=dict(build='1.04-resumable-shadow-candidate',
         description='Resumable 168-valid-hour portfolio USD shadow research; isolated transactional trial clock, recovery, GET-only observations, native Windows tray and private fee audit. Automatic live authority unavailable. Native Windows and connected acceptance pending.',
-        base_commit='902320907843dcbca67a0b26de29896ae8a675ad',
+        base_commit='cc565d994b19d05514089247352caf51e225806d',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))

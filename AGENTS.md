@@ -1,5 +1,18 @@
 # Codex instructions — CoinCat v1.04
 
+OPPORTUNITY / VALUE EVIDENCE OWNER FOLLOW-UP — NOVEMBER 5, 2026
+Report cumulative policy-qualified opportunity episodes, repeated checks, realistic
+fill feasibility, conditional costs, modeled native fees and portfolio versus
+original HOLD. Missing calibrated maker-fill evidence stays UNKNOWN; replay
+fills are assumptions and never establish realistic exchange fills. Persist
+metrics across restart with explicit since-upgrade coverage for older trials.
+Separate monitoring completion from trading evidence: 168 valid hours with no
+qualifying trade must safely complete, preserve zero-trade outcomes, and report
+profitability UNPROVEN. Never force a trade to complete a trial, alter strategy
+thresholds/limits for activity, or change live permissions. Completed valuations
+and reports remain frozen across restarts. Existing shadow-source commit/push
+authorization on coincat-v1.04 continues; no account trade or installation.
+
 RESUMABLE V1.04 OWNER OVERRIDE — NOVEMBER 5, 2026
 The latest pasted v1.04 handoff is the controlling scope. Build a restart-safe
 autonomous portfolio RESEARCH system with 168 cumulative valid observation

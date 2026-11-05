@@ -1,3 +1,16 @@
+# v1.04 opportunity/value evidence follow-up
+
+- Persist prospectively qualified opportunity episodes and repeat-check counts;
+  write per-review classification/cost evidence with the model/clock transaction.
+- Show realistic maker-fill feasibility as UNKNOWN without calibrated evidence;
+  distinguish explicit replay fills and modeled native commissions.
+- Display conditional per-proposal costs and net marked portfolio versus HOLD;
+  preserve unknown/unreconciled costs and avoid summing alternative estimates.
+- Complete 168 valid hours safely with zero qualifying trades and zero fees:
+  monitoring complete, profitability unproven. Completed valuations survive restart.
+- Existing trials retain all data and label missing pre-upgrade opportunity history.
+- No strategy admission, capital limit, live permission or financial schema changes.
+
 # CoinCat v1.04 — resumable portfolio research
 
 - Persistent 168-valid-hour shadow trial with atomic model/clock checkpoints,

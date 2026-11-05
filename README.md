@@ -18,7 +18,11 @@ Maker hypotheses use LIMIT GTC / Post Only, noncrossing BID buys and ASK sells,
 30-second reviews and conditional 120-second reconsideration. Forecasts remain
 unvalidated. **Quotes never manufacture fills**: explicit replay receipts are
 required to model executions. No queue-calibrated autonomous fill model or
-unattended live authorization is claimed by this release.
+unattended live authorization is claimed by this release. The dashboard counts
+prospective qualification episodes, distinguishes UNKNOWN realistic fill feasibility
+from replay assumptions, shows conditional costs and compares net modeled holdings
+with HOLD. Zero qualifying trades can complete the trial successfully; monitoring
+completion provides no profitability evidence.
 
 **Live orders blocked defaults ON at every launch.** Switching OFF continues to
 enable real manual order clicks under the existing bounds. Shadow authorization
@@ -34,4 +38,5 @@ Follow [START_HERE.md](START_HERE.md) for Windows setup, verification and recove
 acceptance. Native Windows tray/DPAPI behavior, connected Coinbase acceptance
 and an actual 168-hour observation trial must still be validated locally.
 Cloud deterministic tests and a completed shadow trial do not establish profit.
-Source branch: `coincat-v1.04`; base: `9023209` on `coincat-v1.03beta`.
+Source branch: `coincat-v1.04`; evidence follow-up base: `cc565d9`.
+Original Manual Spot foundation: `9023209` on `coincat-v1.03beta`.
