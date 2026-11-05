@@ -27,7 +27,7 @@ def ensure_private_data():
 
 def main():
     if not ensure_private_data():return 2
-    from coincat_app import main as run
+    from coincat_spot_app import main as run
     try:
         run();return 0
     except Exception:

@@ -1,20 +1,25 @@
-CoinCat v1.03beta — default-ON block; bounded REAL maker execution available
+CoinCat v1.03beta — Manual Spot; live block ON at every launch
 
-Read START_HERE.md and docs/BETA_1_03.md. Use a separate installation and preserve
-private data/backups. Run setup, numbered isolated verification and the finite
-synthetic PAPER replay first. Source verification never trades.
+Read START_HERE.md and docs/MANUAL_SPOT.md. Use a separate installation and
+preserve all private data/backups. Setup, then run isolated source verification.
 
-Live orders blocked starts ON every launch. Deliberate OFF plus locally applied
-live limits and Start REAL Beta Trader can send actual Coinbase Limit/Post Only
-orders. Proposed limits: .005 ETH session, $5/order, one open, four attempts,
-30 minutes. UNKNOWN native fee/depth/profit evidence still blocks every entry.
-STOP/reblock requests owned-order cancellation and reconciles racing fills;
-it never liquidates or assumes cancellation from acknowledgment alone.
+Default screen: seven market tabs, market dropdown + favorite star, candles,
+REST order book, native Buy/Sell limit ticket, orders and balances. Automation
+is OFF. The old research/automatic controllers do not start with this client.
 
-Global $.01 completed ETH-return floor; first working slice up to 50% once,
-later source up to 50%; review 30s / reconsider 120s from acknowledgment.
-Public L2 and manual imports are optional/read-only, initially inactive. CSV
-fees are historical evidence, not future fee settings. No demonstrated edge.
-Native Windows/connected/independent acceptance is not proven by cloud tests.
-Live receipts use a separate native-flow journal, not tax lots. Old data,
-protected libraries, backups and transparent logo remain preserved.
+Connect while blocked. Review Caps. Deliberate block OFF enables actual manual
+LIMIT GTC orders from your Buy/Sell clicks. BUY at ASK with Post Only OFF may
+fill immediately and incur taker fees. Post Only is explicit; no fallback.
+No research plan, predicted-profit floor or future exit is needed for a manual
+ticket. Permissions, portfolio, precision, native minimums, funds and caps apply.
+
+Defaults: $5/order, .005 ETH-equivalent session turnover, four submissions,
+one open order, 30 minutes, 2% fee buffer/ceiling (not an assumed actual fee).
+Cancel & refresh prepares only a confirmed unfilled remainder; it does not send
+another order. Timeouts stay identity-locked. Reblock/close cancels only owned
+orders and reconciles racing fills; it never liquidates or invents settlement.
+
+Trade details / CSV can uniquely corroborate historical native flow by fields
+and UTC time without rewriting API evidence or setting future fees. Diagnostics
+and Local monitor show redacted manual status. No account trade is run in cloud.
+Native Windows and connected acceptance remain local tests. No profit is promised.

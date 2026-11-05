@@ -16,16 +16,17 @@ HTML='''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CoinCat v1.03beta · Monitor</title><link rel="stylesheet" href="/monitor.css"></head>
 <body><main><h1>CoinCat <small>v1.03beta · Monitor</small></h1>
-<p>Read-only app health · Separate paper and bounded REAL beta status · Profit unverified</p>
+<p>Read-only app health · Manual spot order status · Profit unverified</p>
 <h2 id="state">Connecting…</h2><p id="message"></p>
 <div class="cards"><section><span>Last good scan</span><strong id="scan">—</strong></section>
 <section><span>Account / fees now</span><strong id="fees">—</strong></section>
 <section><span>Recovery</span><strong id="retry">—</strong></section></div>
-<table><thead><tr><th>Market</th><th>Quote age</th><th>Setup</th><th>Observation gaps</th></tr></thead><tbody id="markets"></tbody></table>
+<section id="legacy"><table><thead><tr><th>Market</th><th>Quote age</th><th>Setup</th><th>Observation gaps</th></tr></thead><tbody id="markets"></tbody></table>
 <p id="counts"></p><h2>Adaptive ETH Research</h2><p id="adaptive"></p>
-<h2>Prospective experiment journal</h2><p id="journal"></p><button id="download">Save redacted snapshot</button>
-<h2>Auto maker PAPER session</h2><p id="paper"></p>
-<h2>Bounded REAL beta</h2><p id="beta"></p><p id="manual"></p><p id="book"></p>
+<h2>Prospective experiment journal</h2><p id="journal"></p>
+<h2>Auto maker PAPER session</h2><p id="paper"></p></section>
+<h2>Order execution</h2><p id="beta"></p><p id="manual"></p><p id="book"></p>
+<button id="download">Save redacted snapshot</button>
 <details><summary>Technical detail</summary><pre id="detail"></pre></details>
 <p class="note">The helper records while this chat is inactive. An assistant reads it only during an active session with private access configured.
 App updates use a separate source build and restart.</p></main><script src="/monitor.js"></script></body></html>'''
@@ -46,7 +47,7 @@ async function refresh(){
   if(!r.ok)throw new Error("Read access unavailable. Reopen using the helper launcher.");
   latest=await r.json();put("state",latest.state.replaceAll("_"," "));
   const s=latest.snapshot,a=latest.ages;
-  put("message",s?"Snapshot "+new Date(s.captured_at*1000).toLocaleString()+" · Heartbeat "+age(a.heartbeat_s)+" ago":"Enable Local monitor in Research Archive → AI Lab / notes.");
+  put("message",s?"Snapshot "+new Date(s.captured_at*1000).toLocaleString()+" · Heartbeat "+age(a.heartbeat_s)+" ago":"Enable Local monitor in the CoinCat toolbar.");
   put("scan",s?age(a.last_good_scan_s)+" ago · #"+(s.health.scan_number??"—"):"—");
   put("fees",s?(a.authenticated_fresh?"Account recent":"Account stale / unobserved")+" · "+(a.fee_valid_now?"Fees within TTL":"Fees stale / unobserved"):"—");
   put("retry",s?s.health.connection_state+(s.health.retry_in_s===null?"":" · Captured countdown "+age(s.health.retry_in_s)):"—");
@@ -62,6 +63,8 @@ async function refresh(){
   const b=s?.beta;put("beta",b?(latest.state==="APP_REPORTING"?(b.live.blocked?"LIVE BLOCK ON":"LIVE ENABLED · BOUNDED REAL BETA"):"LAST CAPTURE · CURRENT LIVE GATE UNVERIFIED")+" · "+b.live.state+" · Owned orders "+b.live.orders+" · Reconciled bot fills "+b.live.fills+" · Unresolved orders "+b.live.unresolved+" · Profit NOT ESTABLISHED":"Current live gate unverified");
   put("manual",b?"Read-only manual history: "+b.manual.state+" · Orders "+b.manual.orders+" · Known native flows "+b.manual.known_native_flow+" · Unknown "+b.manual.unknown+" · Account reconciliation UNKNOWN; not bot fills":"Manual history unavailable");
   put("book",b?"Public book: "+b.book.state+" · Healthy "+b.book.healthy+" / "+b.book.subscribed+" · Visible levels are not queue or fill evidence":"Public book unavailable");
+  const m=s?.manual_execution;document.getElementById("legacy").hidden=!!m;
+  if(m){put("beta",(latest.state==="APP_REPORTING"?(m.blocked?"LIVE BLOCK ON":"LIVE ENABLED · MANUAL CLICKS ONLY"):"LAST CAPTURE · CURRENT LIVE GATE UNVERIFIED")+" · "+m.state+" · Orders "+m.orders+" · Exchange fills "+m.fills+" · Unresolved "+m.unresolved+" · Automation OFF");put("manual","Manual LIMIT GTC · Completed "+m.completed+" · Canceled "+m.canceled+" · Profit NOT ASSESSED");put("book","REST pricebook snapshots · visible prices do not establish a fill");}
   put("detail",JSON.stringify(latest,null,2));
  }catch(e){latest=null;put("beta","Current live gate unverified");put("manual","Current manual history unavailable");put("book","Current public book unavailable");put("paper","Current paper status unavailable");put("journal","Current journal unavailable");put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
 }

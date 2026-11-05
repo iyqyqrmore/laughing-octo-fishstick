@@ -1,3 +1,56 @@
+COINCAT v1.03beta — MANUAL SPOT SOURCE CANDIDATE
+Base: published e5966cdad17208fa9b5bce758c3a3820599f9175.
+
+FINAL SOURCE CHECKS
+486 discovered/distinct/run, zero failures/errors/skips/expected failures in
+49.346s on Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0. HTTP/WebSocket
+forbidden before discovery and throughout execution. This retains all 451
+previous cases and adds 35 manual lifecycle/native evidence/Tk cases. A few
+subsequent display-only label/input refinements are also covered by the final
+freshly extracted package run, recorded with the external release artifacts.
+
+Coverage: fourteen native directions, manual marketable LIMIT BUY at ASK,
+Post Only crossing rejection, exact native rules, funds/fee buffer/caps,
+no research/forecast admission prerequisites, finite preview, exactly-once
+dispatch, unknown POST recovery, cancel/fill races, partial remaining drafts,
+restart/expiry/session archive, STOP/shutdown, CSV corroboration/ambiguity,
+strict public fields, actual Tk controls and minimum-window layout. Source
+boundary verifier checks both the retained automatic maker adapter and the
+new default-ON manual LIMIT/explicit-click/ambiguous-create boundaries.
+
+Supplementary Linux Python 3.13.5 / SQLite 3.46.1 / Tk-Tcl 8.6 exercised the
+35-case manual/UI suite in 5.162s with zero failures/errors/skips. The package
+results are retained outside the checkout. Actual Tk 8.6 screenshots were
+inspected at 1450x920 and 1040x780 using clearly labeled synthetic data.
+
+LOCAL MONITOR
+Actual localhost protocol: unauthorized GET 401, authorized GET status 200,
+POST 405, /stop 404. Node DOM checks passed for the current manual provider,
+hidden legacy panels, stale-gate clearing, old-v3 compatibility, missing data
+and missing helper response. The extension accepts controlled enums/counts
+only; amounts, settings, IDs, keys, private paths and raw errors are rejected.
+No helper command or trading channel exists.
+
+PRIVATE STATEMENT READ
+The supplied small ETH-BTC sale's native arithmetic was read locally:
+.005 * .030268 = .000151340 BTC gross; implied deduction .0000007567 BTC
+(0.5%); net .0001505833 BTC. USD fee arithmetic is consistent. This does not
+claim a live API read, an order-ID join or account reconciliation. The CSV's
+private IDs/path/contents are excluded from the repository and package.
+
+BOUNDARIES
+Financial/FIFO/tax, key/DPAPI, import, lock, canonical receipt libraries,
+dependency locks and original artwork remain byte-identical to the baseline.
+The default manual client does not initialize the older automatic controllers
+or open the financial ledger. Its identity journal is separate. No cloud
+Coinbase order, transfer, account connection or PC installation was performed.
+No Coinbase credentials or network access are configured here. Native Windows,
+current connected preview/create/fill/cancel behavior, DPAPI and actual account
+settlement still require the explicit local sequence in START_HERE.md.
+Offline tests do not prove profitable predictions or connected readiness.
+
+The following is retained historical evidence for earlier candidates.
+
 COINCAT v1.03beta — WINDOWS VERIFICATION HANDLE REPAIR
 Parent: published 5bb62739df56ae933e90770e75ca324f929b47f7.
 

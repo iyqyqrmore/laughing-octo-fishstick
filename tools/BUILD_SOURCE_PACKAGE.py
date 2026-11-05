@@ -28,9 +28,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
-    data=dict(build='1.03beta-live-candidate',
-        description='Default-ON bounded real maker gate, isolated native receipts/manual history, optional public L2 and strict UNKNOWN gates; source candidate, connected acceptance not run.',
-        base_commit='a09a1f3eab106f8d775e2ba76e80e29743292bd4',
+    data=dict(build='1.03beta-manual-candidate',
+        description='Manual-first seven-market spot workspace; bounded explicit real LIMIT tickets, REST books/candles, cancel/reconcile/remainder drafts and CSV corroboration. Automation OFF; connected acceptance not run.',
+        base_commit='e5966cdad17208fa9b5bce758c3a3820599f9175',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))

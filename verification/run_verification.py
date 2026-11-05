@@ -1,4 +1,4 @@
-"""Source-only default-ON/maker boundary check; no exchange or account access."""
+"""Source-only manual/legacy boundaries; no exchange or account access."""
 from pathlib import Path
 import ast,sys
 
@@ -20,6 +20,18 @@ def main():
     if not any(isinstance(n,ast.keyword) and n.arg=='post_only' and isinstance(n.value,ast.Constant) and n.value.value is True for n in ast.walk(submit)):
         print('FAIL: explicit post_only=True missing');return 5
     print('PASS: default-ON bounded beta guard / maker-only adapter')
+    manual=ast.parse((root/'app/coincat_spot_execution.py').read_text(encoding='utf-8'))
+    controller=next(n for n in manual.body if isinstance(n,ast.ClassDef) and n.name=='ManualExecution')
+    init=next(n for n in controller.body if isinstance(n,ast.FunctionDef) and n.name=='__init__')
+    send=next(n for n in controller.body if isinstance(n,ast.FunctionDef) and n.name=='submit')
+    if ('self.block.set()' not in ast.unparse(init) or 'self.block.is_set()' not in ast.unparse(send) or
+            'EXPLICIT_MANUAL_CLICK' not in ast.unparse(send) or 'AMBIGUOUS_CREATE_LOCK' not in ast.unparse(send)):
+        print('FAIL: manual identity/default-ON boundaries missing');return 6
+    launcher=ast.parse((root/'app/coincat_launcher.py').read_text(encoding='utf-8'))
+    imports={n.module for n in ast.walk(launcher) if isinstance(n,ast.ImportFrom)}
+    if 'coincat_spot_app' not in imports or 'coincat_app' in imports:
+        print('FAIL: launcher is not the manual workspace');return 7
+    print('PASS: default-ON manual LIMIT client / explicit-click journal / ambiguous-create lock')
     print('CONNECTED BETA ACCEPTANCE NOT VERIFIED; no exchange requests or account mutations')
     return 0
 

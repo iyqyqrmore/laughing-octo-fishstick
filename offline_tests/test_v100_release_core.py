@@ -32,7 +32,7 @@ class ReleaseCore(unittest.TestCase):
 
     def test_all_shipped_source_hashes_and_python_syntax(self):
         manifest=json.loads((ROOT/'SHA256_MANIFEST.json').read_text())
-        self.assertEqual(manifest['build'],'1.03beta-live-candidate')
+        self.assertEqual(manifest['build'],'1.03beta-manual-candidate')
         self.assertGreater(len(manifest['files']),30)
         for name,expected in manifest['files'].items():
             p=ROOT/name

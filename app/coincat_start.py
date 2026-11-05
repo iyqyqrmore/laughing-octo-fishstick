@@ -1,4 +1,4 @@
-"""Console-free CoinCat Windows GUI entrypoint; live order POST remains blocked."""
+"""Console-free manual spot entrypoint; live block starts ON every launch."""
 from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path

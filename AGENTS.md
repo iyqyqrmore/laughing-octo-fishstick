@@ -1,5 +1,38 @@
 # Codex instructions — CoinCat v1.03beta
 
+MANUAL-FIRST OWNER OVERRIDE — NOVEMBER 4, 2026 (America/Chicago)
+The owner now explicitly requests a much simpler Coinbase-style manual spot
+client: seven native market tabs, market selector and favorite star, candles,
+book, Buy/Sell limit ticket and order/fill history. Prove actual manual order,
+fill, cancel and refreshed replacement behavior before any automation. Make
+this the default launcher. Keep older research/auto controllers inactive and
+preserve their records and canonical financial/DPAPI/lock/import libraries.
+The owner explicitly requests BUY at ASK and SELL at ASK. A deliberately
+non-post-only LIMIT BUY may take liquidity; show the taker estimate and retain
+an explicit Post Only option. No market/IOC fallback. This resolves the earlier
+pending maker-versus-marketable clarification for MANUAL tickets only.
+
+Completed-rotation profit, sized future exits, research allocations and historical
+fee-currency certainty are not prerequisites to a user-entered manual order.
+Keep fresh permission/portfolio/product/native size/price/balance checks, explicit
+clicks, default-ON live block and the small existing session/order caps. Fees may
+be estimated conservatively for the ticket; unknown realized fee units must
+remain labeled unknown and cannot support a claimed exact settlement/profit.
+REST books are sufficient for manual tickets; WebSocket availability is not an
+admission gate. Keep ambiguous POSTs locked, never blindly retry, and require
+terminal quantity/fill reconciliation before suggesting a remaining replacement.
+Never resubmit canceled size that already filled. Manual funding is the actual
+selected source asset explicitly committed by the operator, not a fabricated
+ETH-only seed or adopted automatic wallet. No automatic placement/repricing yet.
+CSV corroboration must preserve provenance and ambiguity rather than requiring
+the owner to invent fee metadata or silently rewriting historical fill records.
+The user's earlier authorization to commit/push the completed v1.03beta source
+continues for this follow-up. No cloud account trades or local PC installation.
+Monitor v3 now supports a strict optional manual_execution state/count extension
+alongside its historical extensions. Manual LIMIT tickets must not be labeled
+as the older automatic Post Only provider. The new default never runs those
+older automatic controllers. Keep actual connected/Windows acceptance pending.
+
 CURRENT OWNER OVERRIDE — NOVEMBER 4, 2026
 The owner explicitly requested replacing the unconditional live submission
 block with a "Live orders blocked" switch, ON by default, and real trading

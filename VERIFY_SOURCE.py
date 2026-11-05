@@ -7,7 +7,7 @@ def main():
     manifest=root/'SHA256_MANIFEST.json'
     try:data=json.loads(manifest.read_text(encoding='utf-8'))
     except (ValueError,OSError):return 2
-    if data.get('build')!='1.03beta-live-candidate':return 3
+    if data.get('build')!='1.03beta-manual-candidate':return 3
     files=data.get('files')
     if not isinstance(files,dict) or not files:return 4
     fails=[]
@@ -18,6 +18,6 @@ def main():
     print('CoinCat v1.03beta source hashes checked:',len(files),'Failures:',len(fails))
     if fails:
         print('BLOCKED: Source files missing or changed; first discrepancies:',fails[:4]);return 5
-    print('PASS / SOURCE INTEGRITY ONLY; live block defaults ON; OFF + explicit bounded Start can place real orders')
+    print('PASS / SOURCE INTEGRITY ONLY; live block defaults ON; OFF + manual Buy/Sell click can place real LIMIT orders')
     return 0
 if __name__=='__main__':sys.exit(main())

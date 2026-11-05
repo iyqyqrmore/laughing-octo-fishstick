@@ -1,3 +1,31 @@
+# CoinCat v1.03beta — manual-first spot workspace
+
+Default launch now provides seven market tabs, the market dropdown/favorite
+star, real exchange candles, REST books, native Buy/Sell LIMIT GTC tickets,
+orders and balances. The previous automatic/research controllers stay inactive.
+Manual orders do not need forecast profit, future exit liquidity, a research
+allocation or historical fee currencies. Fresh scope, permissions, native
+rules, available funds, visible beta caps and exchange preview still apply.
+
+Live block defaults ON. Deliberate OFF permits your explicit order clicks.
+BUY at ASK with Post Only OFF can take liquidity; Post Only ON rejects crossing
+prices. No market/IOC fallback, automatic placement, repricing or blind retry.
+Cancellation reconciles actual partial/racing fills; refresh creates only an
+unfilled-remainder draft. Restart retains unresolved identities and caps.
+Completed explicit sessions are archived, never deleted. The minimum-window
+ticket scrolls while its submit button stays visible.
+
+CSV cross-checking now connects unique native fields and UTC time to saved API
+fill evidence, with report revisions and ambiguity handling. API fee units and
+raw fills are preserved; a field match is labeled separately from identifier
+or account reconciliation. Future fee settings are never inferred from CSV.
+Manual diagnostics/monitor status is strictly redacted. Existing financial,
+FIFO, key, import, lock, history, dependency and transparent artwork bytes remain.
+See START_HERE.md and docs/MANUAL_SPOT.md for the local acceptance sequence.
+Cloud checks never place account orders or establish connected/Windows readiness.
+
+The sections below describe previous candidates and archived workflows.
+
 # CoinCat v1.03beta — Windows verification handle cleanup
 
 The owner's native run of 5bb6273 checked all 150 hashes and ran 450 tests in

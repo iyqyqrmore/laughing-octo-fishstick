@@ -17,7 +17,7 @@ echo Windows tests can take 20 minutes or more. An E or FAIL requires the final 
 "%~dp0.venv\Scripts\python.exe" -u -B "%~dp0tools\RUN_OFFLINE_TESTS.py"
 if errorlevel 1 goto fail
 echo PASS: All isolated offline source tests completed.
-echo Tests made no exchange calls. Live block defaults ON; deliberate OFF and bounded Start enable REAL maker orders.
+echo Tests made no exchange calls. Live block defaults ON; deliberate OFF enables REAL manual LIMIT order clicks.
 echo Original private ledger untouched by these isolated tests.
 pause
 exit /b 0

@@ -270,7 +270,8 @@ class PortablePaths(unittest.TestCase):
             (root/'app').mkdir(parents=True);(root/'verification').mkdir()
             shutil.copyfile(ROOT/'verification/run_verification.py',root/'verification/run_verification.py')
             shutil.copyfile(ROOT/'app/coincat_live.py',root/'app/coincat_live.py')
-            (root/'app/coincat_launcher.py').write_text('# SYNTHETIC path check only\n')
+            shutil.copyfile(ROOT/'app/coincat_spot_execution.py',root/'app/coincat_spot_execution.py')
+            shutil.copyfile(ROOT/'app/coincat_launcher.py',root/'app/coincat_launcher.py')
             (root/'SHA256_MANIFEST.json').write_text('{"files": {}}')
             run=subprocess.run([sys.executable,str(root/'verification/run_verification.py'),'pilot'],
                                capture_output=True,text=True,timeout=10)

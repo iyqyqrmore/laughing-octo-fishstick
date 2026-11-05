@@ -75,6 +75,18 @@ def _pair(value):
 def capture(app,*,session,sequence,manifest_sha256=None,now=None,lifecycle='OPEN'):
     """Copy only controlled fields on the Tk thread, without reading any ledger."""
     now=time.time() if now is None else now
+    if getattr(app,'manual_workspace',False):
+        from types import SimpleNamespace
+        from coincat_spot_public import validate as manual_validate
+        account_at=(app.account or {}).get('at');tier=app.reader.tier or {}
+        state='RUNNING' if app.connected and not app.last_error else 'RETRYING' if app.last_error else 'STOPPED'
+        legacy=SimpleNamespace(last_result=dict(at=app.last_read_at,scan=app.reads,fee_evidence=dict(
+            captured_at=tier.get('at'),fresh=bool(tier and 0<=now-tier['at']<=3600))),
+            scanner=SimpleNamespace(account_at=account_at),recovery=SimpleNamespace(diagnostics=lambda:dict(connection_state=state)),
+            companions=[],running=bool(app.connected),busy=bool(app.busy),applied_config=None,
+            connected=bool(app.connected),last_error='READ_FAILED' if app.last_error else None)
+        snapshot=capture(legacy,session=session,sequence=sequence,manifest_sha256=manifest_sha256,now=now,lifecycle=lifecycle)
+        snapshot['manual_execution']=manual_validate(dict(app.manual_public));validate(snapshot);return snapshot
     result=app.last_result or {};scanner=app.scanner;tier=result.get('fee_evidence',{})
     recovery=app.recovery.diagnostics();failure=recovery.get('last_failure')
     last_failure=None if not failure else dict(stage=_enum(failure.get('stage'),STAGES),
@@ -124,7 +136,8 @@ def validate(value):
     # omit it; arbitrary root or nested keys are still rejected.
     fields='schema version session sequence manifest_sha256 captured_at lifecycle companions health products observations adaptive prospective_journal'
     exact(value,fields+(' auto_paper' if isinstance(value,dict) and 'auto_paper' in value else '')+
-        (' beta' if isinstance(value,dict) and 'beta' in value else ''))
+        (' beta' if isinstance(value,dict) and 'beta' in value else '')+
+        (' manual_execution' if isinstance(value,dict) and 'manual_execution' in value else ''))
     if value['schema']!=SCHEMA or value['version']!=DISPLAY:raise ValueError('INVALID_MONITOR_VERSION')
     if not isinstance(value['session'],str) or not re.fullmatch(r'[0-9a-f]{32}',value['session']):raise ValueError('INVALID_MONITOR_SESSION')
     if type(value['sequence']) is not int or not 1<=value['sequence']<=2**53:raise ValueError('INVALID_MONITOR_SEQUENCE')
@@ -158,6 +171,9 @@ def validate(value):
     validate_journal_public(value['prospective_journal'])
     if 'auto_paper' in value:validate_paper_public(value['auto_paper'])
     if 'beta' in value:beta_validate(value['beta'])
+    if 'manual_execution' in value:
+        from coincat_spot_public import validate as manual_validate
+        manual_validate(value['manual_execution'])
     exact(value['observations'],' '.join(COUNTS))
     for raw in value['observations'].values():count(raw)
     return value
