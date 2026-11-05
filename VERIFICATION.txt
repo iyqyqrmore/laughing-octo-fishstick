@@ -1,3 +1,56 @@
+COINCAT v1.03beta — WINDOWS RESIZE VERIFICATION FOLLOW-UP
+Source base: published 2e9fa6959abee08f07dbdb4bec2221cbffcd679b.
+
+OWNER-SUPPLIED WINDOWS RESULT FOR THE PREVIOUS CANDIDATE
+157 source hashes matched. Windows Python 3.11.9 / SQLite 3.45.1 /
+Tk-Tcl 8.6 discovered and ran 486 tests in 1682.733s. One resize test
+reported five subtest failures; there were zero errors and one host-symlink
+capability skip. This is FAILED acceptance, not a Windows pass.
+
+CAUSE AND REPRODUCTION
+The test requested 1040x780 immediately after 1450x920, but processed only
+Tk idle work. Win32 native resize/configure messages require event dispatch.
+The reported child right edges still corresponded to the larger layout.
+A controlled 50ms native-resize delay on Tk 8.6 reproduces all five failures:
+after idle-only processing the actual width is still 1450; child right edges
+are 1130/1298/1411/1411/1419 against a requested 1040 boundary. After native
+events settle, actual width is 1040 and edges are 720/888/1001/1001/1009.
+
+The fixture now requires the exact requested native width and height and
+stable child geometry before applying the same mapped/width/right/bottom
+assertions. Failure to reach the requested size fails with actual size and
+Tk scaling. No tolerance, minimum size increase, platform skip or fit-assertion
+suppression is added. The delayed-configure regression independently checks
+the final actual size and all five child bounds.
+
+EXECUTED FOCUSED CHECKS
+Nine isolated manual-window checks pass with HTTP/WebSocket forbidden before
+discovery: 4.761s on Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0;
+5.533s on supplementary Linux Python 3.13.5 / SQLite 3.46.1 / Tk-Tcl 8.6.
+The complete source run discovers and runs 487 distinct tests in 47.600s,
+zero failures/errors/skips/expected failures, with HTTP/WebSocket forbidden.
+An additional resize probe checks 1450x920 and 1040x780 at Tk scaling
+1.333333, 1.666667 and 2.0; all tested right/bottom bounds fit after native
+event dispatch. These are Linux probes, not native Windows acceptance.
+
+QUICK WINDOWS RECHECK
+After setup, tools/VERIFY_MANUAL_WINDOW.bat verifies all 158 source hashes
+and runs only these nine checks in disposable state. It explicitly labels
+its result FOCUSED, not full acceptance. 03_VERIFY_COINCAT.bat still runs
+the entire 487-case isolated suite. Full checkout and fresh source-ZIP
+extraction results are retained with the external release artifacts.
+
+BOUNDARIES
+All 85 tracked application/artwork/dependency files retain the previous
+candidate's bytes. Only the verification fixture/runner, quick-check
+launcher, release documentation and source manifest/package metadata change.
+No fees, spending caps, live gates, trading, key/financial code, diagnostics,
+monitor, private records or account state are changed by this follow-up.
+No real exchange request or PC installation is performed here. A new native
+Windows run is required; connected order acceptance remains unverified.
+
+The following is historical evidence for the previous source candidate.
+
 COINCAT v1.03beta — MANUAL SPOT SOURCE CANDIDATE
 Base: published e5966cdad17208fa9b5bce758c3a3820599f9175.
 

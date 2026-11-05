@@ -7,6 +7,7 @@ import threading
 import time
 import tkinter as tk
 import unittest
+from unittest.mock import patch
 
 from coincat_spot_app import SpotApp
 from coincat_spot_public import diagnostic,validate
@@ -29,6 +30,24 @@ class ManualWorkspace(unittest.TestCase):
         if not self.app.closed:self.app.close();self.pump(lambda:self.app.closed)
         self.root.tk.call('update','idletasks');self.assertEqual(self.errors,[])
     def connect(self):self.app.connect();self.pump(lambda:self.app.connected and not self.app.busy)
+    def resize(self,width,height):
+        # Win32 delivers the native resize through the event queue. Idle work
+        # alone can leave descendants at the preceding 1450px geometry.
+        self.root.geometry(str(width)+'x'+str(height));deadline=time.monotonic()+5
+        previous=None;stable=0
+        while time.monotonic()<deadline:
+            self.root.update();p=self.app.panel()
+            widgets=(p.book_tree,p.trade_button,p.size_entry,p.price_entry,self.app.balance_tree)
+            actual=(self.root.winfo_width(),self.root.winfo_height())
+            sample=tuple((w.winfo_rootx(),w.winfo_rooty(),w.winfo_width(),w.winfo_height()) for w in widgets)
+            if actual==(width,height):
+                stable=stable+1 if sample==previous else 0
+                if stable>=2:return
+            else:stable=0
+            previous=sample;time.sleep(.005)
+        self.fail('Native resize did not settle: requested '+str((width,height))+
+            ', actual '+str((self.root.winfo_width(),self.root.winfo_height()))+
+            ', Tk scaling '+str(self.root.tk.call('tk','scaling')))
     def test_default_entry_has_seven_market_tabs_dropdown_star_and_no_automatic_controller(self):
         self.assertEqual(len(self.app.tabs.tabs()),7);self.assertEqual(self.app.market.get(),'ETH-BTC')
         self.assertTrue(self.app.blocked.get());self.assertFalse(hasattr(self.app,'live_coordinator'));self.assertFalse(hasattr(self.app,'paper'))
@@ -52,13 +71,24 @@ class ManualWorkspace(unittest.TestCase):
         self.assertEqual(self.app.panel().book_tree.get_children(),());self.assertIn('disabled',self.app.panel().trade_button.state())
     def test_resize_keeps_book_and_complete_ticket_inside_window(self):
         for width,height in ((1450,920),(1040,780)):
-            self.root.geometry(str(width)+'x'+str(height));self.root.update_idletasks();p=self.app.panel()
+            self.resize(width,height);p=self.app.panel()
+            self.assertEqual((self.root.winfo_width(),self.root.winfo_height()),(width,height))
             for widget in (p.book_tree,p.trade_button,p.size_entry,p.price_entry,self.app.balance_tree):
                 with self.subTest(size=(width,height),widget=str(widget)):
                     self.assertTrue(widget.winfo_ismapped())
                     self.assertGreater(widget.winfo_width(),20)
                     self.assertLessEqual(widget.winfo_rootx()+widget.winfo_width(),self.root.winfo_rootx()+width)
                     self.assertLessEqual(widget.winfo_rooty()+widget.winfo_height(),self.root.winfo_rooty()+height)
+    def test_resize_waits_for_deferred_native_configure_before_measuring_children(self):
+        self.resize(1450,920);native=self.root.geometry
+        def deferred(spec):self.root.after(50,lambda:native(spec))
+        with patch.object(self.root,'geometry',side_effect=deferred):self.resize(1040,780)
+        self.assertEqual((self.root.winfo_width(),self.root.winfo_height()),(1040,780))
+        p=self.app.panel()
+        for w in (p.book_tree,p.trade_button,p.size_entry,p.price_entry,self.app.balance_tree):
+            self.assertTrue(w.winfo_ismapped())
+            self.assertLessEqual(w.winfo_rootx()+w.winfo_width(),self.root.winfo_rootx()+1040)
+            self.assertLessEqual(w.winfo_rooty()+w.winfo_height(),self.root.winfo_rooty()+780)
     def test_manual_monitor_and_eight_section_diagnostics_are_quantity_and_identity_free(self):
         self.connect();snapshot=capture(self.app,session='0'*32,sequence=1,now=self.clock.wall())
         self.assertEqual(snapshot['manual_execution']['provider'],'COINBASE_MANUAL_LIMIT_GTC')

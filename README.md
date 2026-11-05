@@ -42,6 +42,10 @@ Diagnostics and the optional read-only local monitor support this workspace and
 export controlled counts/states without private amounts, IDs or raw responses.
 
 Follow [START_HERE.md](START_HERE.md) and [the manual design/test guide](docs/MANUAL_SPOT.md).
+The Windows resize-verification follow-up waits for native events before
+measuring the requested window. After setup, `tools\VERIFY_MANUAL_WINDOW.bat`
+runs a hash-checked nine-test quick check; the full verifier still runs all
+487 tests. Application and trading behavior retain the previous build's bytes.
 Cloud offline checks do not establish native Windows or connected acceptance.
 No account order is placed from this development session. Branch:
-`coincat-v1.03beta`; base for this follow-up: `e5966cd`.
+`coincat-v1.03beta`; base for the resize follow-up: `2e9fa69`.

@@ -1,8 +1,8 @@
-"""Complete synthetic suite with disposable state and HTTP forbidden."""
+"""Full or focused synthetic checks with disposable state and HTTP forbidden."""
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
-import os,sys,unittest,sqlite3,threading,time
+import argparse,os,sys,unittest,sqlite3,threading,time
 
 
 class Progress:
@@ -46,18 +46,20 @@ class ProgressResult(unittest.TextTestResult):
         self.progress.update(f'between tests ({self.testsRun}/{self.total} finished)')
 
 
-def main():
+def main(*,manual_window=False):
     root=Path(__file__).resolve().parents[1]
     sys.path[:0]=[str(root/'app'),str(root)]
     import tkinter
     print('RUNTIME',sys.platform,'Python',sys.version.split()[0],
           'SQLite',sqlite3.sqlite_version,'Tk',tkinter.TkVersion,'Tcl',tkinter.TclVersion,flush=True)
+    if manual_window:print('FOCUSED MANUAL WINDOW CHECKS ONLY; full source verification is still required.',flush=True)
     with Progress(sys.stderr) as progress,TemporaryDirectory(prefix='CoinCat_Offline_Disposable_') as data:
         with patch.dict(os.environ,{'COINCAT_DATA_DIR':data,'PYTHONDONTWRITEBYTECODE':'1'}):
             with patch('requests.sessions.Session.request',side_effect=AssertionError('OFFLINE_HTTP_FORBIDDEN')), \
                     patch('websockets.sync.client.connect',side_effect=AssertionError('OFFLINE_WS_FORBIDDEN')), \
                     patch('websockets.connect',side_effect=AssertionError('OFFLINE_WS_FORBIDDEN')):
-                suite=unittest.defaultTestLoader.discover(str(root/'offline_tests'))
+                suite=unittest.defaultTestLoader.discover(str(root/'offline_tests'),
+                    pattern='test_spot_workspace.py' if manual_window else 'test*.py')
                 def cases(node):
                     for item in node:
                         if isinstance(item,unittest.TestSuite):yield from cases(item)
@@ -77,4 +79,7 @@ def main():
                 return 0 if result.wasSuccessful() else 1
 
 
-if __name__=='__main__':raise SystemExit(main())
+if __name__=='__main__':
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--manual-window',action='store_true',help='Run only the isolated manual-window checks; not a full verification pass.')
+    args=parser.parse_args();raise SystemExit(main(manual_window=args.manual_window))

@@ -29,8 +29,8 @@ def main():
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
     data=dict(build='1.03beta-manual-candidate',
-        description='Manual-first seven-market spot workspace; bounded explicit real LIMIT tickets, REST books/candles, cancel/reconcile/remainder drafts and CSV corroboration. Automation OFF; connected acceptance not run.',
-        base_commit='e5966cdad17208fa9b5bce758c3a3820599f9175',
+        description='Manual spot workspace with native-resize synchronization in verification and an isolated focused window check. Application/trading behavior unchanged; native Windows rerun and connected acceptance pending.',
+        base_commit='2e9fa6959abee08f07dbdb4bec2221cbffcd679b',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))

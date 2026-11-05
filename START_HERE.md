@@ -4,8 +4,15 @@ Use a separate extracted folder. Preserve the installed folder, private records
 and backups; do not overlay a running version or share data between processes.
 Use normal 64-bit Windows Python 3.11 and the locked setup dependencies.
 
+For the Windows resize-verification follow-up, first run
+**tools\VERIFY_MANUAL_WINDOW.bat** after setup. It verifies the source hashes
+and runs only the **nine** isolated manual-window checks, including delayed
+native resizing. This provides a quick check before repeating the full suite;
+its focused PASS does not replace full verification. The corrected full suite
+discovers **487 tests** and source verification checks **158 files**.
+
 1. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Wait for the
-   final COUNTS and PASS/FAIL. Windows previously took about 22–27 minutes;
+   final COUNTS and PASS/FAIL. Windows previously took about 22–30 minutes;
    numbered tests and 30-second heartbeats show progress. Any failure/error
    needs its final traceback. A host symlink-capability skip is separate.
 2. Recover verified private data to a separate empty destination, or use

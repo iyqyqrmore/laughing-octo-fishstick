@@ -1,3 +1,20 @@
+# CoinCat v1.03beta — Windows resize verification
+
+The owner's native Windows run matched all 157 source hashes and completed
+486 tests in 1682.733s with five subtest failures from one minimum-window resize
+case, zero errors, and one host-symlink capability skip. The reported child
+coordinates still matched the preceding 1450px layout while the test compared
+them with the requested 1040px boundary. That run is failed acceptance.
+
+The resize fixture now processes native events, requires the exact requested
+client size and waits for stable widget geometry before retaining the same
+mapped/width/right/bottom fit assertions. A regression queues the native resize
+50ms later; idle-only measurement misses it, while the corrected fixture waits.
+No layout, order, fee, cap, financial, key, diagnostic or monitor code changes.
+Add tools/VERIFY_MANUAL_WINDOW.bat for a hash-checked, isolated nine-test quick
+check. Full verification still runs separately with 487 tests. The new source
+manifest checks 158 files. Corrected native Windows acceptance needs a fresh run.
+
 # CoinCat v1.03beta — manual-first spot workspace
 
 Default launch now provides seven market tabs, the market dropdown/favorite
