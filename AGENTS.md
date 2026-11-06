@@ -1,5 +1,21 @@
 # Codex instructions — CoinCat v1.04
 
+HEADER / PORTFOLIO UI OWNER FOLLOW-UP — NOVEMBER 6, 2026
+Move the transparent logo inward from the far window corner. Put a compact
+refreshed USD portfolio total beside the title with a live holdings hover.
+Use permission-scoped GET-only portfolio breakdowns; include non-watch holdings
+when returned, but never add those assets/values to trading markets, funding,
+shadow inventory or financial records. Label partial/stale/unavailable values;
+keep all holdings and dollar amounts private from diagnostic/monitor exports.
+Remove the redundant market dropdown/favorite star and unused favorite wiring;
+preserve existing private favorite files. Use seven tabs for selection and
+initialize every chart to 1h. Preserve fees, grants, budgets, SQLite correction,
+trial state and recovery. Existing source-publication authorization continues
+on coincat-v1.04. The owner has reported the preceding corrected Windows run:
+543 tests, zero failures/errors, one host-symlink skip, 1737.252 seconds. Record
+that result separately from new UI/connected acceptance, which still needs
+local validation. Do not repeat the old failed status as the latest result.
+
 WINDOWS SQLITE CORRECTION OWNER SCOPE — NOVEMBER 5, 2026
 The owner reports native Windows verification failure at 71d175e: 184 hashes
 matched; 533 tests, zero assertion failures, two WinError 32 cleanup errors

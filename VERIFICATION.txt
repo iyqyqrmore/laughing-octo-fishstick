@@ -1,3 +1,63 @@
+COINCAT v1.04 — HEADER / PRIVATE PORTFOLIO UI FOLLOW-UP
+Published source base: 0624d146f55b2684afe646a1876038a076bd7b82.
+Branch: coincat-v1.04. Strategy, fees, risk limits and live permissions preserved.
+
+OWNER-REPORTED PRECEDING WINDOWS SQLITE CORRECTION RESULT — PASS
+543 tests in 1737.252s; zero failures, zero errors, one host-symlink capability
+skip. The two WinError 32 cleanup regressions passed in this rerun. This records
+the owner's supplied result for the preceding correction, not native acceptance
+of the new header/portfolio code. No new runtime/hash header accompanied that
+snippet; the earlier supplied Windows environment was Python 3.11.9 / SQLite
+3.45.1 / Tk-Tcl 8.6. The older failed result is retained historically below.
+
+CURRENT SCOPE
+Existing transparent artwork is unchanged and is placed beside the compact
+portfolio total with free space on the right. All seven tabs initialize to 1h;
+the redundant market dropdown/favorite star and unused code are removed. Existing
+private favorite files are preserved. The separate scoped GET-only portfolio
+reader refreshes about every 15 seconds, below execution/scan work on the existing
+worker, within existing pacing/call budgets. Values, holdings, unknown prices,
+partial coverage and stale states stay private to the GUI. Source/currency guards
+and native available/hold semantics remain; no display amount becomes funding.
+
+EXECUTED OFFLINE ACCEPTANCE
+Checkout and freshly extracted source ZIP each run 556 distinct tests with zero
+failures/errors/skips/expected failures, HTTP/WebSockets forbidden before test
+discovery and execution. Runtime: Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl
+9.0 under Xvfb. Source verification checks 191 files. Detailed runtimes and ZIP
+checksum are retained beside the source artifact. New native Windows and connected
+portfolio endpoint acceptance are PENDING. Synthetic previews are sample data.
+
+Nine display-service checks cover SDK-shaped responses, non-watch holdings,
+USD/scope validation, missing/nonfinite values, duplicates, held totals, separate
+accounts, unlisted value, read cadence, permission changes, stale/failing refresh,
+unknown versus zero and unchanged funding/approved markets/exact financial parsers.
+Four added real-Tk checks cover worker refresh, visible live-hover updates, bounded
+long lists, private exports, 1h charts, preserved favorite files and inset header
+placement at 1450x920 / 1040x780. Supplementary Linux Tk 8.6 GUI checks also pass;
+this is not native Windows evidence. Full retained financial, safety, SQLite
+lifecycle, restart/trial and privacy regressions remain passing.
+
+The native execution, fee/receipt, strategy, inventory/baseline, account parser,
+key/import/FIFO/tax/lock, trial store/clock and artwork files are unchanged from
+0624d14. Trading remains limited to the existing seven pairs/five assets. The new
+read method only fetches selected-portfolio display estimates. Portfolio response
+floats never relax the exact financial parser. No data migration, account request,
+real trade, PC installation or unattended live grant occurs in this session.
+
+FRESH WINDOWS UI CHECK
+Use a fresh extracted folder and locked setup. Run tools/VERIFY_MANUAL_WINDOW.bat
+for 14 focused window checks, then 03_VERIFY_COINCAT.bat for all 556. Expect 191
+source hashes, zero failures/errors, with only the known host-symlink skip allowed.
+Connect with live orders blocked ON; inspect total/hover versus the same selected
+Coinbase portfolio, wait for a refresh, test stale labeling, all seven 1h tabs and
+minimum/maximized window placement. See docs/V1_04_HEADER_PORTFOLIO.md. Source/API
+scope may exclude balances shown in another Coinbase portfolio or staking view.
+
+The following is historical verification evidence for earlier source checkpoints.
+The owner-reported corrected Windows pass above supersedes the earlier pending
+status; new header/portfolio native acceptance remains pending.
+
 COINCAT v1.04 — WINDOWS SQLITE CLEANUP CORRECTION
 Published source base: 71d175e23e2014715c0119ba35eebb130b6da07f.
 Branch: coincat-v1.04. Strategy, live permissions and fees are unchanged.

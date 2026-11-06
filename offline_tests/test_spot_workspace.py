@@ -49,11 +49,70 @@ class ManualWorkspace(unittest.TestCase):
         self.fail('Native resize did not settle: requested '+str((width,height))+
             ', actual '+str((self.root.winfo_width(),self.root.winfo_height()))+
             ', Tk scaling '+str(self.root.tk.call('tk','scaling')))
-    def test_default_entry_has_seven_market_tabs_dropdown_star_and_no_automatic_controller(self):
+    def test_default_entry_has_seven_tabs_one_hour_charts_and_no_redundant_market_controls(self):
         self.assertEqual(len(self.app.tabs.tabs()),7);self.assertEqual(self.app.market.get(),'ETH-BTC')
         self.assertTrue(self.app.blocked.get());self.assertFalse(hasattr(self.app,'live_coordinator'));self.assertFalse(hasattr(self.app,'paper'))
-        self.app.toggle_favorite();self.assertIn('ETH-BTC',self.app.favorites)
+        self.assertFalse(hasattr(self.app,'market_box'));self.assertFalse(hasattr(self.app,'star'))
+        self.assertFalse(hasattr(self.app,'toggle_favorite'))
+        self.assertEqual({panel.interval.get() for panel in self.app.panels.values()},{'1h'})
         self.assertEqual(self.venue.posts,[]);self.assertEqual(self.venue.cancels,[])
+    def test_portfolio_worker_refreshes_unwatched_holdings_without_funding_or_order_changes(self):
+        from offline_tests.test_portfolio_display import breakdown
+        raw=breakdown();self.venue.get_portfolio_breakdown=lambda **kwargs:deepcopy(raw)
+        favorite_path=Path(self.tmp.name)/'research_data'/'spot_manual'/'favorites.json';favorite_path.write_text('[]',encoding='utf-8')
+        self.connect();self.pump(lambda:self.app.portfolio_snapshot is not None and not self.app.busy)
+        self.assertEqual(self.app.panel().chart_data['interval'],'1h')
+        self.assertIn('$123.45',self.app.portfolio_badge.amount.cget('text'))
+        self.assertIn('VTHO',self.app.portfolio_badge.hover_text);self.assertIn('VET',self.app.portfolio_badge.hover_text)
+        account=deepcopy(self.app.account);limits=deepcopy(self.app.engine.state()['limits'])
+        raw['breakdown']['portfolio_balances']['total_balance']['value']='133.45'
+        raw['breakdown']['spot_positions'][0]['total_balance_fiat']=110.
+        self.app.portfolio_reader.next_due=time.monotonic()-30;self.app.refresh_due=self.clock.wall()-1
+        with patch.object(self.app,'work',wraps=self.app.work) as work:
+            self.pump(lambda:'$133.45' in self.app.portfolio_badge.amount.cget('text') and not self.app.busy)
+        self.assertEqual(work.call_args_list[0].args[0],'portfolio')
+        self.assertEqual(self.app.account['available'],account['available']);self.assertEqual(self.app.engine.state()['limits'],limits)
+        self.assertIsNone(self.app.shadow.state());self.assertTrue(self.app.blocked.get())
+        self.assertEqual(favorite_path.read_text(encoding='utf-8'),'[]')
+        self.assertEqual(self.venue.posts,[]);self.assertEqual(self.venue.cancels,[])
+    def test_holdings_hover_updates_live_and_long_lists_stay_bounded(self):
+        from offline_tests.test_portfolio_display import breakdown
+        from coincat_portfolio_display import parse_portfolio
+        raw=breakdown();badge=self.app.portfolio_badge;self.app.connected=True;self.app.refresh_due=self.clock.wall()+10000
+        self.app.portfolio_reader.next_due=time.monotonic()+10000
+        self.app.portfolio_snapshot=dict(data=parse_portfolio(raw,raw['breakdown']['portfolio']['uuid'],self.clock.wall()),failed=False)
+        badge.render(self.app.portfolio_snapshot,self.clock.wall(),True);hover=badge.amount.hover_help
+        hover.anchor=(badge.amount.winfo_rootx()+8,badge.amount.winfo_rooty()+8);hover.show();self.root.update_idletasks()
+        self.assertIn('$123.45',hover.shown_text)
+        scope=self.app.portfolio_snapshot['data']['portfolio']
+        for i in range(80):raw['breakdown']['spot_positions'].append(dict(asset='COIN'+str(i),account_uuid=cid(50000+i),total_balance_crypto=1,total_balance_fiat=1))
+        raw['breakdown']['portfolio_balances']['total_balance']['value']='203.45'
+        self.app.portfolio_snapshot=dict(data=parse_portfolio(raw,scope,self.clock.wall()),failed=False)
+        badge.render(self.app.portfolio_snapshot,self.clock.wall(),True);self.root.update_idletasks()
+        self.assertIn('$203.45',hover.shown_text);self.assertIsNotNone(hover.body)
+        self.assertLessEqual(hover.window.winfo_height(),480)
+        hover.hide();self.assertIsNone(hover.window)
+    def test_portfolio_staleness_is_visible_and_private_values_never_enter_exports(self):
+        from offline_tests.test_portfolio_display import breakdown
+        self.venue.get_portfolio_breakdown=lambda **kwargs:breakdown();self.connect()
+        self.pump(lambda:self.app.portfolio_snapshot is not None and not self.app.busy)
+        snapshot=capture(self.app,session='0'*32,sequence=1,now=self.clock.wall());raw=encode(snapshot).decode();report=diagnostic(self.app)
+        for secret in ('$123.45','123.45','VTHO','VET',cid(40000)):
+            self.assertNotIn(secret,raw);self.assertNotIn(secret,report)
+        self.clock.tick(31);self.app.connected=False
+        self.pump(lambda:'Stale' in self.app.portfolio_badge.caption.cget('text'))
+        self.assertIn('$123.45',self.app.portfolio_badge.amount.cget('text'))
+    def test_header_total_and_transparent_logo_are_inset_at_both_window_sizes(self):
+        original=None
+        for width,height in ((1450,920),(1040,780)):
+            self.resize(width,height);badge=self.app.portfolio_badge;logo=self.app.logo_label
+            relative=logo.winfo_rootx()-self.root.winfo_rootx()
+            if original is None:original=relative
+            else:self.assertEqual(relative,original)
+            self.assertGreater(badge.winfo_rootx(),self.app.badge.winfo_rootx()+self.app.badge.winfo_width())
+            self.assertGreaterEqual(logo.winfo_rootx(),badge.winfo_rootx()+badge.winfo_width())
+            self.assertLess(logo.winfo_rootx()+logo.winfo_width(),self.root.winfo_rootx()+width-20)
+            self.assertLessEqual(badge.winfo_rooty()+badge.winfo_height(),self.app.trial_badge.winfo_rooty())
     def test_native_book_units_and_ask_ticket_without_invented_fills(self):
         self.connect();p=self.app.panel();p.use_price('ASK');self.assertEqual(p.price.get(),'0.030010')
         p.size.set('.001');self.assertIn('0.900%',p.estimate.get());self.assertEqual(self.venue.posts,[])

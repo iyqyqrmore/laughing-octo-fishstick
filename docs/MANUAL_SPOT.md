@@ -1,3 +1,8 @@
+Current v1.04 uses tabs-only market selection, 1h chart defaults and a private
+portfolio total/holdings hover with an inset logo. See
+[V1_04_HEADER_PORTFOLIO.md](V1_04_HEADER_PORTFOLIO.md). The foundation guide below
+retains historical UI descriptions; execution safeguards remain applicable.
+
 # Manual Spot follow-up — v1.03beta
 
 The previous default sent every order through a strategy controller's completed

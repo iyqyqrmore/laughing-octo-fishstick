@@ -1,3 +1,19 @@
+# v1.04 header / portfolio follow-up
+
+- Move the existing transparent logo beside the portfolio total, with free space
+  to its right instead of anchoring it to the far window corner.
+- Add a private USD total and live-updating holdings hover, refreshed through the
+  scoped Coinbase portfolio GET about every 15 seconds on the existing worker.
+- Show other API-visible holdings without adding trading markets or funding;
+  preserve partial/unpriced values, duplicate/hold semantics and stale labeling.
+- Remove the redundant market dropdown, favorite star and unused favorite code;
+  preserve existing favorite files. Initialize every market chart to 1h.
+- Keep monetary data out of diagnostics/monitor exports. Preserve strategy,
+  fees, real/manual permissions, native financial math, journals and SQLite fix.
+- Record the owner-reported preceding Windows correction pass (543 tests,
+  zero failures/errors, one host-symlink skip). New native UI/connected acceptance
+  remains pending; see docs/V1_04_HEADER_PORTFOLIO.md.
+
 # v1.04 Windows SQLite cleanup correction
 
 - Fix the three corruption-fixture connections that committed transactions without

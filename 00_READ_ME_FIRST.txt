@@ -1,6 +1,10 @@
 CoinCat v1.04 — Resumable Trial / Manual Spot
 
-Read START_HERE.md. Extract separately; preserve all private records and backups.
+Read START_HERE.md. Seven market tabs are the selector; every chart starts at 1h.
+The inset logo sits beside a refreshed portfolio total; hover to see holdings.
+USD reference values are private and never become trading funds.
+
+Extract separately; preserve all private records and backups.
 Run setup and the full isolated verification before connected testing.
 
 Live orders blocked starts ON. Manual clicks remain the only real-order path.

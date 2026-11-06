@@ -22,6 +22,8 @@ from coincat_shadow_trader import ShadowTrader
 from coincat_shadow_source import ShadowMarketSource
 from coincat_portfolio_policy import PortfolioConfig
 from coincat_tray import TrayController
+from coincat_portfolio_display import PortfolioDisplayReader
+from coincat_portfolio_badge import PortfolioBadge
 from coincat_beta_store import BetaBlocked,unpack
 from coincat_live import client_from_credentials
 from coincat_execution_limits import LiveLimits
@@ -65,7 +67,7 @@ class MarketPanel(ttk.Frame):
     def __init__(self,parent,app,pair):
         super().__init__(parent,padding=6);self.app=app;self.pair=pair;self.snap=None;self.chart_data=None;self.replaces=None
         self.base,self.quote=pair.split('-');self.side=tk.StringVar(value='SELL');self.price=tk.StringVar();self.size=tk.StringVar()
-        self.post=tk.BooleanVar(value=False);self.interval=tk.StringVar(value='5m');self.group=tk.StringVar(value='1')
+        self.post=tk.BooleanVar(value=False);self.interval=tk.StringVar(value='1h');self.group=tk.StringVar(value='1')
         self.amount_unit=tk.StringVar(value=self.base);self.summary=tk.StringVar(value='Connect to read this native market.')
         self.available=tk.StringVar(value='Available: —');self.estimate=tk.StringVar(value='Subtotal / estimated fee / total: —')
         self.columnconfigure(0,weight=6,minsize=360);self.columnconfigure(1,weight=3,minsize=225);self.columnconfigure(2,weight=0,minsize=280)
@@ -196,6 +198,7 @@ class SpotApp:
     def __init__(self,root,*,data=None,client=None,clock=time.time,monotonic_ns=time.monotonic_ns):
         self.root=root;self.data=Path(data) if data is not None else data_root();self.clock=clock;self.client=client
         self.reader=SpotReader(client or Unconnected(),clock=clock,budget=None if client is not None else BUDGET)
+        self.portfolio_reader=PortfolioDisplayReader(self.reader);self.portfolio_snapshot=None
         self.engine=ManualExecution(self.data/'research_data'/'spot_manual'/'active.sqlite3',self.reader,clock=clock,legacy_pending=lambda:legacy_pending(self.data))
         self.history_store=ManualTradeStore(self.data/'research_data'/'manual_trade_lab'/'observations.sqlite3')
         self.history_public=self.history_store.public()
@@ -204,9 +207,9 @@ class SpotApp:
         self.account=None;self.connected=False;self.busy=False;self.closed=False;self.closing=False;self.jobs=Queue();self.worker=None
         self.status=tk.StringVar(value='Connect / refresh to read markets and balances. Automation is OFF.')
         self.market=tk.StringVar(value='ETH-BTC');self.blocked=tk.BooleanVar(value=True);self.monitor_on=tk.BooleanVar(value=False)
-        self.publisher=MonitorPublisher();self.last_read_at=None;self.last_error=False;self.reads=0;self.history={};self.favorites=set()
+        self.publisher=MonitorPublisher();self.last_read_at=None;self.last_error=False;self.reads=0;self.history={}
         self.manual_public=self.engine.public();self._after=None;self.refresh_due=0;self.poll_due=0;self.stop_requested=False
-        self._ui();self._load_favorites();self.refresh_local()
+        self._ui();self.refresh_local()
         self.tray=TrayController(root,status=self.tray_status,toggle=self.toggle_trial,open_trial=self.open_trial,exit_safely=self.close,shutdown=self.os_shutdown)
         root.protocol('WM_DELETE_WINDOW',self.window_close);root.bind('<Unmap>',self.tray.minimized,add='+')
         if self.shadow.store and self.shadow.store.clock['wanted']:root.after(500,self.connect)
@@ -217,19 +220,17 @@ class SpotApp:
         style=ttk.Style(root);style.configure('Book.Treeview',rowheight=21);style.configure('Book.Treeview.Heading',font=('Segoe UI',9))
         if sys.platform=='win32':root.iconbitmap(str(Path(__file__).with_name('CoinCat50.ico')))
         shell=ttk.Frame(root,padding=8);shell.pack(fill='both',expand=True);shell.rowconfigure(2,weight=3,minsize=350);shell.rowconfigure(3,weight=1,minsize=185);shell.columnconfigure(0,weight=1)
-        head=ttk.Frame(shell);head.grid(row=0,column=0,sticky='ew');head.columnconfigure(0,weight=1)
+        head=ttk.Frame(shell);head.grid(row=0,column=0,sticky='ew');head.columnconfigure(3,weight=1)
         ttk.Label(head,text=DISPLAY+' / Manual Spot',style='Title.TLabel').grid(row=0,column=0,sticky='w')
         self.badge=ttk.Label(head,text='LIVE BLOCK ON · Automation OFF',foreground='#eab86b');self.badge.grid(row=1,column=0,sticky='w',pady=3)
         source=tk.PhotoImage(file=str(Path(__file__).with_name('coincat_logo_transparent.png')))
         self.logo_source=tk.PhotoImage(width=source.width(),height=445)
         self.logo_source.tk.call(self.logo_source,'copy',source,'-from',0,145,source.width(),590)
-        self.logo=self.logo_source.subsample(8);self.logo_label=ttk.Label(head,image=self.logo);self.logo_label.grid(row=0,column=1,rowspan=2,sticky='e',padx=10)
+        self.portfolio_badge=PortfolioBadge(head);self.portfolio_badge.grid(row=0,column=1,rowspan=2,sticky='w',padx=(36,20),pady=4)
+        self.logo=self.logo_source.subsample(8);self.logo_label=ttk.Label(head,image=self.logo);self.logo_label.grid(row=0,column=2,rowspan=2,sticky='w',padx=(12,24))
         self.trial_badge=ttk.Button(head,text='Resumable Trial — 168 Valid Hours · OFF',command=self.open_trial)
-        self.trial_badge.grid(row=2,column=0,sticky='w',pady=3)
+        self.trial_badge.grid(row=2,column=0,columnspan=3,sticky='w',pady=3)
         toolbar=ttk.Frame(shell);toolbar.grid(row=1,column=0,sticky='ew',pady=(4,7))
-        self.market_box=ttk.Combobox(toolbar,textvariable=self.market,values=WATCH_PAIRS,state='readonly',width=12);self.market_box.pack(side='left')
-        self.market_box.bind('<<ComboboxSelected>>',lambda e:self.select_market(self.market.get()))
-        self.star=ttk.Button(toolbar,text='☆',width=2,command=self.toggle_favorite);self.star.pack(side='left',padx=(3,9))
         for text,action in (('Connect / refresh',self.connect),('Import key',self.import_key),('Diagnostics',self.export),('Trade details / CSV',self.history_dialog)):
             ttk.Button(toolbar,text=text,command=action).pack(side='left',padx=3)
         ttk.Checkbutton(toolbar,text='Local monitor',variable=self.monitor_on,command=self.toggle_monitor).pack(side='right')
@@ -264,30 +265,12 @@ class SpotApp:
         ttk.Label(shell,textvariable=self.status,wraplength=1350).grid(row=4,column=0,sticky='w',pady=(7,0))
 
     def panel(self):return self.panels[self.market.get()]
-    def _load_favorites(self):
-        path=self.data/'research_data'/'spot_manual'/'favorites.json'
-        try:
-            if not path.is_symlink() and path.stat().st_size<4096:
-                rows=json.loads(path.read_text());self.favorites=set(rows) if isinstance(rows,list) and set(rows)<=set(WATCH_PAIRS) else set()
-        except (OSError,ValueError,TypeError):pass
-        self.star.configure(text='★' if self.market.get() in self.favorites else '☆')
-    def toggle_favorite(self):
-        pair=self.market.get()
-        if pair in self.favorites:self.favorites.remove(pair)
-        else:self.favorites.add(pair)
-        path=self.data/'research_data'/'spot_manual'/'favorites.json'
-        try:
-            if path.is_symlink() or path.with_suffix('.tmp').is_symlink():raise ValueError()
-            path.with_suffix('.tmp').write_text(json.dumps(sorted(self.favorites)),encoding='utf-8');path.with_suffix('.tmp').replace(path)
-        except (OSError,ValueError):self.status.set('Favorite could not be saved. Trading settings are unchanged.')
-        self.star.configure(text='★' if pair in self.favorites else '☆')
     def select_market(self,pair):
-        self.tabs.select(self.panels[pair]);self.market.set(pair);self.star.configure(text='★' if pair in self.favorites else '☆')
+        self.tabs.select(self.panels[pair]);self.market.set(pair)
     def tab_changed(self,event=None):
         selected=self.tabs.select()
         for pair,panel in self.panels.items():
             if str(panel)==selected:self.market.set(pair);break
-        self.star.configure(text='★' if self.market.get() in self.favorites else '☆')
         self.refresh_due=0
 
     def work(self,kind,task):
@@ -303,6 +286,7 @@ class SpotApp:
         self.worker=threading.Thread(target=run,name='CoinCat-manual-worker',daemon=False);self.worker.start();return True
     def connect(self):
         if self.busy:self.status.set('A bounded request is finishing.');return
+        self.portfolio_reader.refresh_next()
         if self.client is None:
             try:credentials=load_encrypted()
             except Exception:credentials=None
@@ -332,6 +316,7 @@ class SpotApp:
             save_encrypted(parse_key_json(p.read_text(encoding='utf-8')))
             self.engine.set_blocked(True);self.blocked.set(True);self.connected=False;self.client=None
             self.reader=SpotReader(Unconnected(),clock=self.clock);self.engine.reader=self.reader;self.engine.client=self.reader.client
+            self.portfolio_reader=PortfolioDisplayReader(self.reader);self.portfolio_snapshot=None
             self.shadow_source=ShadowMarketSource(self.reader);self.pause_trial()
             self.account=None
             for panel in self.panels.values():panel.snap=None;panel.draw_book()
@@ -572,6 +557,8 @@ class SpotApp:
                     self.refresh_due=0
                 elif kind=='shadow_started':self.shadow_due=0;self.status.set('Shadow trial started / resumed. Live automation has no authority.')
                 elif kind=='shadow_scan':self.status.set('Seven-market shadow observation refreshed · '+self.shadow.public()['state'])
+                elif kind=='portfolio':
+                    if not self.closing:self.portfolio_snapshot=result
                 elif kind=='fee_audit':
                     self.status.set('Private historical audit saved: '+str(result['matched'])+'/'+str(result['csv_trade_rows'])+' native matches; '+str(result['api_fee_currency_confirmed'])+' API fee currencies confirmed. '+result['coverage'])
                 elif kind=='history':self.status.set('Native order saved locally: '+result+'. Reopen trade details to inspect.')
@@ -606,15 +593,19 @@ class SpotApp:
                     def scan():
                         frame=self.shadow_source.collect();self.shadow.review(frame);return True
                     self.work('shadow_scan',scan)
+            elif self.connected and not self.closing and self.portfolio_reader.due() and (now<self.refresh_due or self.portfolio_reader.overdue()):
+                self.work('portfolio',self.portfolio_reader.collect)
             elif self.connected and not self.closing and now>=self.refresh_due:
                 self.refresh_due=now+8;p=self.panel();self.refresh(candles=p.chart_data is None or now-p.chart_data['at']>=60,history=now-(getattr(self,'history_at',0))>=60)
         for panel in self.panels.values():
             if panel.snap is not None and not panel.current():panel.draw_book();panel.summary.set(panel.pair+' · displayed quote is stale');panel.estimate_ticket()
         self.refresh_controls()
+        self.portfolio_badge.render(self.portfolio_snapshot,now,self.connected)
         if self.publisher.enabled and now-getattr(self,'monitor_at',0)>=3:
             self.monitor_at=now;self.publisher.publish(self.publisher.sample(self))
         if self.closing and not self.busy:
             self.closed=True
+            self.portfolio_badge.close()
             if self.publisher.enabled:self.publisher.stop(self.publisher.sample(self,lifecycle='CLOSED'))
             if self.client is not None and hasattr(self.client,'session'):
                 try:self.client.session.close()

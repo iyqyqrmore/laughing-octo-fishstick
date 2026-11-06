@@ -1,6 +1,8 @@
 # CoinCat v1.04 — resumable portfolio research
 
-CoinCat preserves its seven-market Manual Spot workspace and adds an opt-in,
+CoinCat uses seven market tabs with 1-hour chart defaults and a private live
+portfolio total/holdings hover beside the title and inset transparent logo.
+CoinCat preserves its Manual Spot execution and adds an opt-in,
 restart-safe **168 cumulative valid hour shadow trial**. It studies total
 portfolio USD value after modeled costs against holding the original BTC, ETH,
 SOL, LINK and ADA quantities. There is no mandatory ETH return or one-cent trade
@@ -38,5 +40,6 @@ Follow [START_HERE.md](START_HERE.md) for Windows setup, verification and recove
 acceptance. Native Windows tray/DPAPI behavior, connected Coinbase acceptance
 and an actual 168-hour observation trial must still be validated locally.
 Cloud deterministic tests and a completed shadow trial do not establish profit.
-Source branch: `coincat-v1.04`; evidence follow-up base: `cc565d9`.
+Source branch: `coincat-v1.04`; header follow-up base: `0624d14`.
+See [the portfolio/header guide](docs/V1_04_HEADER_PORTFOLIO.md).
 Original Manual Spot foundation: `9023209` on `coincat-v1.03beta`.

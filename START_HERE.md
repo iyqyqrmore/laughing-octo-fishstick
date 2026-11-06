@@ -1,9 +1,10 @@
 # CoinCat v1.04 — Windows acceptance
 
-For the correction to the two `trial.sqlite3` WinError 32 cleanup errors at
-`71d175e`, use the [fresh Windows rerun guide](docs/V1_04_WINDOWS_SQLITE_FIX.md).
-The supplied 533-test run failed native acceptance despite all source hashes
-matching; retain the original installation/data and verify a fresh extraction.
+The owner-reported preceding SQLite correction rerun passed: **543 tests, zero
+failures/errors, one host-symlink capability skip**. This header/portfolio patch
+adds UI and read-only display tests; verify the fresh source before use.
+See [the header/portfolio guide](docs/V1_04_HEADER_PORTFOLIO.md) and the retained
+[SQLite rerun guide](docs/V1_04_WINDOWS_SQLITE_FIX.md) for the earlier correction.
 
 Use a separate extracted v1.04 folder. Preserve the installed folder and all
 private records/backups; never overlay a running installation or share its data
@@ -17,9 +18,13 @@ between processes. Use normal 64-bit Windows Python 3.11.
    **04_FIRST_TIME_SETUP.bat** only for an explicitly intended fresh installation.
    Preserve financial records, basis and keys; never upload credentials.
 3. Launch **01_START_COINCAT.bat**. Confirm v1.04, seven native market tabs,
-   dropdown/favorite star, transparent upper-right logo and **Live orders blocked
-   ON**. Connect while blocked. Manual Spot remains available; shadow research
+   tab-only selection, **1h** candle defaults, inset transparent logo, a
+   compact **Total portfolio · USD** header and **Live orders blocked ON**. Connect while blocked. Manual Spot remains available; shadow research
    cannot send, preview or cancel a Coinbase order.
+   Hover over the header total to see refreshed API-visible holdings, including
+   non-watch coins returned for the selected portfolio. Values refresh about
+   every 15 seconds; partial/unavailable valuations and stale data are labeled.
+   The total is an estimate before sale costs; it never funds the trader.
 4. Open **Resumable Trial — 168 Valid Hours**. Review the initial shadow caps:
    $5/order, $10 lifetime turnover, four lifetime proposals, up to 50% available
    source inventory, one open proposal, 30-day original intent deadline.
