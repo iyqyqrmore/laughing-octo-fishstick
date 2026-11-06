@@ -1,5 +1,14 @@
 CoinCat v1.04 — Resumable Trial / Manual Spot
 
+Opportunity shadow: separate portfolio-value policy, not alternating arithmetic.
+Open Opportunity shadow... after connecting with live orders blocked ON. It
+evaluates fourteen directions and may HOLD throughout. Native fees apply once
+per conditional filled leg; estimates of future exits are not booked as fees.
+No quote-touch fills, fixed dollar gain floor, forced ETH return or real auto
+authority. Orders have finite lives/retries and cancel/partial reconciliation.
+See docs/OPPORTUNITY_SHADOW_V1_04.md and tools\VERIFY_OPPORTUNITY_SHADOW.bat.
+The unchanged Native arithmetic trial and Previous trial remain separate.
+
 New Native one-leg trial: fictional $100 per watched coin, minimum native orders,
 one maker/taker fee per leg, no added slippage or USD spending/turnover/attempt caps.
 Per-market sizing sliders apply to future assumed SIM orders. 168 valid hours

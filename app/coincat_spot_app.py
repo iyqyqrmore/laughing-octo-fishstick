@@ -25,6 +25,8 @@ from coincat_tray import TrayController
 from coincat_portfolio_display import PortfolioDisplayReader
 from coincat_portfolio_badge import PortfolioBadge
 from coincat_assumed_trader import AssumedTrader
+from coincat_opportunity_trader import OpportunityTrader
+from coincat_opportunity_venue import OpportunitySource
 from coincat_beta_store import BetaBlocked,unpack
 from coincat_live import client_from_credentials
 from coincat_execution_limits import LiveLimits
@@ -207,16 +209,20 @@ class SpotApp:
         self.shadow_source=ShadowMarketSource(self.reader);self.trial_window=None;self.shadow_due=0;self.clock_due=0;self.shadow_public=self.shadow.public()
         self.assumed=AssumedTrader(self.data/'research_data'/'assumed_fill_sandbox'/'active.sqlite3',clock=clock,monotonic_ns=monotonic_ns)
         self.assumed_window=None;self.assumed_due=0;self.assumed_clock_due=0;self.assumed_public=self.assumed.public()
+        self.opportunity=OpportunityTrader(self.data/'research_data'/'opportunity_shadow'/'active.sqlite3',clock=clock,monotonic_ns=monotonic_ns)
+        self.opportunity_source=OpportunitySource(self.reader,self.shadow_source);self.opportunity_window=None
+        self.opportunity_due=0;self.opportunity_clock_due=0;self.opportunity_public=self.opportunity.public()
+        self.observation_focus='opportunity' if self.opportunity.running else 'assumed'
         self.account=None;self.connected=False;self.busy=False;self.closed=False;self.closing=False;self.jobs=Queue();self.worker=None
         self.status=tk.StringVar(value='Connect / refresh to read markets and balances. Automation is OFF.')
         self.market=tk.StringVar(value='ETH-BTC');self.blocked=tk.BooleanVar(value=True);self.monitor_on=tk.BooleanVar(value=False)
         self.publisher=MonitorPublisher();self.last_read_at=None;self.last_error=False;self.reads=0;self.history={}
         self.manual_public=self.engine.public();self._after=None;self.refresh_due=0;self.poll_due=0;self.stop_requested=False
         self._ui();self.refresh_local()
-        self.tray=TrayController(root,status=self.tray_status,toggle=self.toggle_observation,open_trial=self.open_assumed,exit_safely=self.close,shutdown=self.os_shutdown)
+        self.tray=TrayController(root,status=self.tray_status,toggle=self.toggle_observation,open_trial=self.open_observation,exit_safely=self.close,shutdown=self.os_shutdown)
         root.protocol('WM_DELETE_WINDOW',self.window_close);root.bind('<Unmap>',self.tray.minimized,add='+')
         if self.shadow.store and self.shadow.store.clock['wanted']:root.after(500,self.connect)
-        elif self.assumed.running:root.after(500,self.connect)
+        elif self.assumed.running or self.opportunity.running:root.after(500,self.connect)
         self._after=root.after(100,self.tick)
 
     def _ui(self):
@@ -237,7 +243,7 @@ class SpotApp:
         self.assumed_badge=ttk.Button(head,text='Native one-leg trial · OFF',command=self.open_assumed)
         self.assumed_badge.grid(row=2,column=0,sticky='w',pady=3)
         toolbar=ttk.Frame(shell);toolbar.grid(row=1,column=0,sticky='ew',pady=(4,7))
-        for text,action in (('Connect / refresh',self.connect),('Import key',self.import_key),('Diagnostics',self.export),('Trade details / CSV',self.history_dialog)):
+        for text,action in (('Connect / refresh',self.connect),('Import key',self.import_key),('Diagnostics',self.export),('Trade details / CSV',self.history_dialog),('Opportunity shadow…',self.open_opportunity)):
             ttk.Button(toolbar,text=text,command=action).pack(side='left',padx=3)
         ttk.Checkbutton(toolbar,text='Local monitor',variable=self.monitor_on,command=self.toggle_monitor).pack(side='right')
         ttk.Checkbutton(toolbar,text='Live orders blocked',variable=self.blocked,command=self.toggle_block).pack(side='right',padx=5)
@@ -325,6 +331,7 @@ class SpotApp:
             self.portfolio_reader=PortfolioDisplayReader(self.reader);self.portfolio_snapshot=None
             self.shadow_source=ShadowMarketSource(self.reader);self.pause_trial()
             self.assumed.pause()
+            self.opportunity.pause();self.opportunity_source=OpportunitySource(self.reader,self.shadow_source)
             self.account=None
             for panel in self.panels.values():panel.snap=None;panel.draw_book()
             self.status.set('Key saved with Windows DPAPI. Connect to refresh. Live block is ON.')
@@ -485,9 +492,42 @@ class SpotApp:
         if self.trial_window is None or not self.trial_window.root.winfo_exists():self.trial_window=TrialWindow(self)
         else:self.trial_window.root.deiconify();self.trial_window.root.lift()
     def open_assumed(self):
+        self.observation_focus='assumed'
         from coincat_assumed_ui import AssumedWindow
         if self.assumed_window is None or not self.assumed_window.root.winfo_exists():self.assumed_window=AssumedWindow(self)
         else:self.assumed_window.root.deiconify();self.assumed_window.root.lift()
+    def open_opportunity(self):
+        from coincat_opportunity_ui import OpportunityWindow
+        self.observation_focus='opportunity'
+        if self.opportunity_window is None or not self.opportunity_window.root.winfo_exists():self.opportunity_window=OpportunityWindow(self)
+        else:self.opportunity_window.root.deiconify();self.opportunity_window.root.lift()
+    def open_observation(self):
+        self.open_opportunity() if self.observation_focus=='opportunity' else self.open_assumed()
+    def start_opportunity(self,config=None):
+        if self.closing or self.busy:self.status.set('Wait for the bounded request before starting opportunity shadow.');return
+        try:self.opportunity.start(config)
+        except BetaBlocked as exc:self.status.set(str(exc));return
+        self.observation_focus='opportunity';self.opportunity_due=0
+        if self.client is None:self.connect()
+        self.status.set('Opportunity shadow selected. HOLD unless a positive cost/risk advantage is supported under the model.')
+    def pause_opportunity(self):
+        try:self.opportunity.pause();self.status.set('Opportunity shadow paused; owned simulated order cancellation/reconciliation continues. Inventory is held.')
+        except (ValueError,OSError,sqlite3.Error):self.opportunity.stop_flag.set();self.opportunity.load_error=True;self.status.set('Opportunity checkpoint needs review; saved records preserved.')
+    def save_opportunity_report(self):
+        if self.busy:return
+        self.work('opportunity_report',self.opportunity.write_report)
+    def opportunity_replay_dialog(self):
+        if self.busy:return
+        path=filedialog.askopenfilename(parent=self.root,title='Explicit simulated opportunity receipt · not a Coinbase order',filetypes=[('JSON','*.json')])
+        if not path:return
+        def replay():
+            p=Path(path)
+            if p.is_symlink() or not p.is_file() or p.stat().st_size>1048576:raise BetaBlocked('OPPORTUNITY_REPLAY_FILE_REJECTED')
+            from coincat_beta_store import unpack
+            packet=unpack(p.read_text(encoding='utf-8'))
+            if not isinstance(packet,dict) or set(packet)!={'event_id','event'}:raise BetaBlocked('OPPORTUNITY_REPLAY_PACKET_INVALID')
+            return self.opportunity.replay(packet['event'],packet['event_id'])
+        self.work('opportunity_replay',replay)
     def start_assumed(self,buy_price=None):
         if self.closing:return
         try:self.assumed.start(buy_price)
@@ -506,6 +546,11 @@ class SpotApp:
         except (ValueError,OSError,sqlite3.Error):
             self.assumed.stop_flag.set();self.assumed.load_error=True;self.status.set('Simulation checkpoint needs review. Prior saved records are preserved.')
     def toggle_observation(self):
+        if self.observation_focus=='opportunity':
+            if self.opportunity.running:self.pause_opportunity()
+            elif self.opportunity.store is not None:self.start_opportunity()
+            else:self.open_opportunity()
+            return
         if self.assumed.running:self.pause_assumed()
         elif self.assumed.store is not None:self.start_assumed()
         else:self.open_assumed()
@@ -527,6 +572,11 @@ class SpotApp:
             path=self.shadow.write_report();self.status.set('Private trial summary saved beside its isolated database.' if path else 'Start a shadow trial first.')
         except (OSError,ValueError):self.status.set('Private trial summary could not be saved; records preserved.')
     def tray_status(self):
+        if self.observation_focus=='opportunity':
+            p=self.opportunity.progress();perf=self.opportunity.view()['performance'] or {}
+            return ('Opportunity shadow '+self.opportunity.public()['state'],
+                '168 h progress: '+('not started' if p is None else f"{p['valid_seconds']/3600:.3f} valid h"),
+                'Modeled USD vs HOLD: '+fmt(perf.get('advantage_usd')))
         if self.assumed.running or self.assumed.store is not None:
             p=self.assumed.progress();perf=self.assumed.view()['performance'] or {}
             return ('One-leg assumed trial '+self.assumed.public()['state'],
@@ -538,7 +588,9 @@ class SpotApp:
             'Shadow USD vs HOLD: '+fmt(perf.get('outperformance_usd')))
     def window_close(self):
         if not self.tray.hide():
-            if self.assumed.running:
+            if self.opportunity.running:
+                self.status.set('Tray unavailable. Opportunity shadow continues while the window is open; use Pause or Exit safely.');self.open_opportunity()
+            elif self.assumed.running:
                 self.status.set('Tray unavailable. Use Pause or Exit safely; the native trial continues while this window is open.');self.open_assumed()
             elif self.shadow.store and self.shadow.store.clock['wanted']:
                 self.status.set('Tray unavailable. Use Pause shadow or Exit safely; monitoring continues while this window is open.')
@@ -547,6 +599,8 @@ class SpotApp:
     def os_shutdown(self):
         # Never veto Windows shutdown or wait for a network request here.
         self.engine.set_blocked(True)
+        try:self.opportunity.shutdown()
+        except (ValueError,OSError,sqlite3.Error):self.opportunity.stop_flag.set()
         try:self.assumed.shutdown()
         except (ValueError,OSError,sqlite3.Error):self.assumed.stop_flag.set()
         try:self.shadow.shutdown()
@@ -579,6 +633,10 @@ class SpotApp:
                     if kind in ('refresh','reconcile'):self.last_error=True
                     if kind=='shadow_scan':self.shadow.observation_gap(self.clock())
                     if kind=='assumed_scan':self.assumed.observation_gap();self.assumed_due=time.monotonic()+10
+                    if kind=='opportunity_scan':
+                        try:self.opportunity.observation_gap()
+                        except (ValueError,OSError,sqlite3.Error):self.opportunity.stop_flag.set();self.opportunity.load_error=True
+                        self.opportunity_due=time.monotonic()+10
                     if kind=='refresh':self.connected=False
                     if kind=='reconcile':self.engine.set_blocked(True)
                     self.blocked.set(self.engine.block.is_set())
@@ -606,6 +664,11 @@ class SpotApp:
                     self.assumed_due=time.monotonic()+10
                     self.status.set('Assumed-fill simulation refreshed · '+self.assumed.public()['state']+' · not execution evidence.')
                 elif kind=='assumed_settings':self.status.set('Sizing applied to future assumed orders only. No live setting changed.')
+                elif kind=='opportunity_scan':
+                    self.opportunity_due=time.monotonic()+10;self.assumed_due=time.monotonic()+10;self.shadow_due=time.monotonic()+10
+                    self.status.set('Opportunity shadow '+self.opportunity.public()['state']+' · conditional maker venue; arithmetic results remain separate.')
+                elif kind=='opportunity_report':self.status.set('Private opportunity evidence saved beside its isolated journal.' if result else 'Start opportunity shadow first.')
+                elif kind=='opportunity_replay':self.status.set('Explicit simulated receipt processed. No real order was sent.')
                 elif kind=='portfolio':
                     if not self.closing:self.portfolio_snapshot=result
                 elif kind=='fee_audit':
@@ -632,12 +695,20 @@ class SpotApp:
             except (ValueError,OSError,sqlite3.Error):
                 self.assumed.stop_flag.set();self.assumed.load_error=True;self.assumed.reason='ASSUMED_CHECKPOINT_REVIEW_REQUIRED';self.assumed.update_view()
         self.assumed_public=self.assumed.public();assumed_progress=self.assumed.progress()
+        if not self.closing and self.opportunity.store is not None:
+            try:
+                persist=time.monotonic()>=self.opportunity_clock_due;self.opportunity.heartbeat(persist=persist)
+                if persist:self.opportunity_clock_due=time.monotonic()+5
+            except (ValueError,OSError,sqlite3.Error):self.opportunity.stop_flag.set();self.opportunity.load_error=True
+        self.opportunity_public=self.opportunity.public()
         self.assumed_badge.configure(text='Native one-leg trial · '+self.assumed_public['state']+('' if assumed_progress is None else f" · {assumed_progress['valid_seconds']/3600:.3f} h"))
         self.trial_badge.configure(text='Previous trial · '+self.shadow_public['state']+('' if p is None else f" · {p['valid_seconds']/3600:.3f} h"))
         if self.trial_window is not None and self.trial_window.root.winfo_exists() and time.monotonic()>=getattr(self,'trial_render_due',0):
             self.trial_render_due=time.monotonic()+1;self.trial_window.render()
         if self.assumed_window is not None and self.assumed_window.root.winfo_exists() and time.monotonic()>=getattr(self,'assumed_render_due',0):
             self.assumed_render_due=time.monotonic()+1;self.assumed_window.render()
+        if self.opportunity_window is not None and self.opportunity_window.root.winfo_exists() and time.monotonic()>=getattr(self,'opportunity_render_due',0):
+            self.opportunity_render_due=time.monotonic()+1;self.opportunity_window.render()
         if not self.busy:
             active=self.engine.public()['unresolved']
             if self.stop_requested:
@@ -645,6 +716,20 @@ class SpotApp:
                 if active:self.work('reconcile',self.engine.poll)
             elif active and not self.closing and now>=self.poll_due and self.client is not None:
                 self.poll_due=now+10;self.work('reconcile',self.engine.poll)
+            elif not self.closing and self.opportunity.running and time.monotonic()>=self.opportunity_due:
+                self.opportunity_due=time.monotonic()+10
+                if self.client is None:self.connect()
+                else:
+                    def opportunity_scan():
+                        frame=self.opportunity_source.collect(self.opportunity.current_pair());self.opportunity.review(frame)
+                        if self.assumed.running:
+                            try:self.assumed.review(frame)
+                            except Exception:self.assumed.stop_flag.set()
+                        if self.shadow.store is not None and self.shadow.store.clock['wanted']:
+                            try:self.shadow.review(frame)
+                            except Exception:self.shadow.stop_flag.set()
+                        return True
+                    self.work('opportunity_scan',opportunity_scan)
             elif not self.closing and self.shadow.store is not None and self.shadow.store.clock['wanted'] and self.shadow.public()['state'] not in ('COMPLETE','REVIEW_REQUIRED') and time.monotonic()>=self.shadow_due:
                 self.shadow_due=time.monotonic()+10
                 if not self.connected:self.connect()
@@ -684,6 +769,8 @@ class SpotApp:
         self._after=self.root.after(100,self.tick)
     def close(self):
         if self.closing:return
+        try:self.opportunity.shutdown()
+        except (ValueError,OSError,sqlite3.Error):self.opportunity.stop_flag.set()
         try:self.assumed.shutdown()
         except (ValueError,OSError,sqlite3.Error):self.assumed.stop_flag.set()
         try:self.shadow.shutdown()

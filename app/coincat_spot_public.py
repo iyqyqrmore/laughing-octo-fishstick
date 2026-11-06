@@ -49,6 +49,13 @@ def diagnostic(app):
             '; monitoring '+snap.get('shadow_trial',{}).get('evidence',{}).get('monitoring_outcome','IN_PROGRESS')+
             '; trading '+snap.get('shadow_trial',{}).get('evidence',{}).get('strategy_evidence','UNPROVEN_INCOMPLETE_OPPORTUNITY_HISTORY')+'.',
         'Native trial classification: fill evidence ASSUMED_NOT_OBSERVED; profit evidence NOT_ESTABLISHED. Separate from previous-policy and real fills.',
+        'Opportunity shadow policy: '+snap.get('opportunity_shadow',{}).get('state','OFF')+
+            '; order '+snap.get('opportunity_shadow',{}).get('order_state','NONE')+
+            '; qualified checks '+str(snap.get('opportunity_shadow',{}).get('qualified_checks',0))+
+            '; conditional fill events '+str(snap.get('opportunity_shadow',{}).get('fill_events',0))+
+            '; nonfills '+str(snap.get('opportunity_shadow',{}).get('nonfills',0))+
+            '; valid seconds '+str(snap.get('opportunity_shadow',{}).get('valid_seconds',0))+
+            '. Forecast UNVALIDATED; maker fill model CONDITIONAL_NOT_CALIBRATED; automatic real authority NONE.',
         '[8/8] Storage: separate manual identity journal; private financial records preserved.',
         'Connected acceptance and native Windows verification must be run locally.',
         'No amounts, prices, limits, private paths, account IDs, order IDs or raw API responses are exported.']

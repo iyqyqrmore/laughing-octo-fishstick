@@ -1,4 +1,31 @@
-# CoinCat v1.04 — Native one-leg trial / Windows acceptance
+# CoinCat v1.04 — opportunity shadow / Windows acceptance
+
+The new **Opportunity shadow…** window is independent of the preserved Native
+arithmetic trial. Follow [the opportunity guide](docs/OPPORTUNITY_SHADOW_V1_04.md).
+
+1. Extract separately and keep private data/backups. Run **02_SETUP_COINCAT.bat**,
+   **tools\VERIFY_OPPORTUNITY_SHADOW.bat** (38 focused checks), then
+   **03_VERIFY_COINCAT.bat** (640 distinct tests / 213 source hashes). Require
+   zero failures/errors; the known host-symlink capability skip may remain.
+2. Launch with **Live orders blocked ON**, connect, open **Opportunity shadow…**,
+   and Start. Default sizing is the native minimum. Allow at least ten valid
+   minutes for model warmup. HOLD/no fills is a valid outcome. Forecasts and
+   conditional maker-fill assumptions remain unvalidated.
+3. Inspect fourteen decisions, projected advantage, estimated future exit cost,
+   resting orders, paid native fees, portfolio versus immutable original HOLD
+   and uncertainty. Reviews are every 30s, competitiveness reassessed at 120s;
+   default child life 600s, campaign life 1800s, three replacements. Cancellation
+   and partial/hold reconciliation precede replacement. No forced ETH return,
+   dollar gain floor, losing liquidation or quote-touch fill.
+4. Test Pause, tray, Exit safely, restart and disconnection. Identity, inventory,
+   fees and valid hours survive; downtime cannot fill or earn monitoring hours.
+   At 168 valid hours cancel/reconcile, freeze and preserve the private report.
+5. Confirm the unchanged Native arithmetic window remains separate and monitor
+   counts identify the two policies. Automatic real orders remain disabled.
+   Native Windows connected acceptance and the 168-hour observation remain local.
+
+The following steps describe the retained Native arithmetic test. Its previous
+602-test / 200-hash counts are historical; use the current full counts above.
 
 This follow-up uses a fresh fictional $100-per-coin trial, native minimum
 orders, one maker/taker fee per leg and per-market sizing sliders. The previous

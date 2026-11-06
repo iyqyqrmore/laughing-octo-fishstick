@@ -1,3 +1,78 @@
+COINCAT v1.04 — SEPARATE OPPORTUNITY-DRIVEN PORTFOLIO SHADOW
+Source base: 3b6ba1212a0246d405db8dbbc6f1a5f97f61146f; branch coincat-v1.04.
+
+SCOPE
+New independent fictional $100 per watched coin policy, seven markets/fourteen
+native directions. Only positive modeled risk-adjusted USD portfolio advantage
+after entry costs, separately estimated future exits and uncertainty can qualify.
+No side alternation, fixed dollar gain floor, mandatory ETH return or forced trade
+cadence. Paid native commissions occur once per conditional filled leg only.
+The fast Native one-leg arithmetic modules/interface remain unchanged and apart.
+
+Finite LIMIT GTC Post Only states, 30s reviews / 120s reconsideration, default
+600s child / 1800s campaign / three replacements. Reconcile cancellations,
+remaining quantity, partial fills and native holds before replacement. Original
+campaign budget, quantity and expiry never reset. HOLD/no-fill is valid; no
+forced losing liquidation, quote-touch fill, taker fallback or blind UNKNOWN retry.
+Public trade-through/queue and forecasting assumptions remain UNVALIDATED.
+
+EXECUTED OFFLINE ACCEPTANCE
+Full checkout and fresh extracted source ZIP each run 640 distinct tests, zero
+failures/errors/skips/expected failures, with HTTP/WebSockets forbidden before
+discovery. Runtime: Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 under Xvfb.
+213 source hashes. Exact console runtimes/checksums accompany the external source
+artifact. Native Windows and connected endpoints/168-hour acceptance are PENDING.
+38 focused regressions cover selection/small gains, costs/uncertainty/depth,
+strict print evidence/gaps/touches, exact fees/idempotency/unknown commission,
+partial/cancel races and remaining replacement, retry/expiry invariants, STOP,
+restart/paused/suspended/zero-trade completion, frozen reports, retained SQLite
+handles, UI/worker integration, real-permission separation and export privacy.
+Supplementary Linux Tk 8.6 window checks and synthetic previews are separate
+from native Windows evidence; see the external verification report.
+
+COMPARATIVE ENGINEERING EVIDENCE
+verification/opportunity_scenarios.py fixes six chronological paths with the
+same original $500 portfolio and declared 5% sizing (application default minimum).
+Flat and high-fee cases: no orders, zero fees, equal HOLD. Trend/no-fill: nine
+orders, no fills/fees, exactly equal HOLD. Conditional trend: +0.523778 USD versus
+HOLD after 0.163429 USD modeled fees. Adverse reversal: -1.262920 USD versus HOLD,
+0.075120 USD fees and 2.0211% maximum marked drawdown. Gap/restart retains native
+wallet, fees and valid hours with no downtime fills. Favorable synthetic results
+are not calibrated fill evidence, historical backtests or predictive validation.
+Detailed CSV/JSON retains losses, misses, rejections and open inventory. Future
+exit estimates affect decisions but never appear as paid executions. End values
+use midpoint marks after filled-leg fees and before unexecuted exits.
+
+SUPPLIED QUICK CHECK OF 3b6ba12
+The uploaded diagnostics match its source manifest: roughly 6.5 valid minutes,
+35 arithmetic waves / 245 assumed maker orders, zero real attempts/fills and
+manual live block ON. This supports the connected arithmetic labels, not a full
+native source-suite pass or realistic maker fills. Raw private uploads are not
+included in the source package.
+
+PRESERVED BOUNDARIES
+Native arithmetic modules, canonical actual execution/grants/settlement/fees,
+financial/FIFO/tax/key/import/lock modules, dependencies, artwork and the corrected
+trial SQLite store/clock are unchanged from 3b6ba12. Existing records are not
+migrated or deleted. New engine owns only ShadowAuthorization and cannot dispatch
+exchange writes. Manual block defaults ON; deliberate OFF plus manual clicks
+retains existing bounded behavior. Automatic real-money trading stays disabled.
+Diagnostics/GET-only monitor expose the separate opportunity_shadow extension
+with controlled states, counts and uncertainty only. All financial detail remains
+private. No real Coinbase call, account trade, PC installation or live grant here.
+
+FRESH WINDOWS RERUN
+Extract separately, run locked setup, tools/VERIFY_OPPORTUNITY_SHADOW.bat (38
+focused), then 03_VERIFY_COINCAT.bat (640 / 213 hashes). Require zero failures/
+errors; only the known host-symlink capability skip may remain. Keep live block
+ON. Test model warmup/HOLD, conditional order/nonfill states, cancellation,
+partial/fee reconciliation, pause/tray/restart/disconnection and private exports.
+Confirm the unchanged Native arithmetic mode remains independent. See
+START_HERE.md and docs/OPPORTUNITY_SHADOW_V1_04.md. Forecast/fill calibration and
+an actual 168-hour connected observation remain local acceptance work.
+
+The following reports describe previous checkpoints, not this opportunity patch.
+
 COINCAT v1.04 — NATIVE ONE-LEG ASSUMED TRIAL
 Source base: 999d77c75c1129c8446751d6fc3dfdb9cf13a789; branch coincat-v1.04.
 

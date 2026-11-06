@@ -29,8 +29,8 @@ def main():
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
     data=dict(build='1.04-resumable-shadow-candidate',
-        description='v1.04 native one-leg assumed-fill trial: fictional $100 per watched coin, authenticated maker/taker rate per leg, native prices and versioned size sliders, persistent 168 valid hours. No round-trip/slippage surcharge or USD spending caps in this mode. Actual manual permissions/fees/financial libraries retained; native/connected acceptance pending.',
-        base_commit='999d77c75c1129c8446751d6fc3dfdb9cf13a789',
+        description='v1.04 separate opportunity-driven portfolio shadow: positive modeled risk-adjusted USD advantage versus original HOLD, finite Post Only lifecycle, conditional trade-through/replay evidence, one native fee per filled leg, separate future exit estimates and 168-hour recovery. Native arithmetic/interface and actual manual permissions/financial libraries retained; forecast/fills uncalibrated, native connected acceptance pending.',
+        base_commit='3b6ba1212a0246d405db8dbbc6f1a5f97f61146f',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))

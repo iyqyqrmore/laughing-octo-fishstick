@@ -1,4 +1,19 @@
-# CoinCat v1.04 — native one-leg assumed trial
+# CoinCat v1.04 — opportunity shadow and native arithmetic trial
+
+**Opportunity shadow…** adds a separate restart-safe portfolio-value policy.
+It reviews fourteen directions across seven markets, selects only positive
+modeled risk-adjusted advantage after costs, and may HOLD without trading.
+Resting Post Only orders have finite lives and retries, with partial-fill and
+cancel reconciliation before replacement. Quotes never guarantee fills.
+Native filled-leg fees are charged once; future exit estimates stay separate.
+Private projections, conditional fills, rejected opportunities, misses, drawdown
+and net USD versus original HOLD are shown in its own window and journal.
+
+The forecast and public-trade queue model remain unvalidated. Synthetic scenarios
+retain adverse losses and no-fill outcomes; favorable results are not proof of
+profitability. **Automatic real-money trading remains disabled.** The existing
+Native one-leg arithmetic trial/interface below is unchanged and separate.
+See [the policy, state machine, evidence and Windows steps](docs/OPPORTUNITY_SHADOW_V1_04.md).
 
 CoinCat uses seven market tabs with 1-hour chart defaults and a private live
 portfolio total/holdings hover beside the title and inset transparent logo.
@@ -46,7 +61,7 @@ Follow [START_HERE.md](START_HERE.md) for Windows setup, verification and recove
 acceptance. Native Windows tray/DPAPI behavior, connected Coinbase acceptance
 and an actual 168-hour observation trial must still be validated locally.
 Cloud deterministic tests and a completed shadow trial do not establish profit.
-Source branch: `coincat-v1.04`; native one-leg follow-up base: `999d77c`.
+Source branch: `coincat-v1.04`; opportunity follow-up base: `3b6ba12`.
 See [the native one-leg guide](docs/NATIVE_ONE_LEG_TRIAL.md).
 See [the portfolio/header guide](docs/V1_04_HEADER_PORTFOLIO.md).
 Original Manual Spot foundation: `9023209` on `coincat-v1.03beta`.

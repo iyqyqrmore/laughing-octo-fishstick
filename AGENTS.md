@@ -1,5 +1,24 @@
 # Codex instructions — CoinCat v1.04
 
+SEPARATE OPPORTUNITY SHADOW OWNER OVERRIDE — NOVEMBER 6, 2026
+Keep Native one-leg arithmetic and its interface/records unchanged. Add a separate
+opportunity-driven portfolio policy, seven markets/fourteen directions, positive
+risk-adjusted expected total USD advantage versus immutable original five-asset
+HOLD after costs. No alternating sides, dollar gain floor, mandatory ETH return
+or forced trade cadence in this policy. Charge native fees once per filled leg;
+future exit estimates affect decisions without premature wallet deductions.
+Use realistic named Post Only LIMIT GTC states, 30s reviews, 120s reconsideration,
+finite child/campaign life and replacement budget, partial/cancel/hold reconciliation
+before replacement, no touch fills, losing liquidation or blind UNKNOWN retry.
+Keep assumed arithmetic separate from conditional public-trade/replay execution
+and profitability evidence. Preserve 168-valid-hour monotonic recovery, SQL closure,
+private records, exact financial/fee modules and all actual manual permissions.
+Add private projections, fill-time changes, cumulative net USD versus HOLD,
+misses/rejections/fees/drawdowns/uncertainty; public exports remain quantity-free.
+Include deterministic adverse/no-fill and unchanged-HOLD comparison evidence.
+Automatic real-money trading remains disabled. Existing commit/push authorization
+continues on coincat-v1.04; no account trade, installation or live grant here.
+
 NATIVE ONE-LEG ASSUMED TRIAL OWNER OVERRIDE — NOVEMBER 6, 2026
 The owner requests a $100-per-watched-coin fictional portfolio, minimum native
 limit orders in all seven markets, explicit assumed fills/SIM IDs and repeated

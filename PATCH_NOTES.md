@@ -1,3 +1,23 @@
+# v1.04 separate opportunity-driven portfolio shadow
+
+- Preserve Native one-leg arithmetic code/interface and its records. Add a separate
+  $100-per-coin portfolio with immutable original HOLD and 168-hour recovery.
+- Evaluate fourteen directions for positive modeled risk-adjusted USD advantage,
+  without alternation, forced ETH return, fixed gain floor or forced activity.
+- Add finite Post Only GTC order states, 30s reviews/120s reconsideration,
+  partial/cancel reconciliation, original campaign quantity/budget/expiry and
+  finite retries. No touch fills, blind unknown retry or losing liquidation.
+- Use declared conservative public-trade-through queue evidence or no-fill mode;
+  forecast/fill assumptions remain unvalidated. Keep optimistic arithmetic apart.
+- Charge native commission once per filled leg; future exit estimates affect
+  admission only. Show projections, fill-time changes, net USD versus HOLD,
+  fees, misses, rejections, drawdown and uncertainty in the private window.
+- Extend strict aggregate-only diagnostics/monitor. Preserve actual manual
+  permissions, exact settlement, financial/private records, dependencies,
+  artwork and the corrected SQLite store/clock. Automatic live remains disabled.
+- Add 38 focused checks, finite/restart/adverse scenarios, comparison evidence
+  and tools/VERIFY_OPPORTUNITY_SHADOW.bat. See docs/OPPORTUNITY_SHADOW_V1_04.md.
+
 # v1.04 native one-leg assumed trial
 
 - Add the fresh $100-per-watched-coin 168-hour native trial with explicit assumed
