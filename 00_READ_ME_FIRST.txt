@@ -1,5 +1,11 @@
 CoinCat v1.04 — Resumable Trial / Manual Spot
 
+New Native one-leg trial: fictional $100 per watched coin, minimum native orders,
+one maker/taker fee per leg, no added slippage or USD spending/turnover/attempt caps.
+Per-market sizing sliders apply to future assumed SIM orders. 168 valid hours
+survive restart; prior trial records are preserved separately. Start with live
+orders blocked ON. See docs/NATIVE_ONE_LEG_TRIAL.md and START_HERE.md.
+
 Read START_HERE.md. Seven market tabs are the selector; every chart starts at 1h.
 The inset logo sits beside a refreshed portfolio total; hover to see holdings.
 USD reference values are private and never become trading funds.

@@ -1,3 +1,20 @@
+# v1.04 native one-leg assumed trial
+
+- Add the fresh $100-per-watched-coin 168-hour native trial with explicit assumed
+  SIM fills and one shared fictional wallet across seven markets.
+- Use exact native ASK/BID prices, exchange minimum sizes and one authenticated
+  maker/taker-rate fee per leg. No round-trip charge, added slippage, USD spend,
+  turnover or attempt caps in this mode. Exchange funding/size rules still apply.
+- Keep ETH quantities separate from BTC fees on ETH-BTC. Do not invent fee
+  precision or round a commission to the product quote increment.
+- Add per-market order-size sliders with durable future-order settings versions.
+  AI sizing control remains off. Keep old SIM orders immutable.
+- Persist/recover 168 valid hours, seed, wallet, fees, IDs, profiles and completion.
+  Preserve previous-trial records; no downtime fills or assumed exchange evidence.
+- Extend strict quantity-free diagnostics/local monitor for assumed counts/time;
+  keep manual order permissions/caps, canonical settlement, financial files and
+  the prior SQLite correction unchanged. Add 46 focused regressions and launcher.
+
 # v1.04 header / portfolio follow-up
 
 - Move the existing transparent logo beside the portfolio total, with free space

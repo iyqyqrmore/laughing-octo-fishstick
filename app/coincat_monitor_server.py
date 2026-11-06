@@ -26,7 +26,8 @@ HTML='''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <h2>Prospective experiment journal</h2><p id="journal"></p>
 <h2>Auto maker PAPER session</h2><p id="paper"></p></section>
 <h2>Order execution</h2><p id="beta"></p><p id="manual"></p><p id="book"></p>
-<section id="trial_section" hidden><h2>Resumable Trial — 168 Valid Hours</h2><p id="trial"></p></section>
+<section id="assumed_section" hidden><h2>Native one-leg trial · Assumed fills</h2><p id="assumed"></p></section>
+<section id="trial_section" hidden><h2>Previous portfolio-policy trial — 168 Valid Hours</h2><p id="trial"></p></section>
 <section id="imported_section" hidden><h2>Imported Coinbase history</h2><p id="imported"></p></section>
 <button id="download">Save redacted snapshot</button>
 <details><summary>Technical detail</summary><pre id="detail"></pre></details>
@@ -69,12 +70,14 @@ async function refresh(){
   document.getElementById("trial").textContent=trial?`${latest.state==="APP_REPORTING"?"":"AT CAPTURE · "}${trial.state} · ${(trial.valid_seconds/3600).toFixed(3)} / 168 valid h · ${trial.restart_count} restarts · ${trial.coverage_percent}% coverage · ${trial.orders} proposals · ${trial.fills} replay fills · no automatic live authority`:"";
   const evidence=trial?.evidence;
   if(evidence){document.getElementById("trial").textContent+=` · Policy-qualified episodes ${evidence.opportunity_episodes??"UNKNOWN"} (${evidence.opportunity_history}) · Realistically fillable ${evidence.realistically_fillable_count??"UNKNOWN"} · ${evidence.monitoring_outcome} · ${evidence.strategy_evidence} · Portfolio vs HOLD ${evidence.portfolio_vs_hold}`;}
+  const assumed=s?.assumed_fill;document.getElementById("assumed_section").hidden=!assumed;
+  put("assumed",assumed?`${latest.state==="APP_REPORTING"?"":"AT CAPTURE · "}${assumed.state} · ${(assumed.valid_seconds/3600).toFixed(3)} / 168 valid h · ${assumed.restart_count} restarts · ${assumed.orders} ASSUMED orders · ${assumed.waves} waves · ${assumed.maker_orders} maker / ${assumed.taker_orders} taker · NOT observed fills · NOT profit evidence · separate from previous trial`:"");
   const m=s?.manual_execution;document.getElementById("legacy").hidden=!!m;
   document.getElementById("imported_section").hidden=!m;
   put("imported",b?"At capture: "+b.manual.state+" · Imported orders "+b.manual.orders+" · Filled "+b.manual.filled+" · Partials "+b.manual.partials+" · Canceled unfilled "+b.manual.canceled_unfilled+" · Known native flows (API or CSV) "+b.manual.known_native_flow+" · Unresolved settlement "+b.manual.unknown+" · Read-only; account reconciliation UNKNOWN":"Imported history unavailable");
   if(m){put("beta",(latest.state==="APP_REPORTING"?(m.blocked?"LIVE BLOCK ON":"LIVE ENABLED · MANUAL CLICKS ONLY"):"LAST CAPTURE · CURRENT LIVE GATE UNVERIFIED")+" · "+m.state+" · Current CoinCat session: order attempts "+m.orders+" · CoinCat fills "+m.fills+" · Unresolved "+m.unresolved+" · Automatic live orders OFF");put("manual","Manual LIMIT GTC · Completed "+m.completed+" · Canceled "+m.canceled+" · Profit NOT ASSESSED");put("book","REST pricebook snapshots · visible prices do not establish a fill");}
   put("detail",JSON.stringify(latest,null,2));
- }catch(e){latest=null;put("trial","Current shadow trial status unavailable");put("beta","Current live gate unverified");put("manual","Current manual history unavailable");put("imported","Current imported history unavailable");put("book","Current public book unavailable");put("paper","Current paper status unavailable");put("journal","Current journal unavailable");put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
+ }catch(e){latest=null;put("assumed","Current assumed-fill status unavailable");put("trial","Current shadow trial status unavailable");put("beta","Current live gate unverified");put("manual","Current manual history unavailable");put("imported","Current imported history unavailable");put("book","Current public book unavailable");put("paper","Current paper status unavailable");put("journal","Current journal unavailable");put("adaptive","Current research unavailable");put("state","HELPER UNAVAILABLE");put("message",e.message);put("fees","Current validity unavailable");put("scan","Unverified now");put("retry","Unverified now");put("counts","");put("detail","No current response. Earlier observations do not establish current validity.");document.getElementById("markets").replaceChildren();}
 }
 document.getElementById("download").addEventListener("click",()=>{if(!latest)return;const u=URL.createObjectURL(new Blob([JSON.stringify(latest,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download="CoinCat_v1.04_Monitor_Snapshot.json";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);});
 refresh();setInterval(refresh,5000);

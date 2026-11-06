@@ -9,10 +9,11 @@ def hours(v):return 'UNKNOWN' if v is None else f'{v/3600:.3f} h'
 
 class TrialWindow:
     def __init__(self,app):
-        self.app=app;self.root=tk.Toplevel(app.root);self.root.title('CoinCat v1.04 · Resumable shadow trial');self.root.geometry('1080x800')
+        self.app=app;self.root=tk.Toplevel(app.root);self.root.title('CoinCat v1.04 · Previous portfolio-policy trial');self.root.geometry('1080x800')
         self.root.minsize(800,620);shell=ttk.Frame(self.root,padding=12);shell.pack(fill='both',expand=True)
-        ttk.Label(shell,text='Resumable Trial — 168 Valid Hours',style='Title.TLabel').pack(anchor='w')
+        ttk.Label(shell,text='Previous portfolio-policy trial — preserved records',style='Title.TLabel').pack(anchor='w')
         ttk.Label(shell,text='Shadow research · No automatic live authority · No quote-touch fills · Forecast unvalidated').pack(anchor='w',pady=5)
+        ttk.Button(shell,text='Open separate $100/coin assumed-fill simulator…',command=app.open_assumed).pack(anchor='w',pady=(0,5))
         self.summary=tk.StringVar();ttk.Label(shell,textvariable=self.summary,wraplength=1000).pack(anchor='w')
         self.bar=ttk.Progressbar(shell,maximum=100);self.bar.pack(fill='x',pady=6)
         self.evidence_text=tk.StringVar();ttk.Label(shell,textvariable=self.evidence_text,wraplength=1000).pack(anchor='w',pady=(0,6))

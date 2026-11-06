@@ -1,4 +1,50 @@
-# CoinCat v1.04 — Windows acceptance
+# CoinCat v1.04 — Native one-leg trial / Windows acceptance
+
+This follow-up uses a fresh fictional $100-per-coin trial, native minimum
+orders, one maker/taker fee per leg and per-market sizing sliders. The previous
+trial and its hours/records remain separate. See
+[the current native one-leg guide](docs/NATIVE_ONE_LEG_TRIAL.md).
+
+Use a separate extracted folder and preserve your installation/private backups.
+Run **02_SETUP_COINCAT.bat**, then **tools\VERIFY_ASSUMED_FILLS.bat** for 46 focused
+checks and **03_VERIFY_COINCAT.bat** for all **602 distinct tests / 200 hashes**.
+Require zero failures/errors; the known Windows host-symlink skip may remain.
+Verification prints numbered tests and 30-second liveness messages; earlier
+native Windows full runs took 20–30 minutes.
+
+Launch **01_START_COINCAT.bat** with **Live orders blocked ON**. Connect and open
+**Native one-leg trial**. Leave BUY price at **ASK** for the taker-rate estimate,
+or choose **BID** for a maker estimate before first Start. Confirm minimum-size
+orders, native prices/fees, local SIM IDs and a shared fictional five-coin wallet.
+Each eligible market attempts one leg per fresh wave; later waves alternate sides.
+No USD spending, turnover or attempt caps apply to this new mode.
+
+On **Order sizing**, zero means the exchange minimum. Increase a slider and
+Apply to create a version for future simulated orders. The order amount remains
+the base coin quantity; each leg's fee is separate in its native quote coin.
+No return fee or slippage surcharge is added. Commission precision is unverified;
+the model uses proportional fees without inventing a minimum rounded commission.
+
+Observe for 15–30 minutes, then test Pause, tray monitoring, Exit safely, restart
+and a disconnected interval. Confirm the same quantities, settings versions and
+valid hours survive; paused/offline/partial time and duplicate quotes cannot
+earn full hours or create downtime fills. Opted-in trials resume with fresh data;
+paused trials stay paused. At 168 valid hours, completion freezes the trial/report.
+
+Check **Diagnostics** and **Local monitor**: the native trial's assumed counts
+and valid-hour progress are labeled separately from manual/imported/previous
+trial fills. Private prices, quantities, fee currencies, IDs and slider settings
+must not appear in exports. No real order is sent by this trial, including when
+manual live permissions differ. Assumed results do not establish profitability.
+
+The inset logo, private refreshed portfolio header/holdings hover, tabs-only
+market selection and 1h chart defaults remain. Compare API-visible portfolio
+values with Coinbase's same selected portfolio; these values are display only.
+Connected endpoints, native Windows rendering/tray/DPAPI and the actual 168-hour
+observation still need local acceptance. Keep detailed private reports local.
+
+The following is the retained guide for the previous portfolio-policy trial.
+Its frozen limits and actual-snapshot baseline do not configure the new trial.
 
 The owner-reported preceding SQLite correction rerun passed: **543 tests, zero
 failures/errors, one host-symlink capability skip**. This header/portfolio patch

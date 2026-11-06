@@ -1,3 +1,54 @@
+COINCAT v1.04 — NATIVE ONE-LEG ASSUMED TRIAL
+Source base: 999d77c75c1129c8446751d6fc3dfdb9cf13a789; branch coincat-v1.04.
+
+CURRENT CONTRACT
+New fictional $100 per ETH/BTC/ADA/LINK/SOL baseline, seven native markets,
+minimum default sizes, BUY ASK/taker estimate or explicit BUY BID/maker option,
+SELL ASK/maker estimate. Each leg has one authenticated-rate modeled quote-coin
+commission, zero added slippage, no round-trip charge and no USD spending,
+turnover or attempt caps. Native exchange rules and actual simulated funding
+remain binding. Authenticated rate does not prove commission units/precision;
+quote-coin/exact-proportional fees are labeled assumptions. Product quote ticks
+are not used to invent a rounded minimum commission. Base size stays separate.
+
+Versioned per-market sliders apply to future assumed orders; old SIM fills/fees
+remain immutable. AI sizing control is not enabled. Trial uses 168 cumulative
+valid monotonic hours, durable original funding/HOLD, settings history, native
+wallet/fees, SIM IDs and frozen completion. No offline/paused/partial/suspended
+time, duplicate-frame lease renewal, downtime fills or automatic new trial.
+Previous trial records/limits/hours are preserved; new Start pauses that policy.
+Native financial/fee/receipt libraries, actual live/manual permissions/caps,
+tax/FIFO/key/import/lock records, dependencies and SQLite fix are unchanged.
+
+OFFLINE ACCEPTANCE
+Full checkout and freshly extracted source ZIP run 602 distinct tests with zero
+failures/errors/skips/expected failures. HTTP/WebSockets forbidden before discovery.
+Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 under Xvfb.
+200 source hashes checked. Exact runtimes and archive checksum accompany ZIP.
+46 new focused checks cover native one-leg fees and no double charge/slippage,
+tiny ETH/BTC units, all directions/minimums, slider ranges/versions, shared funds,
+no USD capital/attempt limits, quote/rate gaps, GET-only worker/UI integration,
+manual-switch isolation, strict private exports, 168-hour pause/restart/lease/
+completion, corruption/stale writers, transactions and SQLite closure.
+Supplementary Linux Tk 8.6 GUI checks and synthetic previews are separate from
+native Windows/actual Coinbase acceptance, which remain PENDING.
+
+Diagnostics/local monitor use the strict optional assumed_fill extension:
+controlled states, maker/taker counts, assumed orders, valid seconds, restarts.
+No quantities, native prices/fees, currencies, slider values, IDs or wallet totals.
+Assumed counts never become previous-policy/actual fills or profitability evidence.
+
+FRESH WINDOWS ACCEPTANCE
+Fresh extraction, locked setup, tools/VERIFY_ASSUMED_FILLS.bat (46 focused checks),
+then 03_VERIFY_COINCAT.bat (602 distinct tests / 200 hashes). Zero failures/errors;
+known host-symlink capability skip may remain. Launch with live block ON, test
+Native one-leg trial, ASK/BID fee basis, minima, size sliders, native totals/SIM IDs,
+Pause/Exit/restart/disconnect/tray/valid hours and separate monitor counts.
+See docs/NATIVE_ONE_LEG_TRIAL.md. No real Coinbase request/order or PC installation
+is performed by these cloud tests; previews contain synthetic market/portfolio data.
+
+The following reports describe previous checkpoints, not the current native trial.
+
 COINCAT v1.04 — HEADER / PRIVATE PORTFOLIO UI FOLLOW-UP
 Published source base: 0624d146f55b2684afe646a1876038a076bd7b82.
 Branch: coincat-v1.04. Strategy, fees, risk limits and live permissions preserved.

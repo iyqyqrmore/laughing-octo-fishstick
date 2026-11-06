@@ -1,5 +1,30 @@
 # Codex instructions — CoinCat v1.04
 
+NATIVE ONE-LEG ASSUMED TRIAL OWNER OVERRIDE — NOVEMBER 6, 2026
+The owner requests a $100-per-watched-coin fictional portfolio, minimum native
+limit orders in all seven markets, explicit assumed fills/SIM IDs and repeated
+native inventory updates. New trial uses one maker/taker fee per leg, without
+USD spending/turnover/attempt caps, return-to-ETH/profit admission, round-trip
+charges or slippage surcharges. Default BUY ASK uses authenticated taker rate;
+BUY BID is an explicit maker option; SELL ASK uses the maker estimate. Fee
+currency is quote coin under a clearly labeled simulation assumption. Authenticated
+rates do not establish commission precision; never round fees to an invented
+minimum based on the product's quote increment. Keep base quantity distinct from
+quote-currency fees. Honor actual native increments, minimums/maxima and finite
+shared simulated inventory. Add per-market sizing sliders, default minimum,
+with durable versions applying to future SIM orders. AI Lab tuning is future
+work, not permission for autonomous live control. Use a fresh 168-valid-hour
+trial with this new baseline/rules; preserve previous trial records/settings.
+Persist/recover valid time with the existing monotonic clock safeguards; no
+offline/paused/partial/suspended hours or downtime fills. Auto-resume an opted-in
+trial only after integrity and fresh-input checks; preserve pause and terminal
+completion/report. Keep all assumed results explicitly separate from observed
+fills/profit evidence. Update private UI, strict quantity-free diagnostics and
+local monitor. Preserve manual real caps/grants, native settlement/financial
+libraries, SQLite correction, fees/history/keys/tax/FIFO and actual records.
+Existing source commit/push authorization continues on coincat-v1.04; no actual
+account trade, installation or unattended real-money grant from this session.
+
 HEADER / PORTFOLIO UI OWNER FOLLOW-UP — NOVEMBER 6, 2026
 Move the transparent logo inward from the far window corner. Put a compact
 refreshed USD portfolio total beside the title with a live holdings hover.

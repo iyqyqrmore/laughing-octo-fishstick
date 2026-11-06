@@ -36,7 +36,10 @@ def diagnostic(app):
             '; canceled unfilled '+str(history['canceled_unfilled'])+
             '; known native flows (API or CSV) '+str(history['known_native_flow'])+
             '; unresolved settlement '+str(history['unknown'])+'. Read-only; account reconciliation UNKNOWN.',
-        '[7/8] Resumable shadow trial: '+snap.get('shadow_trial',{}).get('state','OFF')+
+        '[7/8] Native one-leg assumed trial: '+snap.get('assumed_fill',{}).get('state','OFF')+
+            '; valid seconds '+str(snap.get('assumed_fill',{}).get('valid_seconds',0))+' / 604800; assumed orders '+str(snap.get('assumed_fill',{}).get('orders',0))+
+            '; authenticated maker/taker rates; one native fee per leg; zero added slippage. Execution/profit UNPROVEN.',
+        'Previous portfolio-policy trial: '+snap.get('shadow_trial',{}).get('state','OFF')+
             '; valid seconds '+str(snap.get('shadow_trial',{}).get('valid_seconds',0))+
             ' / 604800; restarts '+str(snap.get('shadow_trial',{}).get('restart_count',0))+
             '; full-market coverage '+str(snap.get('shadow_trial',{}).get('coverage_percent',0))+
@@ -45,6 +48,7 @@ def diagnostic(app):
             '; realistically fillable '+str(snap.get('shadow_trial',{}).get('evidence',{}).get('realistically_fillable_count','UNKNOWN')).replace('None','UNKNOWN')+
             '; monitoring '+snap.get('shadow_trial',{}).get('evidence',{}).get('monitoring_outcome','IN_PROGRESS')+
             '; trading '+snap.get('shadow_trial',{}).get('evidence',{}).get('strategy_evidence','UNPROVEN_INCOMPLETE_OPPORTUNITY_HISTORY')+'.',
+        'Native trial classification: fill evidence ASSUMED_NOT_OBSERVED; profit evidence NOT_ESTABLISHED. Separate from previous-policy and real fills.',
         '[8/8] Storage: separate manual identity journal; private financial records preserved.',
         'Connected acceptance and native Windows verification must be run locally.',
         'No amounts, prices, limits, private paths, account IDs, order IDs or raw API responses are exported.']

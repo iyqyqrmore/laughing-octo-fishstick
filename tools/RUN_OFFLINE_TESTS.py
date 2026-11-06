@@ -46,7 +46,7 @@ class ProgressResult(unittest.TextTestResult):
         self.progress.update(f'between tests ({self.testsRun}/{self.total} finished)')
 
 
-def main(*,manual_window=False,trial=False):
+def main(*,manual_window=False,trial=False,assumed=False):
     root=Path(__file__).resolve().parents[1]
     sys.path[:0]=[str(root/'app'),str(root)]
     import tkinter
@@ -54,13 +54,14 @@ def main(*,manual_window=False,trial=False):
           'SQLite',sqlite3.sqlite_version,'Tk',tkinter.TkVersion,'Tcl',tkinter.TclVersion,flush=True)
     if trial:print('FOCUSED RESUMABLE TRIAL CHECKS ONLY; no connected or native Windows acceptance.',flush=True)
     if manual_window:print('FOCUSED MANUAL WINDOW CHECKS ONLY; full source verification is still required.',flush=True)
+    if assumed:print('FOCUSED ASSUMED-FILL CHECKS ONLY; fictional orders, no connected or execution evidence.',flush=True)
     with Progress(sys.stderr) as progress,TemporaryDirectory(prefix='CoinCat_Offline_Disposable_') as data:
         with patch.dict(os.environ,{'COINCAT_DATA_DIR':data,'PYTHONDONTWRITEBYTECODE':'1'}):
             with patch('requests.sessions.Session.request',side_effect=AssertionError('OFFLINE_HTTP_FORBIDDEN')), \
                     patch('websockets.sync.client.connect',side_effect=AssertionError('OFFLINE_WS_FORBIDDEN')), \
                     patch('websockets.connect',side_effect=AssertionError('OFFLINE_WS_FORBIDDEN')):
                 suite=unittest.defaultTestLoader.discover(str(root/'offline_tests'),
-                    pattern='test_spot_workspace.py' if manual_window else 'test_*trial*.py' if trial else 'test*.py')
+                    pattern='test_assumed*.py' if assumed else 'test_spot_workspace.py' if manual_window else 'test_*trial*.py' if trial else 'test*.py')
                 def cases(node):
                     for item in node:
                         if isinstance(item,unittest.TestSuite):yield from cases(item)
@@ -84,4 +85,5 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manual-window',action='store_true',help='Run only the isolated manual-window checks; not a full verification pass.')
     parser.add_argument('--trial',action='store_true',help='Focused resumable trial checks only; not full acceptance.')
-    args=parser.parse_args();raise SystemExit(main(manual_window=args.manual_window,trial=args.trial))
+    parser.add_argument('--assumed',action='store_true',help='Focused assumed-fill simulator checks only; not full acceptance.')
+    args=parser.parse_args();raise SystemExit(main(manual_window=args.manual_window,trial=args.trial,assumed=args.assumed))
