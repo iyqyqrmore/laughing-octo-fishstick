@@ -1,5 +1,17 @@
 # Codex instructions — CoinCat v1.04
 
+WINDOWS SQLITE CORRECTION OWNER SCOPE — NOVEMBER 5, 2026
+The owner reports native Windows verification failure at 71d175e: 184 hashes
+matched; 533 tests, zero assertion failures, two WinError 32 cleanup errors
+and one host symlink-capability skip. Correct trial SQLite connection/cursor
+lifetime and fixtures only. Explicitly close resources on success, failed
+initialization, corruption and exceptions; prove release before temporary
+directory deletion without GC, forced retries or suppressed cleanup errors.
+Preserve all trial data/integrity/benchmark/recovery safeguards, strategy, live
+permissions, fees and financial modules/records. Add focused regressions, run
+full offline and extracted-source checks, document a fresh native Windows
+rerun, and publish a narrow new corrective commit on coincat-v1.04.
+
 OPPORTUNITY / VALUE EVIDENCE OWNER FOLLOW-UP — NOVEMBER 5, 2026
 Report cumulative policy-qualified opportunity episodes, repeated checks, realistic
 fill feasibility, conditional costs, modeled native fees and portfolio versus

@@ -29,8 +29,8 @@ def main():
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
     data=dict(build='1.04-resumable-shadow-candidate',
-        description='Resumable 168-valid-hour portfolio USD shadow research; isolated transactional trial clock, recovery, GET-only observations, native Windows tray and private fee audit. Automatic live authority unavailable. Native Windows and connected acceptance pending.',
-        base_commit='cc565d994b19d05514089247352caf51e225806d',
+        description='v1.04 Windows SQLite lifecycle correction: explicit connection/cursor closure and deterministic fixture cleanup. Strategy, live permissions, fees, trial schema and financial modules unchanged. Fresh native Windows acceptance pending.',
+        base_commit='71d175e23e2014715c0119ba35eebb130b6da07f',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))

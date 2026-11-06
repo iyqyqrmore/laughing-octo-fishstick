@@ -1,3 +1,59 @@
+COINCAT v1.04 — WINDOWS SQLITE CLEANUP CORRECTION
+Published source base: 71d175e23e2014715c0119ba35eebb130b6da07f.
+Branch: coincat-v1.04. Strategy, live permissions and fees are unchanged.
+
+OWNER-SUPPLIED NATIVE WINDOWS RESULT FOR 71d175e — FAILED
+Python 3.11.9 / SQLite 3.45.1 / Tk-Tcl 8.6; 184/184 source hashes passed.
+533 tests ran: zero assertion failures, two cleanup errors, one host-symlink
+capability skip. Both errors were WinError 32 deleting disposable trial.sqlite3:
+Recovery.test_atomic_actions_cannot_change_original_benchmark_and_detect_in_process_corruption
+Recovery.test_corrupt_missing_or_wrong_checkpoint_never_reset
+Hash integrity and the preceding Linux pass did not establish Windows acceptance.
+
+ROOT CAUSE AND NARROW REPAIR
+The first fixture left one sqlite3.connect connection open; the second left two.
+A sqlite connection transaction context commits/rolls back but does not close.
+Retaining real connection objects reproduced exactly these three open handles.
+Each mutation now owns/closes its connection and cursor explicitly. All Recovery
+and inherited evidence fixtures retain objects until AFTER temporary cleanup and
+assert closure BEFORE cleanup. The probe does not close leaked resources itself.
+
+The trial store previously closed its connections, including metadata failures.
+This correction consolidates ownership in a managed connection scope and closes
+query cursors explicitly, including execute/fetch failures and BaseException
+unwinding. Original SQL expressions, parameters, transaction order, schema/app IDs,
+checksums, baseline/limit guards, state/evidence atomicity and timeouts remain.
+Failed/corrupt existing databases are preserved; no automatic reset or deletion.
+
+EXECUTED OFFLINE ACCEPTANCE
+Full checkout and freshly extracted package each run 543 distinct tests with
+zero failures, errors, skips or expected failures on Linux Python 3.11.17 /
+SQLite 3.53.1 / Tk-Tcl 9.0. HTTP/WebSockets are forbidden before discovery and
+execution. 187 packaged source hashes pass. Exact runtimes/checksums accompany
+the external release artifact. Native corrected Windows acceptance is PENDING.
+
+Ten new focused lifecycle checks retain connections, cursors and exception
+tracebacks through success, duplicate/conflict returns, callbacks/evidence
+rollback, stale writers, corrupt bytes/missing tables/digests/identity, wrong
+application/schema version, partial initialization, SQL failures, integrity
+failure, fetch/commit failure and KeyboardInterrupt. They assert Python handles are closed, then
+immediately rename/remove databases while references remain alive. On Windows,
+CreateFileW with read/write and ZERO sharing also proves exclusive native access
+before deletion. No new platform skip, GC call, forced retry, cleanup-error
+suppression, automatic leaked-handle closure or weakened assertion is introduced.
+
+SCOPE AND RERUN
+The only production app module changed is coincat_trial_store.py. Every other
+app module, including strategy, execution/grants, fees, financial/FIFO/key/lock,
+clock, monitor and artwork, is byte-identical to 71d175e. No private record is
+opened or modified. No account request, installation or trade is performed.
+See docs/V1_04_WINDOWS_SQLITE_FIX.md: fresh folder, locked setup, focused trial
+checks, then 03_VERIFY_COINCAT.bat and final COUNTS/PASS. Expect 543 distinct tests;
+the host-symlink capability skip may remain. Any error/failure blocks acceptance.
+
+The following is historical acceptance evidence for the preceding Linux build.
+It is superseded by the supplied FAILED Windows result and corrected rerun above.
+
 COINCAT v1.04 — RESUMABLE PORTFOLIO SHADOW TRIAL
 Published evidence follow-up base: cc565d994b19d05514089247352caf51e225806d (v1.04).
 Original Manual Spot foundation: 902320907843dcbca67a0b26de29896ae8a675ad.

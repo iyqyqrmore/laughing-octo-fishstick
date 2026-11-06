@@ -1,3 +1,17 @@
+# v1.04 Windows SQLite cleanup correction
+
+- Fix the three corruption-fixture connections that committed transactions without
+  closing; retain real connections/cursors to prove release before temp cleanup.
+- Make trial-store connection ownership explicit through initialization, metadata
+  checks, reads/writes and exceptions; close every query cursor explicitly.
+- Add lifecycle regressions for commit, duplicates, rollback, corruption, schema,
+  metadata, interruption and partial-initialization failure paths. Windows probes
+  open the database with zero sharing before immediate rename/removal.
+- Preserve SQL statements, trial schema/data/integrity, original HOLD benchmarks,
+  strategy, fees, capital limits and live permissions. No retry/GC/cleanup suppression.
+- The supplied 71d175e Windows run FAILED with two cleanup errors. A fresh corrected
+  Windows run remains required; see docs/V1_04_WINDOWS_SQLITE_FIX.md.
+
 # v1.04 opportunity/value evidence follow-up
 
 - Persist prospectively qualified opportunity episodes and repeat-check counts;

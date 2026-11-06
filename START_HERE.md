@@ -1,5 +1,10 @@
 # CoinCat v1.04 — Windows acceptance
 
+For the correction to the two `trial.sqlite3` WinError 32 cleanup errors at
+`71d175e`, use the [fresh Windows rerun guide](docs/V1_04_WINDOWS_SQLITE_FIX.md).
+The supplied 533-test run failed native acceptance despite all source hashes
+matching; retain the original installation/data and verify a fresh extraction.
+
 Use a separate extracted v1.04 folder. Preserve the installed folder and all
 private records/backups; never overlay a running installation or share its data
 between processes. Use normal 64-bit Windows Python 3.11.

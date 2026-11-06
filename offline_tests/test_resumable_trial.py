@@ -1,5 +1,6 @@
 """Deterministic native frames/replay only; all SDK write methods are traps."""
 from copy import deepcopy
+from contextlib import closing
 from dataclasses import replace,asdict
 from decimal import Decimal as D
 from pathlib import Path
@@ -17,6 +18,7 @@ from coincat_order_services import LimitOrderServices,ShadowAuthorization,native
 from coincat_spot_market import SpotReader
 from coincat_watchlist import WATCH_PAIRS,WATCH_ASSETS
 from offline_tests.test_spot_manual import Venue,cid
+from offline_tests.trial_sqlite_resources import trial_sqlite_probe
 
 class Clock:
     def __init__(self):self.at=1793865600.;self.mono=0
@@ -35,7 +37,9 @@ def frame(clock,trend=0):
 
 class Recovery(unittest.TestCase):
     def setUp(self):
+        self.sqlite_probe=self.enterContext(trial_sqlite_probe())
         self.tmp=TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.c=Clock();self.path=Path(self.tmp.name)/'trial.sqlite3'
+        self.addCleanup(self.sqlite_probe.assert_released,self,self.path)
         self.e=ShadowTrader(self.path,clock=self.c.wall,monotonic_ns=self.c.ns);self.config=PortfolioConfig()
         self.e.start(account(self.c),self.config)
     def review(self,trend=0):self.e.review(frame(self.c,trend))
@@ -65,7 +69,7 @@ class Recovery(unittest.TestCase):
         saved=self.e.state()
         with self.assertRaises(BetaBlocked):self.e._change('INVALID_BASELINE',{},lambda s:s['original'].update(ETH=D(2)))
         self.assertEqual(self.e.state(),saved)
-        with sqlite3.connect(self.path) as db:db.execute("UPDATE trial_clock SET digest='altered'")
+        with closing(sqlite3.connect(self.path)) as db,db,closing(db.cursor()) as cursor:cursor.execute("UPDATE trial_clock SET digest='altered'")
         before=self.path.read_bytes()
         with self.assertRaises(BetaBlocked):self.e.store.flush_clock()
         self.assertEqual(self.path.read_bytes(),before)
@@ -83,12 +87,12 @@ class Recovery(unittest.TestCase):
         self.assertTrue(self.e.store.clock['calendar_uncertain'])
     def test_corrupt_missing_or_wrong_checkpoint_never_reset(self):
         self.review();self.e.shutdown();before=self.path.read_bytes()
-        with sqlite3.connect(self.path) as db:db.execute("UPDATE trial_clock SET digest='bad'")
+        with closing(sqlite3.connect(self.path)) as db,db,closing(db.cursor()) as cursor:cursor.execute("UPDATE trial_clock SET digest='bad'")
         broken=self.path.read_bytes();e=ShadowTrader(self.path,clock=self.c.wall,monotonic_ns=self.c.ns)
         self.assertEqual(e.public()['state'],'REVIEW_REQUIRED');self.assertEqual(self.path.read_bytes(),broken)
         with self.assertRaises(BetaBlocked):e.start(account(self.c),self.config)
         self.path.write_bytes(before)
-        with sqlite3.connect(self.path) as db:db.execute('DROP TABLE trial_clock')
+        with closing(sqlite3.connect(self.path)) as db,db,closing(db.cursor()) as cursor:cursor.execute('DROP TABLE trial_clock')
         self.assertTrue(ShadowTrader(self.path,clock=self.c.wall,monotonic_ns=self.c.ns).load_error)
     def test_transaction_duplicate_event_concurrent_clock_and_monotonic_counters(self):
         other=TrialStore(self.path,validate=validate)
