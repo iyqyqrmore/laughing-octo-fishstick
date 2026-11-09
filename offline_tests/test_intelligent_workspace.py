@@ -76,6 +76,11 @@ class IntelligentWorkspace(unittest.TestCase):
                 self.assertTrue(tree.winfo_ismapped());self.assertGreater(tree.winfo_width(),100)
                 self.assertLessEqual(tree.winfo_rootx()+tree.winfo_width(),w.root.winfo_rootx()+width)
                 self.assertLessEqual(tree.winfo_rooty()+tree.winfo_height(),w.root.winfo_rooty()+height)
+            w.tabs.select(5);self.root.update()
+            for widget in (w.notes,w.footer):
+                self.assertTrue(widget.winfo_ismapped());self.assertGreater(widget.winfo_height(),10)
+                self.assertLessEqual(widget.winfo_rooty()+widget.winfo_height(),w.root.winfo_rooty()+height)
+            self.assertIn('Forward forecasts:',w.notes.get('1.0','end'))
     def test_close_exits_and_checkpoints_without_withdraw_or_tray(self):
         self.begin();original=self.app.intelligent.state()['original']
         with patch.object(self.root,'withdraw') as hidden:

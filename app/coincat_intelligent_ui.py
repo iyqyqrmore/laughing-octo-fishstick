@@ -25,8 +25,8 @@ class IntelligentWindow:
         ttk.Button(controls,text='Save private report',command=app.save_intelligent_report).pack(side='left',padx=5)
         ttk.Button(controls,text='Import simulated receipt…',command=app.intelligent_replay_dialog).pack(side='right')
         self.tabs=ttk.Notebook(shell);self.tabs.pack(fill='both',expand=True)
-        best=ttk.Frame(self.tabs,padding=10);decisions=ttk.Frame(self.tabs);orders=ttk.Frame(self.tabs);perf=ttk.Frame(self.tabs,padding=8);settings=ttk.Frame(self.tabs,padding=10)
-        for page,label in ((best,'Best opportunity'),(decisions,'14 directions'),(orders,'Orders'),(perf,'Portfolio / evidence'),(settings,'Frozen settings')):self.tabs.add(page,text=label)
+        best=ttk.Frame(self.tabs,padding=10);decisions=ttk.Frame(self.tabs);orders=ttk.Frame(self.tabs);perf=ttk.Frame(self.tabs,padding=8);settings=ttk.Frame(self.tabs,padding=10);evidence=ttk.Frame(self.tabs,padding=8)
+        for page,label in ((best,'Best opportunity'),(decisions,'14 directions'),(orders,'Orders'),(perf,'Portfolio / evidence'),(settings,'Frozen settings'),(evidence,'Forecast / rejections')):self.tabs.add(page,text=label)
         self.best=tk.StringVar();ttk.Label(best,textvariable=self.best,wraplength=1260,justify='left',style='Metric.TLabel').pack(anchor='w',pady=8)
         self.model=tk.StringVar();ttk.Label(best,textvariable=self.model,wraplength=1260,justify='left').pack(anchor='w',pady=12)
         self.decisions=table(decisions,(('rank','Rank',65),('pair','Market',90),('side','Side',65),('source','Funding → destination',160),
@@ -34,9 +34,10 @@ class IntelligentWindow:
         self.orders=table(orders,(('id','Conditional order ID',290),('pair','Market',90),('side','Side',60),('state','State',125),('price','Native limit',180),
             ('q','Original quantity',140),('filled','Filled',140),('age','Age / lifetime s',140),('remaining','Remaining child / campaign s',220),('reason','Reconciliation / replacement',350)),12)
         self.details=tk.StringVar();ttk.Label(perf,textvariable=self.details,wraplength=1260,justify='left').pack(anchor='w')
-        self.canvas=tk.Canvas(perf,height=180,background=BG,highlightthickness=0);self.canvas.pack(fill='x',pady=7);self.canvas.bind('<Configure>',lambda e:self.draw_trend())
+        self.canvas=tk.Canvas(perf,height=120,background=BG,highlightthickness=0);self.canvas.pack(fill='x',pady=7);self.canvas.bind('<Configure>',lambda e:self.draw_trend())
         self.holdings=table(perf,(('a','Asset',90),('original','Original HOLD quantity',250),('current','Modeled inventory',250),('fees','Paid modeled native commissions',270)),5)
-        self.notes=tk.Text(perf,height=6,wrap='word',background='#10151b',foreground=TEXT);self.notes.pack(fill='both',expand=True)
+        self.notes=tk.Text(evidence,height=6,wrap='word',background='#10151b',foreground=TEXT);self.notes.pack(side='left',fill='both',expand=True)
+        evidence_scroll=ttk.Scrollbar(evidence,command=self.notes.yview);evidence_scroll.pack(side='right',fill='y');self.notes.configure(yscrollcommand=evidence_scroll.set)
         config=app.intelligent.pending_config;self.funding=tk.StringVar(value=config.funding_mode)
         ttk.Label(settings,text='First Start freezes the baseline and risk/model settings. Existing v1.04 records are preserved in the read-only archive.',wraplength=1200).grid(row=0,column=0,columnspan=3,sticky='w',pady=8)
         ttk.Label(settings,text='Initial shadow portfolio').grid(row=1,column=0,sticky='w')
@@ -51,7 +52,8 @@ class IntelligentWindow:
         ttk.Label(settings,text='Conditional fill provider').grid(row=7,column=0,sticky='w',pady=7)
         self.provider_box=ttk.Combobox(settings,textvariable=self.provider,values=('TRADE_THROUGH_QUEUE_V1','NO_FILL_OBSERVATION_V1'),width=30,state='readonly');self.provider_box.grid(row=7,column=1,sticky='w',padx=10)
         ttk.Label(settings,text='100 days of closed hourly USD reference history · direct 24h labels · 40 minimum training days · 12 analogs · 14 validation + 14 holdout days.\n30s reviews / 120s competitiveness / 600s child / 1800s campaign / 3 replacements. Acquired assets have no mandatory holding deadline.\nNo fixed dollar profit floor, forced ETH return, compulsory future exit fee, counterparty fee or automatic taker fallback.\nUSD historical products are read-only forecast references; only the seven native pairs can receive orders. Native fees are modeled quote commissions until explicit settlement evidence exists.',wraplength=1180).grid(row=8,column=0,columnspan=3,sticky='w',pady=15)
-        ttk.Label(shell,text='Closing CoinCat exits safely. Tray/minimize integration is removed. Marked/model results are not realized profit or exchange execution proof.',wraplength=1280,style='Muted.TLabel').pack(anchor='w',pady=3)
+        self.footer=ttk.Label(shell,text='Closing CoinCat exits safely. Tray/minimize integration is removed. Marked/model results are not realized profit or exchange execution proof.',wraplength=1280,style='Muted.TLabel')
+        self.footer.pack(side='bottom',anchor='w',pady=3,before=self.tabs)
         def fit(event):
             if event.widget is self.root:
                 def wrap(widget):

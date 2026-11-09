@@ -10,6 +10,11 @@ Release source checks:
 - Full suite: 679 DISTINCT 679, 79.823s, failures 0, errors 0, skips 0.
 - Final affected-policy/UI coverage after display/current-coverage cleanup:
   53 tests, 12.793s, failures 0, errors 0, skips 0.
+- Independent extracted-source full run: 679 tests, 80.139s, failures 0,
+  errors 0, skips 0; source hashes and authority verifier also passed.
+- Final small-window evidence/footer correction: 9 real Tk workspace/lifecycle
+  tests, 6.704s, failures 0, errors 0, skips 0. The release package is rebuilt
+  and the full extracted suite is repeated for the published commit.
 - 18 protected execution/accounting/recovery/security/artwork files compared
   byte-for-byte to the source base: zero changes.
 - Static manual/default-ON/shadow-no-write authority verifier: PASS.

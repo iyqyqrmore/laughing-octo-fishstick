@@ -22,7 +22,7 @@ All isolated tests use disposable synthetic state and forbid HTTP/WebSockets bef
 
 ## Supervised shadow acceptance
 
-11. Observe for 15–30 minutes, then 60–120 minutes if all checks pass. Inspect **14 directions**, **Best opportunity**, **Orders**, **Portfolio / evidence** and **Frozen settings**. HOLD is valid. Directional checks/rejections are not orders. Do not loosen protections just to generate activity.
+11. Observe for 15–30 minutes, then 60–120 minutes if all checks pass. Inspect **14 directions**, **Best opportunity**, **Orders**, **Portfolio / evidence**, **Forecast / rejections** and **Frozen settings**. HOLD is valid. Directional checks/rejections are not orders. Do not loosen protections just to generate activity.
 12. Confirm native directions and units. SELL ETH-BTC exchanges ETH for BTC; BUY ETH-BTC exchanges BTC for ETH. Projected maker commission appears once in its native quote currency under a declared modeling assumption. Quotes/candles touching a limit must not create a fill. A modeled fill is conditional public-trade evidence, never an actual Coinbase receipt.
 13. Confirm a resting order is retained only while justified; a 120s review is not a forced trade. Finite child/campaign expiry and three replacement budget remain. Cancellation releases only reconciled remaining holds. Partial inventory is retained; UNKNOWN blocks replacement. Do not manufacture replay receipts and then interpret them as fill feasibility.
 14. Inspect modeled USD portfolio and original HOLD at identical references, USD/% advantage, open losses, paid modeled native fees, drawdown, forecast edge and rolling 1/6/24h history. Negative results must stay visible. A filled leg may immediately lose marked value through fees. No hypothetical exit is debited and no sale is mandated after 24 hours.
@@ -33,7 +33,7 @@ All isolated tests use disposable synthetic state and forbid HTTP/WebSockets bef
 
 ## Redacted exports and evidence
 
-19. Enable **Local monitor**, run **tools\START_LOCAL_MONITOR.bat**, and check v1.05, current versus stale capture, intelligent policy/horizon/history/coverage/rejection categories, order counts, restart/completion and absent automatic real authority. The helper is read-only. Historical v1.04 captures must be labeled historical.
+19. Stop any older monitor helper. Enable **Local monitor**, run **tools\START_LOCAL_MONITOR.bat**, and check v1.05, current versus stale capture, intelligent policy/horizon/history/coverage/rejection categories, order counts, restart/completion and absent automatic real authority. The helper is read-only. Historical v1.04 captures must be labeled historical.
 20. Export **Diagnostics** and the monitor snapshot. These redacted outputs contain fixed codes and counts only: no wallet amounts, USD gains, native commissions, account/order/trial IDs, keys or raw receipts. Private report/replay/CSV/audit files contain financial details and stay on your PC.
 21. Report source commit, Windows runtime/counts, history state, native/valuation coverage, rejection breakdown, recovery behavior and any controlled errors. Do not send secrets. Read-only November 4 settlement audit remains **tools\AUDIT_MANUAL_FILLS.bat**; no new settlement claim is inferred from synthetic tests.
 
