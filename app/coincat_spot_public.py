@@ -59,4 +59,9 @@ def diagnostic(app):
         '[8/8] Storage: separate manual identity journal; private financial records preserved.',
         'Connected acceptance and native Windows verification must be run locally.',
         'No amounts, prices, limits, private paths, account IDs, order IDs or raw API responses are exported.']
+    breakdown=snap.get('opportunity_shadow',{}).get('rejection_breakdown')
+    if breakdown is not None:
+        from coincat_opportunity_rejections import diagnostic_lines
+        at=next(i for i,line in enumerate(lines) if line.startswith('[8/8]'))
+        lines[at:at]=diagnostic_lines(breakdown)
     return '\n'.join(lines)+'\n'

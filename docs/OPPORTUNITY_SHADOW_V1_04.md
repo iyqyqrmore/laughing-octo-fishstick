@@ -151,6 +151,52 @@ The new engine holds only `ShadowAuthorization` and has no SDK write adapter.
 
 ## Evidence and Windows acceptance
 
+### Redacted rejection breakdown
+
+The November 9 reporting patch exports `opportunity_shadow.rejection_breakdown`
+as a strict optional monitor extension and readable lines in diagnostic section
+7/8. It contains fixed labels, fixed reason-code keys and nonnegative integer
+counts only. There are no portfolio amounts, prices, quantities, native fee values,
+account/order IDs, private paths or raw error strings. Unknown private reason text
+maps to `OTHER_UNCLASSIFIED`; missing historical counts are `UNRECORDED_HISTORY`.
+Older snapshots without this extension remain readable. Restart the app and local
+monitor helper from the new build before collecting a fresh export.
+
+Each rejected direction check contributes one first blocking reason. Fourteen
+directions are reviewed repeatedly, including during warmup, so a large rejection
+total is not a count of distinct opportunities or exchange order rejections.
+The supplied November 9 snapshot has 1,680 reviews / 23,520 rejected checks,
+zero qualified checks/orders and about 14.4 valid hours. It reports the old source
+manifest but omits the histogram, so those files cannot establish which cause
+dominates. A fresh patched export can reuse the locally saved cumulative history.
+
+| Category | Meaning |
+| --- | --- |
+| Unavailable or unverified data | Missing/stale references, fees, rules or depth; unknown sized future exit estimate |
+| Insufficient expected advantage | Existing risk-adjusted advantage after costs is nonpositive even before additional uncertainty allowances |
+| Liquidity limitation | Available sized native depth is known to be insufficient |
+| Uncertainty | Outlier/invalid risk evidence, or additional existing uncertainty allowances remove an otherwise positive advantage |
+| Model warmup | Insufficient observations or a broken observation window |
+| Market rules or funding | Native minimum/increment/permission restrictions or insufficient funded, unreserved inventory |
+| Spread or crossed book | The existing spread/crossing admission check blocks the proposal |
+| Advantage / uncertainty unsplit | Historical combined reason lacks the numeric decomposition needed to attribute it |
+| Other or unrecorded | Unknown fixed classification or missing history; never raw text |
+
+Future uncertainty attribution observes the existing projected advantage and its
+already computed forecast/model/spread allowances. It does not change a price,
+fee, risk weight, threshold, selected candidate, order, cancellation or trading
+decision. Future exit estimates remain decision-only, never paid fees. Unknown
+future exit cost is reported as unavailable input, not proof of insufficient
+liquidity when the old combined reason cannot establish that.
+
+The public report gives total rejected checks, category totals, fixed-code reason
+totals and split coverage. Both sets of totals equal the rejected-check counter.
+`LEGACY_AGGREGATES_ONLY` uses saved history without modifying a journal;
+`SPLIT_SINCE_UPGRADE` preserves that baseline and adds classified future counts;
+`COMPLETE_SINCE_TRIAL_START` applies when no pre-split checks exist. Completed
+records stay frozen; no trial reset or historical backfill from guessed values.
+The Native arithmetic trial and all actual/manual permissions remain unchanged.
+
 The supplied quick diagnostics match the source manifest of `3b6ba12`: roughly
 6.5 valid minutes, 35 arithmetic waves, 245 assumed maker orders, zero actual
 order attempts/fills and live block ON. This supports the connected arithmetic

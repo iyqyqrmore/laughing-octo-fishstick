@@ -78,6 +78,11 @@ class OpportunityWorkspace(unittest.TestCase):
         self.begin();self.app.opportunity_public=self.app.opportunity.public()
         snapshot=capture(self.app,session='0'*32,sequence=1,now=self.clock.wall());raw=encode(snapshot).decode();report=diagnostic(self.app)
         self.assertIn('opportunity_shadow',snapshot);self.assertIn('Opportunity shadow policy',report)
+        breakdown=snapshot['opportunity_shadow']['rejection_breakdown']
+        self.assertEqual(breakdown['categories']['MODEL_WARMUP'],14)
+        self.assertIn('Model warmup or observation gap: 14',report)
+        self.assertIn('Rejection reason counts (fixed codes)',report)
+        self.assertEqual(sum(breakdown['categories'].values()),snapshot['opportunity_shadow']['rejected_checks'])
         self.assertFalse(snapshot['opportunity_shadow']['live_permission']);self.assertEqual(snapshot['assumed_fill']['orders'],0)
         for secret in ('OPP-',self.app.opportunity.state()['trial_id'],'seed_marks','estimated_future_exit_cost_usd','projected_advantage_usd'):
             self.assertNotIn(secret,raw);self.assertNotIn(secret,report)
@@ -85,7 +90,9 @@ class OpportunityWorkspace(unittest.TestCase):
             bad=deepcopy(snapshot);bad['opportunity_shadow'][key]='private'
             with self.subTest(key=key),self.assertRaises(ValueError):validate(bad)
         older=deepcopy(snapshot);del older['opportunity_shadow'];validate(older)
+        legacy=deepcopy(snapshot);del legacy['opportunity_shadow']['rejection_breakdown'];validate(legacy)
         self.assertIn('opportunity_section',HTML);self.assertIn('fills NOT CALIBRATED',JS)
+        self.assertIn('opportunity_rejections',HTML);self.assertIn('Uncertainty',JS)
     def test_sizing_policy_freezes_after_start_and_pause_does_not_touch_actual_permissions(self):
         self.begin();window=self.app.opportunity_window;window.render()
         self.assertTrue(all(str(w.cget('state'))=='readonly' for w in window.settings_inputs))

@@ -1,5 +1,18 @@
 # Codex instructions — CoinCat v1.04
 
+REJECTION DIAGNOSTICS OWNER FOLLOW-UP — NOVEMBER 9, 2026
+Add aggregate rejection reasons to redacted opportunity diagnostics so unavailable
+data, insufficient expected advantage, liquidity and uncertainty are distinguishable
+without private amounts. Reuse saved reason history; preserve trial identity,
+original HOLD, financial records, 168-hour clock, settings, fees and live permissions.
+Keep admission/selection/order rules unchanged. Export fixed reason/category labels
+and integer counts only; no raw errors, dynamic labels, prices, quantities, paths,
+IDs or wallet values. Preserve honest legacy coverage where old combined reasons
+cannot distinguish advantage from uncertainty; never fabricate historical splits.
+New observational counts persist in the existing transaction, without resetting
+or migrating financial/trial data. Preserve older monitor snapshots via a strict
+optional extension. Existing source commit/push authorization continues on v1.04.
+
 SEPARATE OPPORTUNITY SHADOW OWNER OVERRIDE — NOVEMBER 6, 2026
 Keep Native one-leg arithmetic and its interface/records unchanged. Add a separate
 opportunity-driven portfolio policy, seven markets/fourteen directions, positive

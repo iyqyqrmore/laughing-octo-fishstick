@@ -29,8 +29,8 @@ def main():
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
     data=dict(build='1.04-resumable-shadow-candidate',
-        description='v1.04 separate opportunity-driven portfolio shadow: positive modeled risk-adjusted USD advantage versus original HOLD, finite Post Only lifecycle, conditional trade-through/replay evidence, one native fee per filled leg, separate future exit estimates and 168-hour recovery. Native arithmetic/interface and actual manual permissions/financial libraries retained; forecast/fills uncalibrated, native connected acceptance pending.',
-        base_commit='3b6ba1212a0246d405db8dbbc6f1a5f97f61146f',
+        description='v1.04 rejection diagnostics: strict optional category/reason counts, saved legacy coverage and observational future advantage/uncertainty split. No private amounts or raw errors. Opportunity admissions/selection, Native arithmetic, fees, orders, financial libraries, SQLite recovery and actual manual/live permissions unchanged. Native Windows/connected acceptance pending.',
+        base_commit='ba68a0b8f9b44adf4cd82ccce3cae4279e2604fa',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))

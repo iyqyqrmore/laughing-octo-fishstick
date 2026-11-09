@@ -1,5 +1,10 @@
 # CoinCat v1.04 — opportunity shadow and native arithmetic trial
 
+Redacted diagnostics and the local monitor now include aggregate rejection reasons,
+with fixed labels/counts and explicit legacy coverage. Saved history is preserved;
+future checks distinguish insufficient advantage from binding uncertainty without
+changing decisions. See [the reporting details](docs/OPPORTUNITY_SHADOW_V1_04.md#redacted-rejection-breakdown).
+
 **Opportunity shadow…** adds a separate restart-safe portfolio-value policy.
 It reviews fourteen directions across seven markets, selects only positive
 modeled risk-adjusted advantage after costs, and may HOLD without trading.

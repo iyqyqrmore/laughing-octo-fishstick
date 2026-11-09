@@ -1,3 +1,60 @@
+COINCAT v1.04 — AGGREGATE REJECTION DIAGNOSTICS
+Source base: ba68a0b8f9b44adf4cd82ccce3cae4279e2604fa; branch coincat-v1.04.
+
+SCOPE
+Observational rejection categories/reason counts in redacted diagnostics and the
+GET-only local monitor. Fixed allowlists; integer counts only. No private amounts,
+currencies, prices, quantities, IDs, paths, receipts or raw exception strings.
+Counts are repeated direction checks and first blockers, not exchange rejections.
+Reuse saved cumulative history. Preserve combined old advantage/uncertainty counts
+as unsplit; future existing projection components distinguish binding uncertainty
+from insufficient expected advantage. Both category/reason totals equal rejected
+checks. Explicit legacy coverage; no fabricated historical decomposition or reset.
+
+ACCEPTANCE
+Full checkout and freshly extracted source ZIP: 649 distinct offline tests, zero
+failures/errors/skips/expected failures; HTTP/WebSockets forbidden before discovery.
+Runtime Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 under Xvfb. 215 source
+hashes. Exact timings/checksum accompany the external source artifact. Native
+Windows/connected acceptance remains pending. Focused opportunity suite: 47 checks.
+Nine new regressions cover categorical attribution, boundary cases, old histogram
+projection, safe unknown/missing counts, legacy-to-future split persistence, strict
+nested schemas, diagnostic privacy, duplicate frames, partial data and SQLite
+restart. Real-Tk export/monitor checks now assert the actual redacted breakdown
+and compatibility with snapshots lacking it. Full financial/strategy/recovery,
+fees-once, no-fill/adverse, SQLite closure and STOP tests remain intact.
+
+PRESERVATION
+Opportunity policy/math/provider, Native arithmetic/interface, actual order/grant/
+settlement/fee modules, financial/key/import/FIFO/tax/lock libraries, dependencies,
+artwork and corrected trial store/clock are byte-identical to ba68a0b. Only optional
+reporting counters are added in the existing decision transaction. No threshold,
+price, forecast, selector, order lifecycle, wallet, original HOLD, fee or permission
+is changed. Old saved trials are readable; completed records stay frozen. Automatic
+real-money trading remains disabled; manual default-ON block/explicit clicks remain.
+
+SUPPLIED NOVEMBER 9 EVIDENCE
+The published base manifest matches the uploads. The fresh monitor reports ACTIVE,
+1,680 reviews / 23,520 rejected direction checks, zero qualified checks/orders/fills,
+about 14.4 valid hours and a fresh helper heartbeat. Manual connection state is
+RETRYING; this alone does not identify the shadow rejection causes. No histogram
+is present in those older redacted exports. The patch enables local historical
+counts to be exported without sharing detailed private journals. Raw uploads are
+outside the checkout/package.
+
+WINDOWS RERUN
+Preserve the existing trial/private records. Verify the fresh source separately:
+tools/VERIFY_OPPORTUNITY_SHADOW.bat (47), then 03_VERIFY_COINCAT.bat (649 / 215).
+Require zero failures/errors; the known host-symlink skip may remain. Close old app
+and helper, restart both from this build with live block ON, resume the same trial
+and export diagnostics/snapshot. Check matching totals, fixed reasons, baseline /
+since-upgrade coverage and absence of amounts. Do not delete journals or restart
+the 168-hour trial to obtain reporting. See START_HERE.md and the rejection section
+of docs/OPPORTUNITY_SHADOW_V1_04.md. No exchange request, account trade, installation
+or new real-money authority was performed during the cloud checks.
+
+The following reports are historical checkpoints, not this rejection patch.
+
 COINCAT v1.04 — SEPARATE OPPORTUNITY-DRIVEN PORTFOLIO SHADOW
 Source base: 3b6ba1212a0246d405db8dbbc6f1a5f97f61146f; branch coincat-v1.04.
 

@@ -1,3 +1,17 @@
+# v1.04 rejection diagnostics follow-up
+
+- Add fixed category and reason-code counts to redacted diagnostics/local monitor.
+  Distinguish unavailable data, insufficient expected advantage, liquidity limits,
+  uncertainty, warmup/gaps, market rules/funding and spread/crossed books.
+- Reuse saved cumulative reason history and mark old combined advantage/uncertainty
+  counts as unsplit. Persist observational future splits in the existing transaction;
+  no trial reset, private financial migration or invented historical causes.
+- Preserve optional-schema compatibility and reject private keys, non-count values
+  and inconsistent totals. Counts represent repeated direction checks/first blockers,
+  not rejected exchange orders. No amounts or raw exception text are exported.
+- Keep strategy, settings, admissions, native fees, orders, financial libraries,
+  SQLite store/clock, Native arithmetic and actual manual/live permissions unchanged.
+
 # v1.04 separate opportunity-driven portfolio shadow
 
 - Preserve Native one-leg arithmetic code/interface and its records. Add a separate

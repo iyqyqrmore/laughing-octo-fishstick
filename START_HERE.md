@@ -4,8 +4,8 @@ The new **Opportunity shadow…** window is independent of the preserved Native
 arithmetic trial. Follow [the opportunity guide](docs/OPPORTUNITY_SHADOW_V1_04.md).
 
 1. Extract separately and keep private data/backups. Run **02_SETUP_COINCAT.bat**,
-   **tools\VERIFY_OPPORTUNITY_SHADOW.bat** (38 focused checks), then
-   **03_VERIFY_COINCAT.bat** (640 distinct tests / 213 source hashes). Require
+   **tools\VERIFY_OPPORTUNITY_SHADOW.bat** (47 focused checks), then
+   **03_VERIFY_COINCAT.bat** (649 distinct tests / 215 source hashes). Require
    zero failures/errors; the known host-symlink capability skip may remain.
 2. Launch with **Live orders blocked ON**, connect, open **Opportunity shadow…**,
    and Start. Default sizing is the native minimum. Allow at least ten valid
@@ -23,6 +23,14 @@ arithmetic trial. Follow [the opportunity guide](docs/OPPORTUNITY_SHADOW_V1_04.m
 5. Confirm the unchanged Native arithmetic window remains separate and monitor
    counts identify the two policies. Automatic real orders remain disabled.
    Native Windows connected acceptance and the 168-hour observation remain local.
+
+For rejection reporting, preserve the existing opportunity journal and trial. Close
+the old app/helper before updating the separate source folder; restart both from
+the updated build. Resume the same trial and export Diagnostics plus a fresh local
+monitor snapshot. The report includes fixed category/reason counts, totals and
+legacy coverage. Past combined advantage/uncertainty counts remain unsplit; future
+checks gain that distinction. These counts are repeated evaluations, not rejected
+exchange orders. See the rejection section of the opportunity guide.
 
 The following steps describe the retained Native arithmetic test. Its previous
 602-test / 200-hash counts are historical; use the current full counts above.

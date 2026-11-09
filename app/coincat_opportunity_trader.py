@@ -16,6 +16,7 @@ from coincat_fill_units import normalize_fill
 from coincat_manual_trade import explicit_fee_currency
 from coincat_opportunity_policy import OpportunityConfig,POLICY,seed,evaluate,assess,performance
 from coincat_opportunity_venue import accept,modeled_fill
+from coincat_opportunity_rejections import record as record_rejections,summary as rejection_summary,validate_detail as validate_rejection_detail
 from coincat_portfolio_policy import DIRECTIONS,usd_marks,portfolio_value,valid_book
 from coincat_shadow_source import frame_quality
 from coincat_trial_clock import begin_run,advance,prime_quality,end_run,progress,NS
@@ -61,6 +62,7 @@ def validate(s):
     if any(type(s['metrics'][k]) is not int or s['metrics'][k]<0 for k in COUNTERS):raise BetaBlocked('INVALID_OPPORTUNITY_COUNTERS')
     if s['metrics']['direction_checks']!=14*s['metrics']['reviews'] or s['metrics']['qualified_checks']+s['metrics']['rejected_checks']!=s['metrics']['direction_checks']:
         raise BetaBlocked('INVALID_OPPORTUNITY_REVIEW_COUNTS')
+    if 'rejection_detail' in s['metrics']:validate_rejection_detail(s['metrics']['rejection_detail'],s['metrics']['rejected_checks'])
     if len(s['observations'])>201 or len(s['orders'])>40 or len(s['campaigns'])>40:raise BetaBlocked('OPPORTUNITY_CACHE_BOUND')
     count=0
     for ref,o in s['orders'].items():
@@ -344,6 +346,7 @@ class OpportunityTrader:
     def _decide(self,s,frame,now):
         config=OpportunityConfig(**s['config']);o=active(s)
         rows,_=evaluate(frame,s['wallet'],free(s),s['original'],s['observations'],config)
+        record_rejections(s['metrics'],rows)
         s['metrics']['reviews']+=1;s['metrics']['direction_checks']+=14;s['last_review_at']=now;s['rows']=rows
         for row in rows:
             episode=s['episodes'][row['id']];qualified=row['state']=='QUALIFIED'
@@ -441,6 +444,7 @@ class OpportunityTrader:
     @staticmethod
     def _unpriced_review(s):
         s['rows']=[dict(**d,state='HOLD',reason='PARTIAL_OR_UNVERIFIED_INPUTS') for d in DIRECTIONS]
+        record_rejections(s['metrics'],s['rows'])
         s['metrics']['reviews']+=1;s['metrics']['direction_checks']+=14;s['metrics']['rejected_checks']+=14
         s['metrics']['rejections']['PARTIAL_OR_UNVERIFIED_INPUTS']=s['metrics']['rejections'].get('PARTIAL_OR_UNVERIFIED_INPUTS',0)+14
 
@@ -584,7 +588,8 @@ class OpportunityTrader:
         s=self._view.get('state');p=self.progress();m={} if s is None else s['metrics']
         phase='REVIEW_REQUIRED' if self.load_error else 'OFF' if s is None and not self.running else 'WAITING' if s is None else s['mode']
         return project(dict(state=phase,valid_seconds=0 if p is None else int(p['valid_seconds']),restart_count=0 if p is None else p['restart_count'],
-            order_state='NONE' if self._view.get('active_order') is None else self._view['active_order']['state'],**{k:m.get(k,0) for k in COUNTERS}))
+            order_state='NONE' if self._view.get('active_order') is None else self._view['active_order']['state'],
+            rejection_breakdown=rejection_summary(m),**{k:m.get(k,0) for k in COUNTERS}))
     def write_report(self):
         if self.store is None:return None
         path=self.path.with_name('opportunity-'+self.state()['trial_id']+'-summary.json')
