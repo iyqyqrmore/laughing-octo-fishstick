@@ -1,4 +1,15 @@
-# CoinCat v1.05 — intelligent 24-hour one-leg portfolio shadow
+# CoinCat v1.05 — separate multi-horizon follow-up
+
+- Independent immediate/5m/15m/30m/2h/24h evaluations with direct labels, chronological evidence and a fixed exploratory multiple-selection allowance. Unsupported horizons HOLD independently.
+- Separate frozen multi trial preserves the existing 24h identity/settings/wallet/clock/HOLD. One finite wallet and one active order per independent trial; live trials are labeled unpaired.
+- Fair bounded history rotation, isolated retries and per-reference progress; missing/conflicting closed bars never become invented readiness.
+- Native source-budget preview separates validity, economics, conditional execution and authority. Reported manual fills do not manufacture historical recommendations or exact commission evidence.
+- Own fee once, finite maker lifecycle, 168h recovery, losses and actual manual/default-ON protections retained. Strict public horizon/rejection/history extensions expose no amounts.
+- Paired synthetic HOLD/24h/multi/naive favorable/reversal/no-fill studies, complete regression and extracted-source verification. Native Windows/connected acceptance and model calibration remain pending.
+
+See [policy/evidence](docs/MULTI_HORIZON_V1_05.md), [module map](docs/V1_05_MULTI_MODULE_MAP.md), [verification](VERIFICATION.txt) and [Windows update guide](START_HERE.md).
+
+## Retained v1.05 direct-24h release
 
 - Direct 24h historical-label forecast with chronological validation/holdout, fixed provenance, uncertainty and prospective outcomes; no ten-minute extrapolation.
 - Fourteen native directions, risk-sensitive sizes, shared finite wallet and one own entry commission per filled leg. No compulsory future exit, ETH return, fixed profit floor or trade cadence.

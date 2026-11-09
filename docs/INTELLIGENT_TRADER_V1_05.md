@@ -1,4 +1,6 @@
-# CoinCat v1.05 — intelligent one-leg policy and evidence
+# CoinCat v1.05 — retained 24-hour baseline policy and evidence
+
+This describes the retained direct-24h trial. The [multi-horizon follow-up](MULTI_HORIZON_V1_05.md) adds a separate trial and progress views without migrating this baseline. See the [Windows update guide](../START_HERE.md) to preserve existing state.
 
 ## Objective and funding
 

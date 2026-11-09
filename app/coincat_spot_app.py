@@ -34,8 +34,12 @@ from coincat_theme import apply_theme,BG,EDGE,TEXT,MUTED,GREEN,RED
 from coincat_v80_immediate import exact
 from coincat_version import DISPLAY
 from coincat_intelligent_trader import IntelligentTrader
+from coincat_multi_trader import MultiTrader
+from coincat_candle_cache import CandleCache
+from coincat_history_backfill import HistoryBackfill
+from coincat_horizon_forecast import ForecastBundle
 from coincat_intelligent_source import IntelligentSource
-from coincat_forecast_history import ForecastHistory,ForecastHistorySource
+from coincat_forecast_history import ForecastHistory
 from coincat_forecast_24h import ForecastConfig
 from coincat_windows_lifecycle import WindowsLifecycle
 from coincat_watchlist import WATCH_PAIRS,WATCH_ASSETS
@@ -204,9 +208,14 @@ class SpotApp:
         self.history_store=ManualTradeStore(self.data/'research_data'/'manual_trade_lab'/'observations.sqlite3')
         self.history_public=self.history_store.public()
         self.intelligent=IntelligentTrader(self.data/'research_data'/'intelligent_v105'/'active.sqlite3',clock=clock,monotonic_ns=monotonic_ns)
+        self.multihorizon=MultiTrader(self.data/'research_data'/'intelligent_multi_v105'/'active.sqlite3',clock=clock,monotonic_ns=monotonic_ns)
+        self.shadow_selection='multi' if self.multihorizon.running else '24h';self.trade_cursor=0;self.latest_shadow_frame=None
         self.forecast_history=ForecastHistory(self.data/'research_data'/'intelligent_v105'/'hourly_references.sqlite3')
-        self.history_source=ForecastHistorySource(self.reader,self.forecast_history)
+        self.minute_history=CandleCache(self.data/'research_data'/'intelligent_multi_v105'/'reference_candles.sqlite3')
+        self.history_source=HistoryBackfill(self.reader,self.forecast_history,self.minute_history)
+        self.forecast_bundle=ForecastBundle(self.forecast_history,self.minute_history,self.history_source)
         self.intelligent_source=IntelligentSource(self.reader,self.forecast_history);self.intelligent_window=None;self.archive_window=None
+        self.intelligent_source.forecast_bundle=self.forecast_bundle
         self.intelligent_due=0;self.intelligent_clock_due=0;self.forecast_due=0;self.intelligent_public=self.intelligent.public()
         self.account=None;self.connected=False;self.busy=False;self.closed=False;self.closing=False;self.jobs=Queue();self.worker=None
         self.status=tk.StringVar(value='Connect / refresh to read markets and balances. Automation is OFF.')
@@ -216,7 +225,8 @@ class SpotApp:
         self._ui();self.refresh_local()
         self.lifecycle=WindowsLifecycle(root,self.os_shutdown)
         root.protocol('WM_DELETE_WINDOW',self.close)
-        if self.intelligent.running:root.after(500,self.connect)
+        self.multihorizon_public=self.multihorizon.public();self.history_backfill_public=self.history_source.progress(clock())
+        if any(e.running for e in self.shadow_engines()):root.after(500,self.connect)
         self._after=root.after(100,self.tick)
 
     def _ui(self):
@@ -324,8 +334,10 @@ class SpotApp:
             self.engine.set_blocked(True);self.blocked.set(True);self.connected=False;self.client=None
             self.reader=SpotReader(Unconnected(),clock=self.clock);self.engine.reader=self.reader;self.engine.client=self.reader.client
             self.portfolio_reader=PortfolioDisplayReader(self.reader);self.portfolio_snapshot=None
-            self.pause_intelligent()
+            for e in self.shadow_engines():e.pause()
+            self.latest_shadow_frame=None
             self.intelligent_source=IntelligentSource(self.reader,self.forecast_history)
+            self.intelligent_source.forecast_bundle=self.forecast_bundle
             self.history_source=ForecastHistorySource(self.reader,self.forecast_history)
             self.account=None
             for panel in self.panels.values():panel.snap=None;panel.draw_book()
@@ -486,38 +498,53 @@ class SpotApp:
         from coincat_intelligent_ui import IntelligentWindow
         if self.intelligent_window is None or not self.intelligent_window.root.winfo_exists():self.intelligent_window=IntelligentWindow(self)
         else:self.intelligent_window.root.deiconify();self.intelligent_window.root.lift()
+    def shadow_engines(self):return (self.intelligent,self.multihorizon)
+    def current_shadow(self):return self.multihorizon if self.shadow_selection=='multi' else self.intelligent
+    def needs_short_history(self):return self.multihorizon.running or self.shadow_selection=='multi' and self.intelligent_window is not None and self.intelligent_window.root.winfo_exists()
+    def wants_history(self):return any(e.running for e in self.shadow_engines()) or self.intelligent_window is not None and self.intelligent_window.root.winfo_exists()
+    def collect_history(self):
+        self.forecast_due=time.monotonic()+1;include_short=self.needs_short_history()
+        return self.work('forecast_history',lambda:self.history_source.collect(ForecastConfig(**self.intelligent.pending_config.model),include_short=include_short))
+    def next_trade_pair(self):
+        pairs=list(dict.fromkeys(e.current_pair() for e in self.shadow_engines() if e.running and e.current_pair()))
+        if not pairs:return self.market.get()
+        pair=pairs[self.trade_cursor%len(pairs)];self.trade_cursor+=1;return pair
     def open_archive(self):
         from coincat_archive_ui import ArchiveWindow
         if self.archive_window is None or not self.archive_window.root.winfo_exists():self.archive_window=ArchiveWindow(self)
         else:self.archive_window.root.deiconify();self.archive_window.root.lift()
     def start_intelligent(self,config=None):
         if self.closing or self.busy:self.status.set('Wait for the bounded request, then Start intelligent shadow.');return
-        try:self.intelligent.start(config)
+        try:self.current_shadow().start(config)
         except BetaBlocked as exc:self.status.set(str(exc));return
         self.intelligent_due=0;self.forecast_due=0
         if self.client is None:self.connect()
-        self.status.set('Intelligent 24h shadow selected. Historical evidence and a positive one-leg portfolio advantage are required.')
+        self.status.set('Selected shadow policy started. Supported horizon evidence and a positive one-leg portfolio advantage are required; no real orders.')
     def pause_intelligent(self):
-        try:self.intelligent.pause();self.status.set('Intelligent shadow paused. Cancel/reconciliation preserves filled inventory; no liquidation.')
-        except (ValueError,OSError,sqlite3.Error):self.intelligent.stop_flag.set();self.intelligent.load_error=True;self.status.set('Shadow checkpoint needs review; original records preserved.')
+        e=self.current_shadow()
+        try:e.pause();self.status.set('Selected shadow paused. Cancel/reconciliation preserves filled inventory; no liquidation.')
+        except (ValueError,OSError,sqlite3.Error):e.stop_flag.set();e.load_error=True;self.status.set('Shadow checkpoint needs review; original records preserved.')
     def save_intelligent_report(self):
-        if not self.busy:self.work('intelligent_report',self.intelligent.write_report)
+        if not self.busy:self.work('intelligent_report',self.current_shadow().write_report)
     def intelligent_replay_dialog(self):
         if self.busy:return
         path=filedialog.askopenfilename(parent=self.root,title=DISPLAY+' · Explicit simulated receipt · No real order',filetypes=[('JSON','*.json')])
         if not path:return
+        selected=self.current_shadow()
         def replay():
             p=Path(path)
             if p.is_symlink() or not p.is_file() or p.stat().st_size>1048576:raise BetaBlocked('SHADOW_REPLAY_FILE_REJECTED')
             packet=unpack(p.read_text(encoding='utf-8'))
             if not isinstance(packet,dict) or set(packet)!={'event_id','event'}:raise BetaBlocked('SHADOW_REPLAY_PACKET_INVALID')
-            return self.intelligent.replay(packet['event'],packet['event_id'])
+            return selected.replay(packet['event'],packet['event_id'])
         self.work('intelligent_replay',replay)
     def os_shutdown(self):
         # Checkpoint promptly and never veto the OS or wait for network.
-        self.engine.set_blocked(True);self.intelligent.stop_flag.set()
-        try:self.intelligent.shutdown()
-        except (ValueError,OSError,sqlite3.Error):pass
+        self.engine.set_blocked(True)
+        for e in self.shadow_engines():e.stop_flag.set()
+        for e in self.shadow_engines():
+            try:e.shutdown()
+            except (ValueError,OSError,sqlite3.Error):pass
         self.closing=True;self.stop_requested=False
     def tick(self):
         if self.closed:return
@@ -528,8 +555,10 @@ class SpotApp:
                 if error:
                     if kind in ('refresh','reconcile'):self.last_error=True
                     if kind=='intelligent_scan':
-                        try:self.intelligent.observation_gap()
-                        except (ValueError,OSError,sqlite3.Error):self.intelligent.stop_flag.set();self.intelligent.load_error=True
+                        for e in self.shadow_engines():
+                            if e.running:
+                                try:e.observation_gap()
+                                except (ValueError,OSError,sqlite3.Error):e.stop_flag.set();e.load_error=True
                         self.intelligent_due=time.monotonic()+10
                     if kind=='forecast_history':self.forecast_due=time.monotonic()+60
                     if kind=='refresh':self.connected=False
@@ -551,7 +580,8 @@ class SpotApp:
                     self.intelligent_due=time.monotonic()+(.3 if result.get('state')=='PRIMING' else 10)
                     if result.get('state')=='OBSERVED' and self.intelligent.policy.frame_quality(result)[0]:
                         self.connected=True;self.last_error=False;self.account=result.get('account');self.last_read_at=result['at'];self.reads+=1
-                    self.status.set('Intelligent 24h shadow '+self.intelligent.public()['state']+' · '+self.intelligent.public()['history_state']+' history · conditional execution only.')
+                    if result.get('state')=='OBSERVED':self.latest_shadow_frame=result
+                    self.status.set('Shadow policies observing; horizon readiness and history progress are in the intelligent window. No automatic real orders.')
                 elif kind=='forecast_history':self.forecast_due=time.monotonic()+(.3 if result['state']=='COLLECTING' else 60)
                 elif kind=='intelligent_report':self.status.set('Private v1.05 report saved beside the isolated shadow journal.' if result else 'Start intelligent shadow first.')
                 elif kind=='intelligent_replay':self.status.set('Explicit conditional receipt processed. No exchange order sent.')
@@ -566,16 +596,19 @@ class SpotApp:
                 self.refresh_local()
         except Empty:pass
         now=self.clock()
-        if not self.closing and self.intelligent.store is not None:
-            try:
-                persist=time.monotonic()>=self.intelligent_clock_due;self.intelligent.heartbeat(persist=persist)
-                if persist:self.intelligent_clock_due=time.monotonic()+5
-            except (ValueError,OSError,sqlite3.Error):self.intelligent.stop_flag.set();self.intelligent.load_error=True
-        self.intelligent_public=self.intelligent.public();view=self.intelligent.view();perf=view['performance'] or {}
-        fresh=self.intelligent.last_frame is not None and 0<=now-self.intelligent.last_frame['at']<=30
-        advantage=perf.get('advantage_usd') if fresh or self.intelligent_public['state']=='COMPLETE' else None
+        if not self.closing:
+            persist=time.monotonic()>=self.intelligent_clock_due
+            for e in self.shadow_engines():
+                if e.store is not None:
+                    try:e.heartbeat(persist=persist)
+                    except (ValueError,OSError,sqlite3.Error):e.stop_flag.set();e.load_error=True
+            if persist:self.intelligent_clock_due=time.monotonic()+5
+        self.intelligent_public=self.intelligent.public();self.multihorizon_public=self.multihorizon.public()
+        self.history_backfill_public=self.history_source.progress(now);e=self.current_shadow();public=e.public();view=e.view();perf=view['performance'] or {}
+        fresh=e.last_frame is not None and 0<=now-e.last_frame['at']<=30
+        advantage=perf.get('advantage_usd') if fresh or public['state']=='COMPLETE' else None
         shown='—' if advantage is None else '0' if advantage==0 else format(advantage,'.8g')
-        self.shadow_summary.set('Intelligent 24h shadow '+self.intelligent_public['state']+' · Net modeled USD vs original HOLD: '+shown)
+        self.shadow_summary.set(('Multi-horizon' if self.shadow_selection=='multi' else '24h baseline')+' shadow '+public['state']+' · Net modeled USD vs original HOLD: '+shown)
         if self.intelligent_window is not None and self.intelligent_window.root.winfo_exists() and time.monotonic()>=getattr(self,'intelligent_render_due',0):
             self.intelligent_render_due=time.monotonic()+1;self.intelligent_window.render()
         if not self.busy:
@@ -585,19 +618,23 @@ class SpotApp:
                 if unresolved:self.work('reconcile',self.engine.poll)
             elif unresolved and not self.closing and now>=self.poll_due and self.client is not None:
                 self.poll_due=now+10;self.work('reconcile',self.engine.poll)
-            elif not self.closing and self.intelligent.running and time.monotonic()>=self.intelligent_due:
+            elif self.connected and not self.closing and self.wants_history() and time.monotonic()>=self.forecast_due and self.history_source.overdue():self.collect_history()
+            elif not self.closing and (any(e.running for e in self.shadow_engines()) or self.connected and self.wants_history()) and time.monotonic()>=self.intelligent_due:
                 self.intelligent_due=time.monotonic()+10
                 if self.client is None:self.connect()
                 else:
+                    pair=self.next_trade_pair();include_short=self.needs_short_history()
                     def scan():
-                        f=self.intelligent_source.collect(self.intelligent.current_pair(),self.intelligent.pending_config.model);self.intelligent.review(f);return f
+                        f=self.intelligent_source.collect(pair,self.intelligent.pending_config.model,include_multi=include_short)
+                        if f.get('state')!='PRIMING':
+                            for e in self.shadow_engines():
+                                if e.running:e.review(f)
+                        return f
                     self.work('intelligent_scan',scan)
             elif self.connected and not self.closing and self.portfolio_reader.due() and (now<self.refresh_due or self.portfolio_reader.overdue()):self.work('portfolio',self.portfolio_reader.collect)
             elif self.connected and not self.closing and now>=self.refresh_due:
                 p=self.panel();self.refresh(candles=p.chart_data is None or now-p.chart_data['at']>=60,history=now-getattr(self,'history_at',0)>=60)
-            elif self.connected and not self.closing and (self.intelligent.running or self.intelligent_window is not None and self.intelligent_window.root.winfo_exists()) and time.monotonic()>=self.forecast_due:
-                self.forecast_due=time.monotonic()+1
-                self.work('forecast_history',lambda:self.history_source.collect(ForecastConfig(**self.intelligent.pending_config.model)))
+            elif self.connected and not self.closing and self.wants_history() and time.monotonic()>=self.forecast_due:self.collect_history()
         for panel in self.panels.values():
             if panel.snap is not None and not panel.current():panel.draw_book();panel.summary.set(panel.pair+' · displayed quote is stale');panel.estimate_ticket()
         self.refresh_controls();self.portfolio_badge.render(self.portfolio_snapshot,now,self.connected)
@@ -612,10 +649,11 @@ class SpotApp:
         self._after=self.root.after(100,self.tick)
     def close(self):
         if self.closing:return
-        self.intelligent.stop_flag.set()
-        try:self.intelligent.shutdown()
-        except (ValueError,OSError,sqlite3.Error):pass
         self.closing=True;self.engine.set_blocked(True);self.blocked.set(True);self.stop_requested=True
+        for e in self.shadow_engines():e.stop_flag.set()
+        for e in self.shadow_engines():
+            try:e.shutdown()
+            except (ValueError,OSError,sqlite3.Error):pass
         self.status.set('Closing safely · live block ON; checkpoint and owned manual-order reconciliation.')
 
     def fee_audit_dialog(self):

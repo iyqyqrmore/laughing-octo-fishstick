@@ -22,8 +22,8 @@ def diagnostic(app):
     except OSError:manifest_sha=None
     snap=capture(app,session='0'*32,sequence=1,manifest_sha256=manifest_sha)
     manual=validate(snap['manual_execution']);history=snap['beta']['manual'];shadow=snap.get('intelligent_shadow')
-    lines=[DISPLAY+' Manual Spot / Intelligent 24-hour shadow — redacted diagnostics','SECTION COMPLETENESS: COMPLETE (8/8)',
-        '[1/8] Build: INTELLIGENT_ONE_LEG_24H_V1 + MANUAL_LIMIT_GTC; no automatic real orders.',
+    lines=[DISPLAY+' Manual Spot / Intelligent 24-hour shadow + independent multi-horizon — redacted diagnostics','SECTION COMPLETENESS: COMPLETE (8/8)',
+        '[1/8] Build: INTELLIGENT_ONE_LEG_24H_V1 + MULTI_HORIZON_ONE_LEG_V1 + MANUAL_LIMIT_GTC; no automatic real orders.',
         'Source manifest SHA256: '+str(manifest_sha),
         '[2/8] Manual connection: '+snap['health']['connection_state'],
         '[3/8] Native REST pricebooks / exchange candles. Five USD historical products are read-only forecast references, never order markets.',
@@ -55,7 +55,30 @@ def diagnostic(app):
         lines.append('Fixed rejection reason codes:')
         for reason,n in shadow['rejection_breakdown']['reasons'].items():
             if n:lines.append('  '+reason+': '+str(n))
-    lines.extend(['[8/8] Storage: isolated v1.05 shadow; original v1.04 trial records preserved in read-only archive. No tray/custom minimize behavior; Close exits safely.',
+    multi=snap.get('multihorizon_shadow')
+    if multi is not None:
+        lines.extend(['Independent multi-horizon shadow: '+multi['state']+'; '+multi['selected_policy']+'; '+multi['data_state']+' inputs.',
+            'Valid monitoring seconds '+str(multi['valid_seconds'])+' / 604800; restarts '+str(multi['restart_count'])+'; directional checks '+str(multi['direction_checks'])+
+            '; qualified '+str(multi['qualified_checks'])+'; rejected '+str(multi['rejected_checks'])+'.',
+            'Orders '+str(multi['orders'])+'; fill events '+str(multi['fill_events'])+'; partials '+str(multi['partials'])+'; nonfills '+str(multi['nonfills'])+
+            '; canceled '+str(multi['canceled'])+'; replacements '+str(multi['replacements'])+'; unresolved '+str(multi['unresolved_orders'])+'.',
+            'Selection '+multi['selection_validation']+'; execution '+multi['execution_calibration']+'; automatic real authority NONE.',
+            'Order already active reviews '+str(multi['order_active_reviews'])+'; unresolved execution events '+str(multi['unknown_events_blocking'])+'.',
+            'Live comparisons '+multi['comparison']+'; original baselines and periods are not silently aligned.'])
+        for name,row in multi['horizons'].items():
+            lines.append('  '+name+' '+row['state']+' '+row['reason']+'; checks '+str(row['checks'])+'; qualified '+str(row['qualified'])+'; rejected '+str(row['rejected'])+
+                '; selected orders '+str(row['selected_orders'])+'; validation / holdout '+str(row['validation_predictions'])+' / '+str(row['holdout_predictions'])+
+                '; forward known / unknown '+str(row['forward_known'])+' / '+str(row['forward_unknown'])+'.')
+            lines.append('    Horizon rejection categories: '+', '.join(k+'='+str(n) for k,n in row['rejections']['categories'].items()))
+        lines.append('Multi-horizon aggregate rejection categories: '+', '.join(k+'='+str(n) for k,n in multi['rejection_breakdown']['categories'].items()))
+    backfill=snap.get('history_backfill')
+    if backfill is not None:
+        lines.extend(['Historical collector '+backfill['state']+'; '+backfill['reason']+'; jobs '+str(backfill['attempts'])+'; failed jobs '+str(backfill['failures'])+' this app run.',
+            'Seconds since last successful historical page: '+str(backfill['last_success_age_s'])+'. Bar counts are not portfolio amounts.'])
+        for gran,row in backfill['granularities'].items():
+            lines.append('  '+gran+' '+row['state']+'; aligned bars '+str(row['aligned'])+' / '+str(row['required'])+'.')
+            lines.append('    Reference bars / saved pages: '+', '.join(p+'='+str(r['bars'])+'/'+str(r['pages']) for p,r in row['products'].items()))
+    lines.extend(['[8/8] Storage: separate v1.05 24h and multi-horizon trials; existing v1.05 and v1.04 identities, records and HOLD benchmarks preserved. No tray/custom minimize behavior; Close exits safely.',
         'Native Windows, connected endpoints and calibrated fill/forecast evidence remain local acceptance work.',
         'No portfolio amounts, prices, quantities, native commissions, policy values, private paths, account/order IDs, wallet contents or raw receipts are exported.'])
     return '\n'.join(lines)+'\n'

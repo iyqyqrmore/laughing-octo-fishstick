@@ -1,4 +1,4 @@
-"""Regenerate the v1.04 manifest and optional source-only ZIP; no private inputs."""
+"""Regenerate the v1.05 manifest and optional source-only ZIP; no private inputs."""
 import argparse
 import hashlib
 import json
@@ -29,8 +29,8 @@ def main():
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
     data=dict(build='1.05-intelligent-one-leg-shadow',
-        description='v1.05 direct 24-hour one-leg portfolio shadow; frozen available-holdings HOLD benchmark, native sizing/fees, finite conditional maker lifecycle, strict redacted evidence, no tray/minimize integration. Manual real boundaries unchanged. Native Windows/connected calibration pending.',
-        base_commit='8cd633334f16257fc94fd47067f3e588e5fd2cf5',
+        description='v1.05 separate multi-horizon and retained direct-24h one-leg shadow trials; closed minute/five-minute/hourly history with progress, native source-budget explanation, own fee once, finite conditional maker lifecycle and strict redacted horizon evidence. Existing trial and manual real boundaries preserved. Native Windows/connected calibration pending.',
+        base_commit='e5b83879422dbccdf5aec6fb4a759b1beb2f1b1c',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))

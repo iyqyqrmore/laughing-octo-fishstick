@@ -1,70 +1,83 @@
-COINCAT v1.05 — INTELLIGENT 24-HOUR ONE-LEG SHADOW
-Source base: 8cd633334f16257fc94fd47067f3e588e5fd2cf5; branch coincat-v1.05.
+COINCAT v1.05 — MULTI-HORIZON FOLLOW-UP
+Base: e5b83879422dbccdf5aec6fb4a759b1beb2f1b1c; branch coincat-v1.05.
 
-Baseline established before implementation: 649 distinct offline tests,
-zero failures/errors/skips, 87.816s. Python 3.11.17, SQLite 3.53.1, Tk/Tcl 9.0,
-Linux Xvfb. HTTP/WebSockets forbidden before discovery and during execution.
+Actual baseline established before edits:
+679 distinct tests; zero failures/errors/skips; 79.107 seconds.
+237 source hashes; local checkpoint matched the supplied capture's manifest.
+Runtime: Linux Python 3.11.17, SQLite 3.53.1, Tk/Tcl 9.0 under Xvfb.
+HTTP and WebSockets forbidden before discovery and throughout the suite.
 
-Release source checks:
-- 237 manifest source files; zero mismatches, Python syntax compiles.
-- Full suite: 679 DISTINCT 679, 79.823s, failures 0, errors 0, skips 0.
-- Final affected-policy/UI coverage after display/current-coverage cleanup:
-  53 tests, 12.793s, failures 0, errors 0, skips 0.
-- Independent extracted-source full run: 679 tests, 80.139s, failures 0,
-  errors 0, skips 0; source hashes and authority verifier also passed.
-- Final small-window evidence/footer correction: 9 real Tk workspace/lifecycle
-  tests, 6.704s, failures 0, errors 0, skips 0. The release package is rebuilt
-  and the full extracted suite is repeated for the published commit.
-- 18 protected execution/accounting/recovery/security/artwork files compared
-  byte-for-byte to the source base: zero changes.
-- Static manual/default-ON/shadow-no-write authority verifier: PASS.
-- Real Linux Tk8.6 screenshots, Python 3.13.5/SQLite 3.46.1: main 1360x900 and
-  1040x780; intelligent 1360x900 and 1040x740. Synthetic SDK, no exchange writes.
-- git diff whitespace check: PASS. Source packaging is allowlisted only.
+Implementation verification:
+- 259 source files in the regenerated allowlisted manifest.
+- Full suite: 724 DISTINCT 724, 103.287 seconds, failures 0, errors 0,
+  skips 0. Existing financial/security/storage/compatibility tests retained.
+- Pre-publication focused intelligent/multi/history/native-construction coverage:
+  98 tests, 39.277 seconds, failures 0, errors 0, skips 0. Two additional
+  lossless-observation/storage regressions bring discovery to 726 full / 100
+  focused tests; final full extracted results are recorded with the package.
+- Final real Tk workspace fixture strengthens clock alignment and asserts a
+  short horizon READY, 24h HOLD and actual local shadow order placement.
+  Seven affected workspace tests pass; per-horizon error display remains private.
+- 18 protected execution/accounting/recovery/security/artwork files match base
+  byte-for-byte. Dependency locks unchanged. No existing private data opened.
+- Expanded static authority verifier: default-ON manual explicit-click guard,
+  automatic grant prohibition and no shadow exchange write/preview path PASS.
+- Seven reproducible paired synthetic forward studies: flat HOLD, no-fill,
+  favorable continuation, unseen reversal, shorter-history positive/adverse
+  and fee-blocked cases. HOLD, 24h, multi and naive M15 use identical inputs.
+  Fourteen native directions, fee once, partial/cancel/UNKNOWN/restart/expiry,
+  no touch fill, immutable benchmark and zero-trade 168h completion covered.
+- Closed-candle gaps/corrections/cross-grid disagreement, isolated retry/fair
+  backfill, SQLite success/error closure, privacy/count validation and bounded
+  long-run checkpoint/display caches covered.
+- Detailed new-policy observation blocks are losslessly compressed with exact
+  restoration/digest/size-limit tests and a measured 168-hour journal budget.
+  Existing receipts/wallet/fees/old records and the 1 GiB TrialStore cap are
+  unchanged. The twelve affected execution/storage tests pass (5.099 seconds).
+- Minimum-size Linux Tk8.6 views: 1360x900 multi dashboard and 1040x740 horizon,
+  history, performance and private construction/reported-example views.
+  Synthetic SDK only; real Windows/Tk8.6 acceptance is not inferred.
 
-The complete suite runs on Linux Python 3.11.17/SQLite 3.53.1/Tk9 under Xvfb,
-with HTTP/WebSockets forbidden before discovery and during execution. The
-initial full run found one portable-folder fixture omission after the source
-verifier gained new shadow-module checks; adding those fixture files fixed it.
-No financial assertion or permission guard was weakened. The final extracted
-ZIP is independently checked and re-runs the complete suite before push.
-Its exact source commit, archive SHA256 and resulting test counts are recorded
-in the accompanying release-acceptance artifact. Hashes cover the tested source;
-Git commit metadata is not embedded recursively into its own manifest.
+Publication requires independent extraction of the final source-only ZIP,
+source hash/syntax and authority checks, then the complete 726-test suite.
+The accompanying external release-acceptance artifact records the exact tested
+commit, ZIP SHA256, extracted runtime/counts/timings and visual evidence. Commit
+metadata is not recursively embedded into its own source manifest. Private
+records, keys, caches, reports, uploads, monitor state and virtual environments
+are excluded from the source archive. No source/test is silently retired here.
 
-No account access, real orders, native Windows acceptance or predictive
-profitability is claimed. Historical release results are archived separately.
+Diagnosis: supplied capture had 47 reviews / 658 checks and rejections, all
+FORECAST_HISTORY_INSUFFICIENT, with historical references 1/5 and aligned 0;
+current native 7/7 and USD 5/5 were available. The actual inaccessible local
+cache cause cannot be proven from that redacted capture. Code inspection found
+scheduling/global retry/backfill fairness risks now corrected and observable.
 
-New coverage: direct 24h labels; chronological train-before-label-end checks;
-validation/holdout/HOLD/naive comparisons; fourteen native conversions; own fee
-once; source reservations/size/risk; no reverse gate; negative marks; partial/
-cancel/UNKNOWN/restart/finite retries; no quote-touch fill; public tape gap;
-no-fill provider; rolling gaps/losses; strict public redaction; SQLite release
-on success/error/corruption; zero-trade 168h freeze; actual Tk controls at
-1040x740 and 1360x900; main workspace at 1040x780 and 1450x920; no tray/hide.
+The separate multi trial does not reset/migrate the existing 24h trial. Frozen
+settings, benchmark/wallet/fees, actual manual grants/caps, original campaign
+expiry/retries, corrected TrialStore/Clock and historical records are preserved.
+Immediate/5m/15m/30m/2h/24h readiness is independent. Direct labels, chronological
+folds/provenance and fixed exploratory multiplicity allowance are unvalidated
+research estimates, not statistically calibrated guarantees. Resting maker
+fills are conditional/un-calibrated or explicitly no-fill. Native currency
+modeling does not establish exact exchange commission precision/settlement.
 
-Protected accounting, manual permissions/caps, security, store/clock and artwork
-are compared byte-for-byte to the source base. All historical financial and
-compatibility engine assertions remain. See docs/V1_05_RETIREMENT.md for the
-intentional retirement of obsolete dashboard/tray assertions.
+Paired studies retain both +0.75007957 USD continuation advantage and
+-5.22051802 USD reversal loss for the fixed multi/24h examples. No-fill pays
+no commission and equals HOLD. These are synthetic one-leg two-hour engineering
+studies, not continuous market backtests, matured 24h forecast outcomes,
+account results or evidence of long-term profitability. Independent live trials
+are explicitly unpaired and are not ranked as comparable performance evidence.
 
-Fixed synthetic chronological forward scenarios compare direct24h and naive
-24h forecasts under identical wallet/fee/risk/fill assumptions against immutable
-HOLD. Include no-edge, no-fill, fee-blocked, favorable and unseen reversal paths.
-Losses and nofills remain. They are engineering evidence, not historical market
-backtests, calibrated fills or successful trading. Forecast/fill model remains
-UNVALIDATED / CONDITIONAL_NOT_CALIBRATED.
+Native Windows Python 3.11/Tk8.6/DPAPI/shutdown behavior and connected candle,
+product/fee/account acceptance remain pending. No exchange calls, real orders,
+automatic real grants, full prospective 168h run or calibrated profitability
+are claimed. Existing manual OFF + deliberate click remains REAL bounded trading;
+new policies never receive automatic authority. Keep the actual live block ON.
 
-Native Windows Python 3.11/Tk8.6/DPAPI/session shutdown/minimize-style and connected
-read-only product/candle/account/fee/portfolio/history acceptance remain pending.
-A full 168 valid-hour market trial, independent prediction evaluation, native
-settlement/currency proof and separately authorized bounded live pilot are not
-completed here. The owner-reported earlier 543-test Windows success is retained
-in docs/HISTORICAL_VERIFICATION_V1_04.md, not presented as v1.05 acceptance.
-
-Fresh Windows rerun: follow START_HERE.md in a separate extracted v1.05 folder;
-run setup, 03_VERIFY_COINCAT.bat, then supervised blocked read-only/shadow tests.
-Save runtime/discovered/counts/skips/errors. The verifier prints per-test timing
-and a 30-second heartbeat; Windows may take 20–30 minutes or longer. Keep Live
-orders blocked ON. Manual OFF + deliberate click remains REAL bounded trading;
-automatic shadow real-order authority is unavailable.
+Fresh native Windows rerun/update: START_HERE.md preserves existing v1.05 data,
+then 03_VERIFY_COINCAT.bat; optionally tools/VERIFY_INTELLIGENT_TRADER.bat.
+Save runtime/discovered/counts/skips/errors. Windows can take 20–30+ minutes;
+wait for final results. Symlink capability skips must be stated. SQLite cleanup
+errors fail verification and must never be suppressed or repaired by deletion.
+Then perform blocked connected read-only/shadow progress, pause/restart/network
+acceptance for 15–30 minutes and 60–120 minutes before overnight observation.

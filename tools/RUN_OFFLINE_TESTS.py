@@ -62,13 +62,14 @@ def main(*,manual_window=False,trial=False,assumed=False,opportunity=False,intel
             with patch('requests.sessions.Session.request',side_effect=AssertionError('OFFLINE_HTTP_FORBIDDEN')), \
                     patch('websockets.sync.client.connect',side_effect=AssertionError('OFFLINE_WS_FORBIDDEN')), \
                     patch('websockets.connect',side_effect=AssertionError('OFFLINE_WS_FORBIDDEN')):
-                suite=unittest.defaultTestLoader.discover(str(root/'offline_tests'),
-                    pattern='test_intelligent*.py' if intelligent else 'test_opportunity*.py' if opportunity else 'test_assumed*.py' if assumed else 'test_spot_workspace.py' if manual_window else 'test_*trial*.py' if trial else 'test*.py')
+                patterns=('test_intelligent*.py','test_multi*.py','test_order_explanation.py') if intelligent else ('test_opportunity*.py' if opportunity else 'test_assumed*.py' if assumed else 'test_spot_workspace.py' if manual_window else 'test_*trial*.py' if trial else 'test*.py',)
+                suite=unittest.TestSuite(unittest.defaultTestLoader.discover(str(root/'offline_tests'),pattern=pattern) for pattern in patterns)
                 def cases(node):
                     for item in node:
                         if isinstance(item,unittest.TestSuite):yield from cases(item)
                         else:yield item
                 ids=[t.id() for t in cases(suite)]
+                if len(ids)!=len(set(ids)):raise AssertionError('DUPLICATE_OFFLINE_TEST_IDS')
                 print('DISCOVERED',len(ids),'DISTINCT',len(set(ids)),'HTTP / WEBSOCKET FORBIDDEN',flush=True)
                 result=unittest.TextTestRunner(verbosity=2,resultclass=lambda *args,**kwargs:
                     ProgressResult(*args,total=len(ids),progress=progress,**kwargs)).run(suite)

@@ -156,6 +156,7 @@ class MakerShadowTrader:
         def guarded(s):
             if s['mode']=='COMPLETE':raise BetaBlocked('COMPLETED_OPPORTUNITY_TRIAL_FROZEN')
             result=action(s)
+            if hasattr(self.policy,'compact'):self.policy.compact(s)
             if s['mode']=='REVIEW_REQUIRED' and self.store.clock['phase']!='COMPLETE':
                 self.store.clock.update(phase='REVIEW_REQUIRED',previous_valid=False)
             for ref,o in before['orders'].items():
@@ -296,6 +297,7 @@ class MakerShadowTrader:
             rules=deepcopy(self.last_frame['rules'][row['pair']]),created_at=now,expires_at=min(now+config.order_lifetime_s,root['expires_at']),age_s=0.,
             accepted_at=None,venue=None,fills={},pending_fill=None,reconciled=False,reason='POSITIVE_MODEL_ADVANTAGE_NEW_MAKER',projection=deepcopy(row))
         s['orders'][ref]=order;s['active']=ref;s['metrics']['orders']+=1;s['metrics']['replacements']+=int(root['attempts']>1);trim(s)
+        if hasattr(self.policy,'placed'):self.policy.placed(s,order)
 
     def _consume_age(self,s):
         self._age(s,self.age_pending)

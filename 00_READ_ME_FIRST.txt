@@ -1,39 +1,34 @@
-CoinCat v1.05 — Manual Spot / Intelligent 24-hour one-leg shadow
+CoinCat v1.05 — Manual Spot / Intelligent one-leg shadow
 
-Read START_HERE.md. Extract into a separate folder, preserve old private records,
-run 02_SETUP_COINCAT.bat, then 03_VERIFY_COINCAT.bat before connected testing.
-The full Windows verifier prints named tests and a 30-second heartbeat; it can
-run for 20–30 minutes or longer. Preserve final counts and any error details.
+Read START_HERE.md for preservation-first v1.05 update steps. Close app/helper,
+back up the stopped folder, replace source-package files only and preserve all
+private/research data. Never overlay pre-v1.05 folders. Verify hashes and run
+03_VERIFY_COINCAT.bat before connected use. Named tests/heartbeat may take
+20–30+ minutes on Windows; save final runtime/counts/skips/errors.
 
-Seven native tabs; 1h chart defaults; inset transparent logo; live portfolio
-USD total with private holdings hover. Tray and custom minimize are removed.
-Close exits safely; Windows minimize button is removed, maximize is preserved.
+Existing 24-hour baseline stays intact. Select Multi-horizon to inspect the new
+independent policy; Start opts into its separate frozen trial. Switching views
+never starts/resets/migrates. Default funding copies fresh available five-asset
+holdings into simulated inventory; actual funds never move.
 
-Open Intelligent shadow after connecting with Live orders blocked ON. First
-Start copies freshly read available five-asset holdings into its own simulated
-wallet. No account funds move. Baseline/settings freeze. Five read-only USD
-history references backfill about 100 days; missing history means HOLD.
+Forecast / rejections has By horizon, History / progress and Comparison.
+Immediate marked improvement and direct 5m/15m/30m/2h/24h evaluations are independent.
+Short histories use minute/five-minute data. Unsupported/negative results HOLD.
+Construct / explain converts BTC budget to ETH base quantity/own native fee and
+separates validity/economics/fill evidence/authority. Missing original historical
+inputs or exact actual settlement remain UNKNOWN.
 
-The forecast covers actual 24h outcomes; it is not scaled ten-minute momentum.
-The selector ranks fourteen native directions by positive risk-adjusted expected
-portfolio advantage. One leg, one own native commission per conditional fill.
-No forced ETH return, hypothetical reverse fee, fixed dollar gain or cadence.
-One active Post Only GTC; 30s reviews, 120s reassessment, 600s child, 1800s original
-campaign and three replacements. Cancel/reconcile before replacement. Touches,
-time and restarts never create fills. Maker-fill calibration remains UNKNOWN.
+One own native fee per filled leg; none on unfilled quantity. No forced reverse,
+ETH return, fixed dollar gain or cadence. One active Post Only GTC per trial;
+30s review/120s assessment/600s child/1800s original campaign/three replacements.
+Reconcile before replacing. Touch/time never fills. Maker calibration UNKNOWN.
 
-Net modeled USD versus immutable original HOLD is the main private metric.
-Losses, paid native fees and open inventory remain visible. Forecast, conditional
-model results and realized-account profit are different. Public exports contain
-fixed labels/counts only. Private reports, CSVs and receipts stay on your PC.
+168 valid hours recover, excluding offline/paused/partial/suspended intervals.
+Net modeled USD versus original HOLD retains losses/drawdown/fees. Public exports
+are fixed codes/counts; private reports stay local. Independent live trials are
+not paired comparisons. Synthetic studies establish behavior, not profit.
 
-168 valid hours survive interruption; offline/sleep/partial time does not count.
-A zero-trade trial is valid monitoring evidence but does not prove profitability.
-Historical v1.04 records remain separate under History archive, read only.
-
-Live block starts ON. Deliberate OFF plus a manual order click can still send a
-bounded REAL LIMIT order. Intelligent shadow never receives automatic real
-permissions. No unattended real pilot is enabled by this release.
-
-See VERIFICATION.txt for tested source evidence and pending native Windows,
-connected account, forecast/fill calibration and market-trial acceptance.
+Seven tabs/1h defaults/inset logo/private holdings hover stay. Close exits;
+tray/minimize remains removed, maximize stays. Live block starts ON; deliberate
+OFF + manual click remains REAL bounded trading. No automatic shadow real authority.
+Native Windows/connected/forecast/fill acceptance pending: see VERIFICATION.txt.

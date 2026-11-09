@@ -98,6 +98,14 @@ def capture(app,*,session,sequence,manifest_sha256=None,now=None,lifecycle='OPEN
         if intelligent is not None:
             from coincat_intelligent_public import validate as intelligent_validate
             snapshot['intelligent_shadow']=intelligent_validate(dict(intelligent))
+        multi=getattr(app,'multihorizon_public',None)
+        if multi is not None:
+            from coincat_multi_public import validate as multi_validate
+            snapshot['multihorizon_shadow']=multi_validate(dict(multi))
+        history=getattr(app,'history_backfill_public',None)
+        if history is not None:
+            from coincat_history_public import project as history_project
+            snapshot['history_backfill']=history_project(history)
         validate(snapshot);return snapshot
     result=app.last_result or {};scanner=app.scanner;tier=result.get('fee_evidence',{})
     recovery=app.recovery.diagnostics();failure=recovery.get('last_failure')
@@ -153,7 +161,9 @@ def validate(value):
         (' shadow_trial' if isinstance(value,dict) and 'shadow_trial' in value else '')+
         (' assumed_fill' if isinstance(value,dict) and 'assumed_fill' in value else '')+
         (' opportunity_shadow' if isinstance(value,dict) and 'opportunity_shadow' in value else '')+
-        (' intelligent_shadow' if isinstance(value,dict) and 'intelligent_shadow' in value else ''))
+        (' intelligent_shadow' if isinstance(value,dict) and 'intelligent_shadow' in value else '')+
+        (' multihorizon_shadow' if isinstance(value,dict) and 'multihorizon_shadow' in value else '')+
+        (' history_backfill' if isinstance(value,dict) and 'history_backfill' in value else ''))
     if value['schema']!=SCHEMA or value['version'] not in (DISPLAY,'CoinCat v1.04'):raise ValueError('INVALID_MONITOR_VERSION')
     if not isinstance(value['session'],str) or not re.fullmatch(r'[0-9a-f]{32}',value['session']):raise ValueError('INVALID_MONITOR_SESSION')
     if type(value['sequence']) is not int or not 1<=value['sequence']<=2**53:raise ValueError('INVALID_MONITOR_SEQUENCE')
@@ -202,6 +212,12 @@ def validate(value):
     if 'intelligent_shadow' in value:
         from coincat_intelligent_public import validate as intelligent_validate
         intelligent_validate(value['intelligent_shadow'])
+    if 'multihorizon_shadow' in value:
+        from coincat_multi_public import validate as multi_validate
+        multi_validate(value['multihorizon_shadow'])
+    if 'history_backfill' in value:
+        from coincat_history_public import validate as history_validate
+        history_validate(value['history_backfill'])
     exact(value['observations'],' '.join(COUNTS))
     for raw in value['observations'].values():count(raw)
     return value

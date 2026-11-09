@@ -1,5 +1,29 @@
 # Codex instructions — CoinCat v1.05
 
+MULTI-HORIZON OWNER FOLLOW-UP — NOVEMBER 9, 2026
+The latest pasted multi-horizon handoff is the active scope. Implement/publish
+a focused update on coincat-v1.05 after baseline and complete/extracted checks.
+Keep the existing direct-24h trial, identity, frozen settings, clock, inventory
+and benchmark intact. Add a separate versioned immediate/5m/15m/30m/120m/24h
+shadow policy with its own trial. Support each horizon with appropriate closed
+historical data, chronological validation and explicit uncertainty/multiplicity
+allowances; unsupported horizons HOLD without blocking supported alternatives.
+Keep native fee-once settlement, shared finite wallet per trial, maker lifecycle,
+one active order per independent trial, original budgets/expiry/retries and
+all manual/financial/security protections. No automatic real authority.
+Add native source-budget order construction, separate validity/economics/fill
+plausibility/authorization explanations, public history progress and fixed
+horizon/blocker counts. Do not turn a reported 65s manual fill into an original
+recommendation or exact fee evidence: original books, funds/rules, unrounded
+commission and queue classification were not provided. Compare strategies on
+identical prospective/held-out scenarios; disclose any unpaired live trials.
+Diagnose the supplied redacted capture without inventing inaccessible cache
+state: all 658 rejections are history insufficiency, stored history 1/5 versus
+live native 7/7 and USD references 5/5. Fix demonstrable collection/fairness
+faults and expose progress/retry/review status. Never fill missing candles or
+overwrite a conflicting closed bar to manufacture readiness. Keep v1.05 labels
+and prior source-publication authorization; no installation or account trades.
+
 CURRENT OWNER SCOPE — NOVEMBER 9, 2026
 The supplied v1.05 handoff and latest owner messages supersede conflicting
 historical scopes below. Implement and publish on coincat-v1.05, preserving

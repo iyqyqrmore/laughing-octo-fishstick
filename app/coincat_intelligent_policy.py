@@ -83,10 +83,19 @@ def concentration(exposures):
 
 @native_math
 def assess(frame,wallet,original,observations,config,ticket,*,resting=False):
-    config=config.checked();f=checked_forecast(frame);marks,stamps=usd_marks(frame);maker=fee_rate(frame,'MAKER')
+    return project_forecast(frame,wallet,original,config,ticket,checked_forecast(frame),resting=resting)
+
+@native_math
+def project_forecast(frame,wallet,original,config,ticket,forecast,*,resting=False):
+    """Canonical one-leg projection shared by independently versioned policies.
+
+    The 24-hour wrapper passes its original inputs and preserves its arithmetic.
+    Other adapters validate their own direct-label forecasts before calling.
+    """
+    config=config.checked();f=forecast;marks,stamps=usd_marks(frame);maker=fee_rate(frame,'MAKER')
     for asset in WATCH_ASSETS:
         vol=(f['return_covariance'][asset][asset]+f['error_covariance'][asset][asset]).sqrt()
-        if abs(marks[asset]/exact(f['feature_marks'][asset])-1)>max(D('.01'),3*vol/D(24).sqrt()):
+        if abs(marks[asset]/exact(f['feature_marks'][asset])-1)>max(D('.01'),3*vol/D(f.get('periods_per_horizon',24)).sqrt()):
             raise BetaBlocked('FORECAST_CURRENT_PRICE_SHOCK')
     pair,side=ticket['pair'],ticket['side'];base,quote=pair.split('-');source,target=(quote,base) if side=='BUY' else (base,quote)
     book=valid_book(frame,pair)
@@ -114,7 +123,7 @@ def assess(frame,wallet,original,observations,config,ticket,*,resting=False):
     # allowance models adverse selection while resting, never a paid surcharge.
     relative={a:D(1) if a==target else D(-1) if a==source else D(0) for a in WATCH_ASSETS}
     relative_vol=variance(relative,dict(covariance=f['return_covariance'])).sqrt()
-    execution=size*price*marks[quote]*relative_vol*(D(config.reconsider_s)/HORIZON).sqrt()
+    execution=size*price*marks[quote]*relative_vol*(D(config.reconsider_s)/max(120,f['horizon_s'])).sqrt()
     risk_adjusted=expected-risk_delta-concentration_delta;edge=risk_adjusted-uncertainty-execution
     reason='POSITIVE_24H_PORTFOLIO_ADVANTAGE'
     if edge<=0:
@@ -127,12 +136,12 @@ def assess(frame,wallet,original,observations,config,ticket,*,resting=False):
         execution_uncertainty_usd=execution,risk_adjustment_usd=risk_delta+concentration_delta,
         projected_entry_fee_native=commission,fee_currency=quote,projected_entry_fee_usd=commission*marks[quote],maker_rate=maker,
         reserve=reserve,source_quantity=reserve,destination_quantity=flow['changes'][target],projected_wallet=after,
-        available_source=exact(wallet[source]),after_source=after[source],horizon_s=HORIZON,forecast_end_at=f['forecast_end_at'],
+        available_source=exact(wallet[source]),after_source=after[source],horizon_s=f['horizon_s'],forecast_end_at=f['forecast_end_at'],
         projected_marked_change_usd=portfolio_value(after,marks)-portfolio_value(wallet,marks),
         projected_portfolio_vs_original_hold_usd=after_expected-portfolio_value(original,future),
         forecast_validation=f['forecast_validation'],fee_units='DECLARED_QUOTE_MODEL_NOT_EXCHANGE_COMMISSION_PRECISION',
         forecast_provenance={k:deepcopy(f['provenance'][k]) for k in ('model','parameters','history_digest','first_at','last_at','maximum_training_end','validation','holdout')},
-        fill_feasibility='CONDITIONAL_NOT_CALIBRATED',model=MODEL,
+        fill_feasibility='CONDITIONAL_NOT_CALIBRATED',model=f['model'],
         explanation='Exchange '+format(reserve,'.10g')+' '+source+' for approximately '+format(flow['changes'][target],'.10g')+' '+target+
             '. '+side+' '+pair+'; the projected entry commission is included once.')
 

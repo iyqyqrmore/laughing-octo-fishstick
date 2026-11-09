@@ -32,7 +32,11 @@ def main():
     if 'coincat_spot_app' not in imports or 'coincat_app' in imports:
         print('FAIL: launcher is not the manual workspace');return 7
     print('PASS: default-ON manual LIMIT client / explicit-click journal / ambiguous-create lock')
-    for name in ('coincat_shadow_trader.py','coincat_maker_shadow.py','coincat_intelligent_trader.py','coincat_intelligent_source.py','coincat_forecast_history.py'):
+    shadow_modules=('coincat_shadow_trader.py','coincat_maker_shadow.py','coincat_intelligent_trader.py',
+        'coincat_intelligent_source.py','coincat_forecast_history.py','coincat_candle_cache.py',
+        'coincat_history_backfill.py','coincat_horizon_forecast.py','coincat_multi_policy.py',
+        'coincat_multi_trader.py','coincat_order_explanation.py','coincat_order_explanation_ui.py')
+    for name in shadow_modules:
         shadow=ast.parse((root/'app'/name).read_text(encoding='utf-8'))
         attrs={n.attr for n in ast.walk(shadow) if isinstance(n,ast.Attribute)}
         if attrs & {'create_order','cancel_orders','limit_order_gtc_buy','limit_order_gtc_sell','preview_limit_order_gtc_buy','preview_limit_order_gtc_sell'}:

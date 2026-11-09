@@ -89,8 +89,10 @@ class ForecastHistory:
         if not self.path.exists():return []
         with self.lock,self.db() as db,closing(db.cursor()) as cur:
             cur.execute('SELECT start,end FROM batches WHERE pair=? ORDER BY start',(pair,));return cur.fetchall()
-    def panel(self,now,config=None):
-        config=(config or ForecastConfig()).checked();end=int(now)//HOUR*HOUR;start=end-(config.history_hours-1)*HOUR
+    def panel(self,now,config=None,*,limit=None,record_status=True):
+        config=(config or ForecastConfig()).checked();window=config.history_hours if limit is None else limit
+        if type(window) is not int or not 1<=window<=config.history_hours:raise BetaBlocked('FORECAST_HISTORY_WINDOW_INVALID')
+        end=int(now)//HOUR*HOUR;start=end-(window-1)*HOUR
         if self.broken:raise BetaBlocked(self.reason)
         if not self.path.exists():return []
         columns={p:{} for p in REFERENCES}
@@ -102,7 +104,7 @@ class ForecastHistory:
                 if row.get('pair')!=pair or row.get('at')!=at or exact(row['close'])<=0:raise BetaBlocked('FORECAST_HISTORY_IDENTITY_CONFLICT')
                 columns[pair][at]=row['close']
         times=set.intersection(*(set(v) for v in columns.values()))
-        self.last_status=dict(reference_count=sum(bool(v) for v in columns.values()),aligned_observations=len(times),required=config.history_hours,
+        if record_status:self.last_status=dict(reference_count=sum(bool(v) for v in columns.values()),aligned_observations=len(times),required=config.history_hours,
             latest_at=max(times) if times else None)
         return [dict(at=t,marks={a:columns[a+'-USD'][t] for a in WATCH_ASSETS}) for t in sorted(times)]
     def estimate(self,now,config=None):

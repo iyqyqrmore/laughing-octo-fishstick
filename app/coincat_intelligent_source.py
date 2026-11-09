@@ -11,8 +11,8 @@ from coincat_watchlist import WATCH_PAIRS
 
 class IntelligentSource:
     def __init__(self,reader,history):
-        self.reader=reader;self.history=history;self.checked={};self.product_rules={};self.maker_tier=None;self.fee_retry=0
-    def collect(self,pair=None,model=None):
+        self.reader=reader;self.history=history;self.checked={};self.product_rules={};self.maker_tier=None;self.fee_retry=0;self.forecast_bundle=None
+    def collect(self,pair=None,model=None,*,include_multi=False):
         r=self.reader;r.begin();r.deadline=min(r.deadline,r.started+6);scope=r.scope();now=r.clock()
         prime=any(p not in self.checked or not 0<=now-self.checked[p]<300 for p in WATCH_PAIRS)
         errors=[];rules={}
@@ -48,6 +48,11 @@ class IntelligentSource:
                 trades=parse_trades(r.call('get_market_trades',product_id=pair,limit=100),pair,r.clock());trade_status='OBSERVED_PUBLIC_TRADES'
             except (ValueError,TypeError,KeyError,ArithmeticError):trade_status='PUBLIC_TRADE_EVIDENCE_UNAVAILABLE'
         at=r.clock();estimate=self.history.estimate(at,ForecastConfig(**(model or {})))
-        return dict(state='OBSERVED',at=at,portfolio=scope,account=deepcopy(account),rules=rules,books=books,reference_books=references,tier=deepcopy(tier),
+        if self.forecast_bundle is not None and self.forecast_bundle.backfill.reviewed('ONE_HOUR'):estimate=dict(state='HOLD',reason='FORECAST_HISTORY_REVIEW_REQUIRED')
+        result=dict(state='OBSERVED',at=at,portfolio=scope,account=deepcopy(account),rules=rules,books=books,reference_books=references,tier=deepcopy(tier),
             market_trades=trades,trade_status=trade_status,forecast=estimate,errors=errors,
             provider='COINBASE_AUTHENTICATED_GET_ONLY',native_book_count=len(set(books)&set(WATCH_PAIRS)))
+        if include_multi and self.forecast_bundle is not None:
+            result['horizon_forecasts']=self.forecast_bundle.estimate(at,estimate)
+            if self.forecast_bundle.backfill.reviewed('ONE_HOUR'):result['forecast']=dict(state='HOLD',reason='FORECAST_HISTORY_REVIEW_REQUIRED')
+        return result
