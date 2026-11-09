@@ -1,3 +1,5 @@
+> CoinCat v1.05 archive: this document describes a historical release or compatibility path. Current behavior and Windows steps are in [START_HERE.md](../START_HERE.md) and [INTELLIGENT_TRADER_V1_05.md](INTELLIGENT_TRADER_V1_05.md). Historical versions and record identifiers below are preserved.
+
 # v1.04 legacy retirement and dependency map
 
 Default entry remains `01_START_COINCAT.bat` → `coincat_start` →

@@ -37,7 +37,7 @@ def run_synthetic(emit=print):
             size_in_quote=True,commission='.002475',fee_currency='BTC',liquidity='MAKER')),
         ('FILL','sol',8,dict(fill_id='toy_fill_4',venue_order_id='toy_sol',price='.495',size='.7425',
             size_in_quote=True,commission='.007425',fee_currency='BTC',liquidity='MAKER')))
-    emit('CoinCat v1.04 — SYNTHETIC PAPER REPLAY / SIMULATED_ASSUMPTION')
+    emit('CoinCat v1.05 — SYNTHETIC PAPER REPLAY / SIMULATED_ASSUMPTION')
     emit('Fictitious prices, amounts and 1% fees. No Coinbase connection or private account data.')
     with TemporaryDirectory(prefix='CoinCat_Paper_Replay_') as folder:
         engine=PaperEngine.create(Path(folder)/'paper.sqlite3',initial_eth=D(1),at=start,

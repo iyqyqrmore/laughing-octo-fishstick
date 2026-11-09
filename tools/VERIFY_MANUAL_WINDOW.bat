@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0.."
 if not exist ".venv\Scripts\python.exe" (echo Run 02_SETUP_COINCAT.bat first.&pause&exit /b 2)
 set "PYTHONPATH=%CD%\app;%CD%"
-echo CoinCat v1.04: focused manual-window check. No account connection or real orders.
+echo CoinCat v1.05: focused manual-window check. No account connection or real orders.
 "%CD%\.venv\Scripts\python.exe" -u -B "%CD%\VERIFY_SOURCE.py"
 if errorlevel 1 goto fail
 "%CD%\.venv\Scripts\python.exe" -u -B "%CD%\tools\RUN_OFFLINE_TESTS.py" --manual-window

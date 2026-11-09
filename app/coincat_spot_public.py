@@ -21,47 +21,41 @@ def diagnostic(app):
     try:manifest_sha=hashlib.sha256((Path(__file__).resolve().parents[1]/'SHA256_MANIFEST.json').read_bytes()).hexdigest()
     except OSError:manifest_sha=None
     snap=capture(app,session='0'*32,sequence=1,manifest_sha256=manifest_sha)
-    manual=validate(snap['manual_execution'])
-    history=snap['beta']['manual']
-    lines=[DISPLAY+' Manual Spot — redacted diagnostics','SECTION COMPLETENESS: COMPLETE (8/8)',
-        '[1/8] Build: MANUAL_SPOT + RESUMABLE_SHADOW_V1_04; authenticated manual LIMIT GTC; no automatic live orders.',
+    manual=validate(snap['manual_execution']);history=snap['beta']['manual'];shadow=snap.get('intelligent_shadow')
+    lines=[DISPLAY+' Manual Spot / Intelligent 24-hour shadow — redacted diagnostics','SECTION COMPLETENESS: COMPLETE (8/8)',
+        '[1/8] Build: INTELLIGENT_ONE_LEG_24H_V1 + MANUAL_LIMIT_GTC; no automatic real orders.',
         'Source manifest SHA256: '+str(manifest_sha),
-        '[2/8] Connection: '+snap['health']['connection_state'],
-        '[3/8] Quotes: REST pricebooks; exchange trade candles; displayed snapshots are not fills.',
-        '[4/8] CoinCat current session: '+manual['state']+'; live block '+('ON' if manual['blocked'] else 'OFF')+
-            '; order attempts '+str(manual['orders'])+'; CoinCat fills '+str(manual['fills'])+'; unresolved '+str(manual['unresolved']),
-        '[5/8] Fees: authenticated maker/taker estimates; preview does not prove realized fee units.',
-        '[6/8] Imported Coinbase history: '+history['state']+'; orders '+str(history['orders'])+
-            '; filled '+str(history['filled'])+'; partials '+str(history['partials'])+
-            '; canceled unfilled '+str(history['canceled_unfilled'])+
-            '; known native flows (API or CSV) '+str(history['known_native_flow'])+
-            '; unresolved settlement '+str(history['unknown'])+'. Read-only; account reconciliation UNKNOWN.',
-        '[7/8] Native one-leg assumed trial: '+snap.get('assumed_fill',{}).get('state','OFF')+
-            '; valid seconds '+str(snap.get('assumed_fill',{}).get('valid_seconds',0))+' / 604800; assumed orders '+str(snap.get('assumed_fill',{}).get('orders',0))+
-            '; authenticated maker/taker rates; one native fee per leg; zero added slippage. Execution/profit UNPROVEN.',
-        'Previous portfolio-policy trial: '+snap.get('shadow_trial',{}).get('state','OFF')+
-            '; valid seconds '+str(snap.get('shadow_trial',{}).get('valid_seconds',0))+
-            ' / 604800; restarts '+str(snap.get('shadow_trial',{}).get('restart_count',0))+
-            '; full-market coverage '+str(snap.get('shadow_trial',{}).get('coverage_percent',0))+
-            '%. Risk-adjusted portfolio USD vs original HOLD; forecast UNVALIDATED; automatic live authority NONE.',
-        'Trial evidence: policy-qualified opportunity episodes '+str(snap.get('shadow_trial',{}).get('evidence',{}).get('opportunity_episodes','UNKNOWN'))+
-            '; realistically fillable '+str(snap.get('shadow_trial',{}).get('evidence',{}).get('realistically_fillable_count','UNKNOWN')).replace('None','UNKNOWN')+
-            '; monitoring '+snap.get('shadow_trial',{}).get('evidence',{}).get('monitoring_outcome','IN_PROGRESS')+
-            '; trading '+snap.get('shadow_trial',{}).get('evidence',{}).get('strategy_evidence','UNPROVEN_INCOMPLETE_OPPORTUNITY_HISTORY')+'.',
-        'Native trial classification: fill evidence ASSUMED_NOT_OBSERVED; profit evidence NOT_ESTABLISHED. Separate from previous-policy and real fills.',
-        'Opportunity shadow policy: '+snap.get('opportunity_shadow',{}).get('state','OFF')+
-            '; order '+snap.get('opportunity_shadow',{}).get('order_state','NONE')+
-            '; qualified checks '+str(snap.get('opportunity_shadow',{}).get('qualified_checks',0))+
-            '; conditional fill events '+str(snap.get('opportunity_shadow',{}).get('fill_events',0))+
-            '; nonfills '+str(snap.get('opportunity_shadow',{}).get('nonfills',0))+
-            '; valid seconds '+str(snap.get('opportunity_shadow',{}).get('valid_seconds',0))+
-            '. Forecast UNVALIDATED; maker fill model CONDITIONAL_NOT_CALIBRATED; automatic real authority NONE.',
-        '[8/8] Storage: separate manual identity journal; private financial records preserved.',
-        'Connected acceptance and native Windows verification must be run locally.',
-        'No amounts, prices, limits, private paths, account IDs, order IDs or raw API responses are exported.']
-    breakdown=snap.get('opportunity_shadow',{}).get('rejection_breakdown')
-    if breakdown is not None:
-        from coincat_opportunity_rejections import diagnostic_lines
-        at=next(i for i,line in enumerate(lines) if line.startswith('[8/8]'))
-        lines[at:at]=diagnostic_lines(breakdown)
+        '[2/8] Manual connection: '+snap['health']['connection_state'],
+        '[3/8] Native REST pricebooks / exchange candles. Five USD historical products are read-only forecast references, never order markets.',
+        '[4/8] Current manual session: '+manual['state']+'; live block '+('ON' if manual['blocked'] else 'OFF')+
+            '; order attempts '+str(manual['orders'])+'; CoinCat fills '+str(manual['fills'])+'; unresolved '+str(manual['unresolved'])+
+            '. Deliberate OFF plus manual click retains existing bounded real order permissions.',
+        '[5/8] One own commission per filled leg. Authenticated maker rate is an estimate, not settled currency/precision proof. No counterparty fee or compulsory future-exit charge.',
+        '[6/8] Imported Coinbase history: '+history['state']+'; orders '+str(history['orders'])+'; filled '+str(history['filled'])+
+            '; known native flows '+str(history['known_native_flow'])+'; unresolved settlement '+str(history['unknown'])+'. Read only; not shadow funding.',
+        '[7/8] Intelligent 24-hour shadow: '+('UNAVAILABLE' if shadow is None else shadow['state'])]
+    if shadow is not None:
+        lines.extend(['Selected policy: '+shadow['selected_policy']+'; forecast horizon '+str(shadow['horizon_s'])+' seconds.',
+            'Input state '+shadow['data_state']+'; history '+shadow['history_state']+'; aligned hourly observations '+str(shadow['history_observations'])+
+            ' / '+str(shadow['history_required'])+'; reference coverage '+str(shadow['history_references'])+' / 5.',
+            'Current native market coverage '+str(shadow['market_coverage'])+' / 7; current USD valuation references '+str(shadow['valuation_coverage'])+' / 5.',
+            'Valid monitoring seconds '+str(shadow['valid_seconds'])+' / 604800; restarts '+str(shadow['restart_count'])+'.',
+            'Reviews '+str(shadow['reviews'])+'; directional checks '+str(shadow['direction_checks'])+'; qualified '+str(shadow['qualified_checks'])+
+            '; rejected '+str(shadow['rejected_checks'])+'; deduplicated episodes '+str(shadow['opportunity_episodes'])+'.',
+            'Order state '+shadow['order_state']+'; conditional orders '+str(shadow['orders'])+'; fill events '+str(shadow['fill_events'])+
+            '; model '+str(shadow['modeled_fills'])+' / replay '+str(shadow['replay_fills'])+'; partials '+str(shadow['partials'])+
+            '; nonfills '+str(shadow['nonfills'])+'; canceled '+str(shadow['canceled'])+'; replacements '+str(shadow['replacements'])+
+            '; active '+str(shadow['active_orders'])+'; unresolved '+str(shadow['unresolved_orders'])+'.',
+            'Forecast '+shadow['forecast_validation']+'; chronological validation predictions '+str(shadow['validation_predictions'])+
+            '; holdout predictions '+str(shadow['holdout_predictions'])+'; forward predictions '+str(shadow['forward_predictions'])+
+            ' / known '+str(shadow['forward_known'])+' / unknown '+str(shadow['forward_unknown'])+'.',
+            'Execution '+shadow['execution_calibration']+'; evidence '+shadow['execution_evidence']+'; automatic real authority NONE; profit NOT_ESTABLISHED.',
+            'Rejections: repeated direction checks / first blockers, not rejected exchange orders.'])
+        for category,n in shadow['rejection_breakdown']['categories'].items():lines.append('  '+category+': '+str(n))
+        lines.append('Fixed rejection reason codes:')
+        for reason,n in shadow['rejection_breakdown']['reasons'].items():
+            if n:lines.append('  '+reason+': '+str(n))
+    lines.extend(['[8/8] Storage: isolated v1.05 shadow; original v1.04 trial records preserved in read-only archive. No tray/custom minimize behavior; Close exits safely.',
+        'Native Windows, connected endpoints and calibrated fill/forecast evidence remain local acceptance work.',
+        'No portfolio amounts, prices, quantities, native commissions, policy values, private paths, account/order IDs, wallet contents or raw receipts are exported.'])
     return '\n'.join(lines)+'\n'

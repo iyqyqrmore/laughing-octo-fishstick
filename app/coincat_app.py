@@ -1,4 +1,4 @@
-"""CoinCat v1.04: explicit paper / bounded real maker workspace."""
+"""CoinCat v1.05: explicit paper / bounded real maker workspace."""
 from datetime import datetime,timezone
 from pathlib import Path
 from queue import Queue,Empty
@@ -631,8 +631,8 @@ class CoinCatApp(BetaUI):
         self.monitor.stop(final)
 
     def _export(self):
-        path=filedialog.asksaveasfilename(title='Save v1.04 diagnostics',defaultextension='.txt',
-            initialfile='CoinCat_v1.04_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
+        path=filedialog.asksaveasfilename(title='Save v1.05 diagnostics',defaultextension='.txt',
+            initialfile='CoinCat_v1.05_ETH_Growth_Diagnostics.txt',filetypes=[('Text','*.txt')])
         if path:
             try:Path(path).write_text(make_report(self),encoding='utf-8')
             except OSError as exc:messagebox.showerror('Diagnostics',f'Export failed ({type(exc).__name__}).')

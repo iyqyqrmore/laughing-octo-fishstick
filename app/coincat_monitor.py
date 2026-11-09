@@ -93,7 +93,12 @@ def capture(app,*,session,sequence,manifest_sha256=None,now=None,lifecycle='OPEN
         from coincat_assumed_public import project as assumed_project
         snapshot['assumed_fill']=assumed_project(getattr(app,'assumed_public',None))
         from coincat_opportunity_public import project as opportunity_project
-        snapshot['opportunity_shadow']=opportunity_project(getattr(app,'opportunity_public',None));validate(snapshot);return snapshot
+        snapshot['opportunity_shadow']=opportunity_project(getattr(app,'opportunity_public',None))
+        intelligent=getattr(app,'intelligent_public',None)
+        if intelligent is not None:
+            from coincat_intelligent_public import validate as intelligent_validate
+            snapshot['intelligent_shadow']=intelligent_validate(dict(intelligent))
+        validate(snapshot);return snapshot
     result=app.last_result or {};scanner=app.scanner;tier=result.get('fee_evidence',{})
     recovery=app.recovery.diagnostics();failure=recovery.get('last_failure')
     last_failure=None if not failure else dict(stage=_enum(failure.get('stage'),STAGES),
@@ -147,8 +152,9 @@ def validate(value):
         (' manual_execution' if isinstance(value,dict) and 'manual_execution' in value else '')+
         (' shadow_trial' if isinstance(value,dict) and 'shadow_trial' in value else '')+
         (' assumed_fill' if isinstance(value,dict) and 'assumed_fill' in value else '')+
-        (' opportunity_shadow' if isinstance(value,dict) and 'opportunity_shadow' in value else ''))
-    if value['schema']!=SCHEMA or value['version']!=DISPLAY:raise ValueError('INVALID_MONITOR_VERSION')
+        (' opportunity_shadow' if isinstance(value,dict) and 'opportunity_shadow' in value else '')+
+        (' intelligent_shadow' if isinstance(value,dict) and 'intelligent_shadow' in value else ''))
+    if value['schema']!=SCHEMA or value['version'] not in (DISPLAY,'CoinCat v1.04'):raise ValueError('INVALID_MONITOR_VERSION')
     if not isinstance(value['session'],str) or not re.fullmatch(r'[0-9a-f]{32}',value['session']):raise ValueError('INVALID_MONITOR_SESSION')
     if type(value['sequence']) is not int or not 1<=value['sequence']<=2**53:raise ValueError('INVALID_MONITOR_SEQUENCE')
     digest=value['manifest_sha256']
@@ -193,6 +199,9 @@ def validate(value):
     if 'opportunity_shadow' in value:
         from coincat_opportunity_public import validate as opportunity_validate
         opportunity_validate(value['opportunity_shadow'])
+    if 'intelligent_shadow' in value:
+        from coincat_intelligent_public import validate as intelligent_validate
+        intelligent_validate(value['intelligent_shadow'])
     exact(value['observations'],' '.join(COUNTS))
     for raw in value['observations'].values():count(raw)
     return value
@@ -235,6 +244,7 @@ def status(directory,*,now=None):
     active=0<=heartbeat<=15 and snapshot['lifecycle']=='OPEN'
     state=('APP_CLOSED' if snapshot['lifecycle']=='CLOSED' else 'MONITOR_DISABLED' if snapshot['lifecycle']=='DISABLED'
         else 'APP_REPORTING' if active else 'APP_NOT_REPORTING')
+    if snapshot['version']!=DISPLAY:state='HISTORICAL_VERSION_CAPTURE'
     fee_age=age(health['fee_at']);account_age=age(health['account_at'])
     products=[]
     for item in snapshot['products']:

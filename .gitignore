@@ -33,3 +33,4 @@ verification_reports/
 support_monitor/
 *.lnk
 .coincat-v100.0-new-*/
+.coincat-v1.05-new-*/

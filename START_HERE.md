@@ -1,156 +1,40 @@
-# CoinCat v1.04 — opportunity shadow / Windows acceptance
+# CoinCat v1.05 — Windows installation and acceptance
 
-The new **Opportunity shadow…** window is independent of the preserved Native
-arithmetic trial. Follow [the opportunity guide](docs/OPPORTUNITY_SHADOW_V1_04.md).
+Use a new **coincat-v1.05** source folder. Keep the installed folder, private data and backups intact. Do not merge extracted files into an older checkout: removed dashboards and stale manifests would remain. This release has its own shadow trial path and never adopts or resets v1.04 trial state.
 
-1. Extract separately and keep private data/backups. Run **02_SETUP_COINCAT.bat**,
-   **tools\VERIFY_OPPORTUNITY_SHADOW.bat** (47 focused checks), then
-   **03_VERIFY_COINCAT.bat** (649 distinct tests / 215 source hashes). Require
-   zero failures/errors; the known host-symlink capability skip may remain.
-2. Launch with **Live orders blocked ON**, connect, open **Opportunity shadow…**,
-   and Start. Default sizing is the native minimum. Allow at least ten valid
-   minutes for model warmup. HOLD/no fills is a valid outcome. Forecasts and
-   conditional maker-fill assumptions remain unvalidated.
-3. Inspect fourteen decisions, projected advantage, estimated future exit cost,
-   resting orders, paid native fees, portfolio versus immutable original HOLD
-   and uncertainty. Reviews are every 30s, competitiveness reassessed at 120s;
-   default child life 600s, campaign life 1800s, three replacements. Cancellation
-   and partial/hold reconciliation precede replacement. No forced ETH return,
-   dollar gain floor, losing liquidation or quote-touch fill.
-4. Test Pause, tray, Exit safely, restart and disconnection. Identity, inventory,
-   fees and valid hours survive; downtime cannot fill or earn monitoring hours.
-   At 168 valid hours cancel/reconcile, freeze and preserve the private report.
-5. Confirm the unchanged Native arithmetic window remains separate and monitor
-   counts identify the two policies. Automatic real orders remain disabled.
-   Native Windows connected acceptance and the 168-hour observation remain local.
+## Install and verify offline
 
-For rejection reporting, preserve the existing opportunity journal and trial. Close
-the old app/helper before updating the separate source folder; restart both from
-the updated build. Resume the same trial and export Diagnostics plus a fresh local
-monitor snapshot. The report includes fixed category/reason counts, totals and
-legacy coverage. Past combined advantage/uncertainty counts remain unsplit; future
-checks gain that distinction. These counts are repeated evaluations, not rejected
-exchange orders. See the rejection section of the opportunity guide.
+1. Download the `coincat-v1.05` branch/source package and extract it completely to a short local path, such as `C:\CoinCat_v1.05`. Do not run inside the ZIP.
+2. Install 64-bit Windows Python 3.11 with the `py` launcher if needed. Run **02_SETUP_COINCAT.bat**. Dependencies install into this folder's `.venv` from hash-locked requirements; the current shortcut is **CoinCat v1.05 - START**.
+3. Run **03_VERIFY_COINCAT.bat**. Expect v1.05, zero source-hash mismatches, source syntax success and the complete isolated suite with zero failures/errors. It prints each test and a 30-second heartbeat. Native Windows runs may take 20–30 minutes or longer. An `E`, `FAIL` or traceback needs the final error details; moving dots alone are not a pass.
+4. Optionally run **tools\VERIFY_INTELLIGENT_TRADER.bat** for focused forecast/fees/sizing/order/recovery/privacy/Tk checks. It is not a substitute for the full verification. **tools\VERIFY_MANUAL_WINDOW.bat** checks the retained manual workspace.
+5. Save the final `RUNTIME`, `DISCOVERED`, `Ran`, `COUNTS` and skipped-test lines. A host symlink capability skip is acceptable only when stated. SQLite cleanup/file-lock errors are failures; do not delete the trial or suppress cleanup errors.
 
-The following steps describe the retained Native arithmetic test. Its previous
-602-test / 200-hash counts are historical; use the current full counts above.
+All isolated tests use disposable synthetic state and forbid HTTP/WebSockets before discovery. They never open your saved key or exchange account. A successful Linux report does not replace this native Windows rerun.
 
-This follow-up uses a fresh fictional $100-per-coin trial, native minimum
-orders, one maker/taker fee per leg and per-market sizing sliders. The previous
-trial and its hours/records remain separate. See
-[the current native one-leg guide](docs/NATIVE_ONE_LEG_TRIAL.md).
+## Connect read-only and inspect
 
-Use a separate extracted folder and preserve your installation/private backups.
-Run **02_SETUP_COINCAT.bat**, then **tools\VERIFY_ASSUMED_FILLS.bat** for 46 focused
-checks and **03_VERIFY_COINCAT.bat** for all **602 distinct tests / 200 hashes**.
-Require zero failures/errors; the known Windows host-symlink skip may remain.
-Verification prints numbered tests and 30-second liveness messages; earlier
-native Windows full runs took 20–30 minutes.
+6. Start **01_START_COINCAT.bat**. Confirm **CoinCat v1.05**, seven tabs, 1h chart defaults, an inset transparent logo and the live account total/holdings hover. Confirm **Live orders blocked ON**. Actual account totals may be partial/stale or contain assets outside the five-asset shadow universe; they do not become shadow funds.
+7. Use your existing authorized local data setup and key. For a separate fresh installation, use **04_FIRST_TIME_SETUP.bat** only for a genuinely new empty destination. To reuse existing financial history, follow the established private-data import/backup tools; never copy over an active database or run two instances against the same data directory. No account key or private record needs to be sent to chat.
+8. Click **Connect / refresh**. Verify current native BID/ASK, depth, exchange candles, balances, manual history and fee display. Stale/partial data must be labeled. Keep the live block ON throughout this acceptance procedure.
+9. Open **Intelligent shadow…**. Default portfolio is **ACCOUNT_AVAILABLE**: first Start freezes the freshly read available BTC/ETH/SOL/LINK/ADA balances, excluding holds. Optional FICTIONAL_100_EACH creates a different baseline only before first Start. The trial is simulated; no account funds move.
+10. Press **Start / resume intelligent shadow** once. Initial native product priming is followed by bounded GET waves. The history cache backfills five USD references over approximately 100 days, one bounded page per background job. It may take several minutes, and sparse/unavailable historical products can leave the model in HOLD. Progress shows aligned hours out of 2,400 and current coverage. USD references are not extra trading markets.
 
-Launch **01_START_COINCAT.bat** with **Live orders blocked ON**. Connect and open
-**Native one-leg trial**. Leave BUY price at **ASK** for the taker-rate estimate,
-or choose **BID** for a maker estimate before first Start. Confirm minimum-size
-orders, native prices/fees, local SIM IDs and a shared fictional five-coin wallet.
-Each eligible market attempts one leg per fresh wave; later waves alternate sides.
-No USD spending, turnover or attempt caps apply to this new mode.
+## Supervised shadow acceptance
 
-On **Order sizing**, zero means the exchange minimum. Increase a slider and
-Apply to create a version for future simulated orders. The order amount remains
-the base coin quantity; each leg's fee is separate in its native quote coin.
-No return fee or slippage surcharge is added. Commission precision is unverified;
-the model uses proportional fees without inventing a minimum rounded commission.
+11. Observe for 15–30 minutes, then 60–120 minutes if all checks pass. Inspect **14 directions**, **Best opportunity**, **Orders**, **Portfolio / evidence** and **Frozen settings**. HOLD is valid. Directional checks/rejections are not orders. Do not loosen protections just to generate activity.
+12. Confirm native directions and units. SELL ETH-BTC exchanges ETH for BTC; BUY ETH-BTC exchanges BTC for ETH. Projected maker commission appears once in its native quote currency under a declared modeling assumption. Quotes/candles touching a limit must not create a fill. A modeled fill is conditional public-trade evidence, never an actual Coinbase receipt.
+13. Confirm a resting order is retained only while justified; a 120s review is not a forced trade. Finite child/campaign expiry and three replacement budget remain. Cancellation releases only reconciled remaining holds. Partial inventory is retained; UNKNOWN blocks replacement. Do not manufacture replay receipts and then interpret them as fill feasibility.
+14. Inspect modeled USD portfolio and original HOLD at identical references, USD/% advantage, open losses, paid modeled native fees, drawdown, forecast edge and rolling 1/6/24h history. Negative results must stay visible. A filled leg may immediately lose marked value through fees. No hypothetical exit is debited and no sale is mandated after 24 hours.
+15. Pause. The shadow order requests cancellation, preserves filled inventory and stops valid time; manual live block remains ON. Resume keeps the same trial identity, baseline, settings, wallet, fees, campaign budgets/expiry and accumulated hours.
+16. Disconnect the network or sleep the PC, then restore it. Stale/gap/offline/suspended periods must not count as valid full monitoring or create fills. Restart with open/partial/unknown orders must reconcile before new placement. Do not expect missed forecast horizons to be backfilled with favorable later quotes.
+17. **Close exits** after checkpoint/bounded owned manual-order reconciliation. There is no tray icon, hide-to-tray or custom minimize behavior; the Windows minimize button is removed and maximize remains. Test close, explicit Exit safely, Windows shutdown and restart locally. Shutdown must not be vetoed. Default manual live block returns ON after restart.
+18. **History archive** reads old v1.04 trial checkpoints without starting controllers or changing clocks/financial records. Never delete a damaged record to make recovery pass. At 168 valid hours the new trial completes, preserves its summary and starts no new trial automatically. Zero trades can validate monitoring/recovery, not profitability.
 
-Observe for 15–30 minutes, then test Pause, tray monitoring, Exit safely, restart
-and a disconnected interval. Confirm the same quantities, settings versions and
-valid hours survive; paused/offline/partial time and duplicate quotes cannot
-earn full hours or create downtime fills. Opted-in trials resume with fresh data;
-paused trials stay paused. At 168 valid hours, completion freezes the trial/report.
+## Redacted exports and evidence
 
-Check **Diagnostics** and **Local monitor**: the native trial's assumed counts
-and valid-hour progress are labeled separately from manual/imported/previous
-trial fills. Private prices, quantities, fee currencies, IDs and slider settings
-must not appear in exports. No real order is sent by this trial, including when
-manual live permissions differ. Assumed results do not establish profitability.
+19. Enable **Local monitor**, run **tools\START_LOCAL_MONITOR.bat**, and check v1.05, current versus stale capture, intelligent policy/horizon/history/coverage/rejection categories, order counts, restart/completion and absent automatic real authority. The helper is read-only. Historical v1.04 captures must be labeled historical.
+20. Export **Diagnostics** and the monitor snapshot. These redacted outputs contain fixed codes and counts only: no wallet amounts, USD gains, native commissions, account/order/trial IDs, keys or raw receipts. Private report/replay/CSV/audit files contain financial details and stay on your PC.
+21. Report source commit, Windows runtime/counts, history state, native/valuation coverage, rejection breakdown, recovery behavior and any controlled errors. Do not send secrets. Read-only November 4 settlement audit remains **tools\AUDIT_MANUAL_FILLS.bat**; no new settlement claim is inferred from synthetic tests.
 
-The inset logo, private refreshed portfolio header/holdings hover, tabs-only
-market selection and 1h chart defaults remain. Compare API-visible portfolio
-values with Coinbase's same selected portfolio; these values are display only.
-Connected endpoints, native Windows rendering/tray/DPAPI and the actual 168-hour
-observation still need local acceptance. Keep detailed private reports local.
-
-The following is the retained guide for the previous portfolio-policy trial.
-Its frozen limits and actual-snapshot baseline do not configure the new trial.
-
-The owner-reported preceding SQLite correction rerun passed: **543 tests, zero
-failures/errors, one host-symlink capability skip**. This header/portfolio patch
-adds UI and read-only display tests; verify the fresh source before use.
-See [the header/portfolio guide](docs/V1_04_HEADER_PORTFOLIO.md) and the retained
-[SQLite rerun guide](docs/V1_04_WINDOWS_SQLITE_FIX.md) for the earlier correction.
-
-Use a separate extracted v1.04 folder. Preserve the installed folder and all
-private records/backups; never overlay a running installation or share its data
-between processes. Use normal 64-bit Windows Python 3.11.
-
-1. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Wait for final
-   COUNTS and PASS. Numbered tests and 30-second heartbeats show progress; earlier
-   Windows runs took 20–30 minutes. Any failure needs its final traceback.
-   **tools\VERIFY_RESUMABLE_TRIAL.bat** is a focused quick check, not full acceptance.
-2. Recover verified private data into a separate empty destination. Use
-   **04_FIRST_TIME_SETUP.bat** only for an explicitly intended fresh installation.
-   Preserve financial records, basis and keys; never upload credentials.
-3. Launch **01_START_COINCAT.bat**. Confirm v1.04, seven native market tabs,
-   tab-only selection, **1h** candle defaults, inset transparent logo, a
-   compact **Total portfolio · USD** header and **Live orders blocked ON**. Connect while blocked. Manual Spot remains available; shadow research
-   cannot send, preview or cancel a Coinbase order.
-   Hover over the header total to see refreshed API-visible holdings, including
-   non-watch coins returned for the selected portfolio. Values refresh about
-   every 15 seconds; partial/unavailable valuations and stale data are labeled.
-   The total is an estimate before sale costs; it never funds the trader.
-4. Open **Resumable Trial — 168 Valid Hours**. Review the initial shadow caps:
-   $5/order, $10 lifetime turnover, four lifetime proposals, up to 50% available
-   source inventory, one open proposal, 30-day original intent deadline.
-   These are frozen research limits, separate from manual real-order limits.
-   Start once. The five-coin actual snapshot is copied as hypothetical inventory
-   and the original HOLD benchmark. Subsequent account changes do not fund it.
-5. Observe for 15–30 minutes. PRIMING/RECOVERING transitions to RUNNING only with
-   fresh validated seven-market coverage, a valuation reference and authenticated
-   fee estimates. Confirm valid hours, remaining hours, coverage and HOLD value.
-   Inspect policy-qualified opportunity episodes and directional checks, realistic
-   fill feasibility (UNKNOWN without a calibrated model), conditional per-proposal
-   costs, modeled native fees and net marked portfolio/HOLD comparison.
-   Default decisions can remain HOLD. No price touch creates a fill. Proposed
-   orders are local hypotheses; modeled fills require explicit replay receipts.
-6. On Windows, minimize/close to the tray. Confirm the icon opens CoinCat and
-   progress continues. Tray Pause stops valid hours; Resume keeps the same trial.
-   Use **Exit safely** in the tray to quit. Restart after a short or overnight
-   break: confirm the same trial, holdings, benchmark, limits and accumulated
-   hours. Offline hours must not appear as valid time. User-paused stays paused.
-   Windows shutdown must proceed normally; recovery uses the last checkpoint.
-7. Disconnect the network, wait beyond quote freshness, reconnect. The state must
-   show a gap without growing valid time; recovery needs fresh full coverage.
-   Check multiple restarts and a several-day gap. Preserve a review-required
-   database; do not delete it to manufacture a fresh trial. At 168 hours the
-   trial freezes and writes a private summary; it never starts another trial.
-   Zero qualifying opportunities, proposals, fills and fees must also complete:
-   monitoring COMPLETE, portfolio equal to HOLD, profitability UNPROVEN.
-8. Export **Diagnostics** and optionally enable **Local monitor**, then run
-   **tools\START_LOCAL_MONITOR.bat**. Confirm v1.04, separate current manual and
-   imported-history counts, and shadow state/progress/counts. Exports contain
-   no monetary amounts, prices, IDs, trial UUIDs or private paths. The detailed
-   trial dashboard and summary remain private on your PC.
-9. For the November 4 evidence, choose **November 4 fee audit…** in the trial
-   dashboard, or run **tools\AUDIT_MANUAL_FILLS.bat** and select the statement CSV.
-   It uses the saved key for bounded GET-only history reads. Keep the detailed
-   JSON local. Partial history, absent fee currencies and unmatched rows remain
-   UNKNOWN; CSV arithmetic never changes future authenticated fee settings.
-
-Shadow acceptance does not require turning off the manual live block. Turning
-it OFF still enables actual manual Buy/Sell clicks under the existing caps;
-it never grants automatic live permission. A future bounded autonomous live
-pilot needs separate authorization and connected accounting/recovery acceptance.
-See [the trial design](docs/V1_04_RESUMABLE_TRIAL.md),
-[retirement map](docs/V1_04_RETIREMENT.md), and
-[fee audit evidence](docs/V1_04_FEE_AUDIT.md).
-
-Historical guides and **RUN_PAPER_REPLAY.bat** describe retained compatibility
-workflows. The replay is finite offline simulation, not a live venue test.
+Do not turn off the actual live block to test the shadow. Automated real-money execution is unavailable. Forecast accuracy, maker execution calibration, exact account settlement and a separately authorized bounded live pilot require their own evidence.

@@ -1,3 +1,5 @@
+> CoinCat v1.05 archive: this document describes a historical release or compatibility path. Current behavior and Windows steps are in [START_HERE.md](../START_HERE.md) and [INTELLIGENT_TRADER_V1_05.md](INTELLIGENT_TRADER_V1_05.md). Historical versions and record identifiers below are preserved.
+
 Current candidate note: the journal was published as 5e951db. The owner's next
 choice, explicit simulation/replay paper execution, is implemented separately
 in docs/PAPER_LIFECYCLE.md. That offline lifecycle proof adds no connected

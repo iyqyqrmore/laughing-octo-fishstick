@@ -72,7 +72,7 @@ class ManualWorkspace(unittest.TestCase):
             self.pump(lambda:'$133.45' in self.app.portfolio_badge.amount.cget('text') and not self.app.busy)
         self.assertEqual(work.call_args_list[0].args[0],'portfolio')
         self.assertEqual(self.app.account['available'],account['available']);self.assertEqual(self.app.engine.state()['limits'],limits)
-        self.assertIsNone(self.app.shadow.state());self.assertTrue(self.app.blocked.get())
+        self.assertFalse(hasattr(self.app,'shadow'));self.assertIsNone(self.app.intelligent.state());self.assertTrue(self.app.blocked.get())
         self.assertEqual(favorite_path.read_text(encoding='utf-8'),'[]')
         self.assertEqual(self.venue.posts,[]);self.assertEqual(self.venue.cancels,[])
     def test_holdings_hover_updates_live_and_long_lists_stay_bounded(self):
@@ -112,7 +112,7 @@ class ManualWorkspace(unittest.TestCase):
             self.assertGreater(badge.winfo_rootx(),self.app.badge.winfo_rootx()+self.app.badge.winfo_width())
             self.assertGreaterEqual(logo.winfo_rootx(),badge.winfo_rootx()+badge.winfo_width())
             self.assertLess(logo.winfo_rootx()+logo.winfo_width(),self.root.winfo_rootx()+width-20)
-            self.assertLessEqual(badge.winfo_rooty()+badge.winfo_height(),self.app.trial_badge.winfo_rooty())
+            self.assertLessEqual(badge.winfo_rooty()+badge.winfo_height(),self.app.shadow_summary_label.winfo_rooty())
     def test_native_book_units_and_ask_ticket_without_invented_fills(self):
         self.connect();p=self.app.panel();p.use_price('ASK');self.assertEqual(p.price.get(),'0.030010')
         p.size.set('.001');self.assertIn('0.900%',p.estimate.get());self.assertEqual(self.venue.posts,[])

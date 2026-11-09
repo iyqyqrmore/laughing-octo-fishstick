@@ -6,7 +6,7 @@ if not exist ".venv\Scripts\python.exe" (
   pause
   exit /b 1
 )
-echo CoinCat v1.04: offline synthetic paper replay. No account connection.
+echo CoinCat v1.05: offline synthetic paper replay. No account connection.
 ".venv\Scripts\python.exe" -B VERIFY_SOURCE.py
 if errorlevel 1 (
   echo Source verification failed. Replay stopped.

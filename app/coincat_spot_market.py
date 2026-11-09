@@ -68,7 +68,7 @@ class SpotReader:
 
     def call(self,name,**kwargs):
         allowed={'get_api_key_permissions','get_product','get_product_book','get_accounts',
-            'get_transaction_summary','get_public_candles','list_orders','get_order','get_fills','get_portfolio_breakdown','get_market_trades'}
+            'get_transaction_summary','get_public_candles','get_candles','list_orders','get_order','get_fills','get_portfolio_breakdown','get_market_trades'}
         if name not in allowed:raise BetaBlocked('READ_METHOD_NOT_ALLOWED')
         if self.calls>=16 or self.monotonic()>=self.deadline:raise BetaBlocked('READ_BUDGET_EXHAUSTED')
         self.calls+=1

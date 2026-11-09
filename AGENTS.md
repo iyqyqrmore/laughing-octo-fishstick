@@ -1,4 +1,40 @@
-# Codex instructions — CoinCat v1.04
+# Codex instructions — CoinCat v1.05
+
+CURRENT OWNER SCOPE — NOVEMBER 9, 2026
+The supplied v1.05 handoff and latest owner messages supersede conflicting
+historical scopes below. Implement and publish on coincat-v1.05, preserving
+coincat-v1.04 and all previous branches. The owner explicitly requests commit
+and push after completion; no further publication approval is required.
+Read docs/INTELLIGENT_TRADER_V1_05.md, START_HERE.md and the retirement map.
+
+Use a genuine direct rolling 24-hour forecast, one-leg portfolio value/risk
+comparison, a shared finite simulated wallet and immutable original five-asset
+HOLD. First Start copies freshly read available account holdings (explicit owner
+choice); no actual funds move. No forced ETH return, reverse-exit commission,
+fixed profit floor, cadence, quote-touch fill or autonomous real authority.
+Native own commission applies once per modeled/verified filled leg. Preserve
+Manual Spot/default-ON live block, actual grants, budgets, precision, native
+settlement, FIFO/tax/security/backup modules and SQLite closure protections.
+
+Retire automatic legacy controllers from the supported application; preserve
+old journals and offline compatibility engines. Remove broken tray/custom
+minimize behavior, including native minimize button. Close exits safely;
+Windows session shutdown must never be vetoed. This explicit owner request
+overrides the handoff and historical tray-preservation language.
+Current UI, export, launcher, source package and guides identify v1.05.
+Historical record/schema/module/commit identifiers keep their original names;
+archived documents are clearly labeled. Do not relabel financial history.
+
+Tests forbid HTTP/WebSockets before discovery, use synthetic/disposable state
+and preserve protected byte checks. Verify complete suite, extracted source,
+GUI sizes/recovery/privacy and chronological adverse comparisons. Native Windows,
+DPAPI, connected history/product/fee/account acceptance, forecast calibration and
+maker-fill calibration remain local/unverified unless actual evidence exists.
+Do not call Linux Tk tests native Windows acceptance or synthetic results profit.
+Do not open real orders or grant live automation in this development environment.
+
+## Historical owner instructions — retained for compatibility context only
+
 
 REJECTION DIAGNOSTICS OWNER FOLLOW-UP — NOVEMBER 9, 2026
 Add aggregate rejection reasons to redacted opportunity diagnostics so unavailable

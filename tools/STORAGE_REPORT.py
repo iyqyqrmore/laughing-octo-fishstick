@@ -17,7 +17,7 @@ def main():
             if path.parent.name!='__pycache__' or path.is_symlink() or any(p.is_symlink() for p in path.parents if p!=root):continue
             files+=1;cache_bytes+=path.stat().st_size
             if args.clean_source_cache:path.unlink();removed+=1
-    print('CoinCat v1.04 source cache files:',files,'bytes:',cache_bytes,'removed:',removed)
+    print('CoinCat v1.05 source cache files:',files,'bytes:',cache_bytes,'removed:',removed)
     print('Financial, research, manual/live/paper history, backups, credentials and locks: preserved; no deletion candidates.')
     return 0
 

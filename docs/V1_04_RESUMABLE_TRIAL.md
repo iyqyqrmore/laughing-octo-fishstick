@@ -1,3 +1,5 @@
+> CoinCat v1.05 archive: this document describes a historical release or compatibility path. Current behavior and Windows steps are in [START_HERE.md](../START_HERE.md) and [INTELLIGENT_TRADER_V1_05.md](INTELLIGENT_TRADER_V1_05.md). Historical versions and record identifiers below are preserved.
+
 # v1.04 persistent shadow trial
 
 The objective is risk-adjusted total portfolio USD value, net modeled costs,

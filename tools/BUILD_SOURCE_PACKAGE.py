@@ -28,9 +28,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
-    data=dict(build='1.04-resumable-shadow-candidate',
-        description='v1.04 rejection diagnostics: strict optional category/reason counts, saved legacy coverage and observational future advantage/uncertainty split. No private amounts or raw errors. Opportunity admissions/selection, Native arithmetic, fees, orders, financial libraries, SQLite recovery and actual manual/live permissions unchanged. Native Windows/connected acceptance pending.',
-        base_commit='ba68a0b8f9b44adf4cd82ccce3cae4279e2604fa',
+    data=dict(build='1.05-intelligent-one-leg-shadow',
+        description='v1.05 direct 24-hour one-leg portfolio shadow; frozen available-holdings HOLD benchmark, native sizing/fees, finite conditional maker lifecycle, strict redacted evidence, no tray/minimize integration. Manual real boundaries unchanged. Native Windows/connected calibration pending.',
+        base_commit='8cd633334f16257fc94fd47067f3e588e5fd2cf5',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))
@@ -39,7 +39,7 @@ def main():
         if path==ROOT or ROOT in path.parents:raise ValueError('Keep package outside source checkout')
         with zipfile.ZipFile(path,'w',compression=zipfile.ZIP_DEFLATED) as archive:
             for name in names+['SHA256_MANIFEST.json']:
-                archive.write(ROOT/name,'CoinCat_v1.04/'+name)
+                archive.write(ROOT/name,'CoinCat_v1.05/'+name)
         digest=hashlib.sha256(path.read_bytes()).hexdigest()
         path.with_suffix(path.suffix+'.sha256').write_text(digest+'  '+path.name+'\n',encoding='utf-8')
         print('Source ZIP:',path.name,'SHA256',digest)

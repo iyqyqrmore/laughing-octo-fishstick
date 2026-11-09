@@ -1,3 +1,17 @@
+# CoinCat v1.05 — intelligent 24-hour one-leg portfolio shadow
+
+- Direct 24h historical-label forecast with chronological validation/holdout, fixed provenance, uncertainty and prospective outcomes; no ten-minute extrapolation.
+- Fourteen native directions, risk-sensitive sizes, shared finite wallet and one own entry commission per filled leg. No compulsory future exit, ETH return, fixed profit floor or trade cadence.
+- Reusable restart-safe maker lifecycle, finite child/campaign/retry limits, conditional trade-through or no-fill provider, unknown receipt quarantine and immutable HOLD performance/negative trends.
+- Owner-selected available-account shadow baseline in its own isolated path; original v1.04 records remain read-only.
+- Current v1.05 UI/diagnostics/monitor/launchers/packages; retired old active controllers/dashboards. Inset artwork and live portfolio hover retained. Broken tray/minimize integration removed; Close exits safely and Windows maximize remains.
+- Actual manual permission/grants/caps, native accounting, financial/security/history libraries and corrected SQLite store/clock preserved.
+- New deterministic adverse, no-fill, chronology, direction/fees/sizing, recovery/privacy and real Tk coverage. Native Windows/connected acceptance and forecast/fill calibration remain pending.
+
+See [policy](docs/INTELLIGENT_TRADER_V1_05.md), [retirement map](docs/V1_05_RETIREMENT.md), [verification](VERIFICATION.txt) and [Windows steps](START_HERE.md).
+
+## Archived release notes — earlier versions, not current v1.05 behavior
+
 # v1.04 rejection diagnostics follow-up
 
 - Add fixed category and reason-code counts to redacted diagnostics/local monitor.

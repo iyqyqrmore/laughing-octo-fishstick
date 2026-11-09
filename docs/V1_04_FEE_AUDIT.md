@@ -1,3 +1,5 @@
+> CoinCat v1.05 archive: this document describes a historical release or compatibility path. Current behavior and Windows steps are in [START_HERE.md](../START_HERE.md) and [INTELLIGENT_TRADER_V1_05.md](INTELLIGENT_TRADER_V1_05.md). Historical versions and record identifiers below are preserved.
+
 # November 4 historical fee evidence
 
 The shared statement contains seven Advanced Trade rows on November 4 in

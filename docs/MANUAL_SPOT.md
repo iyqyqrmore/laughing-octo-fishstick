@@ -1,3 +1,5 @@
+> CoinCat v1.05 archive: this document describes a historical release or compatibility path. Current behavior and Windows steps are in [START_HERE.md](../START_HERE.md) and [INTELLIGENT_TRADER_V1_05.md](INTELLIGENT_TRADER_V1_05.md). Historical versions and record identifiers below are preserved.
+
 Current v1.04 uses tabs-only market selection, 1h chart defaults and a private
 portfolio total/holdings hover with an inset logo. See
 [V1_04_HEADER_PORTFOLIO.md](V1_04_HEADER_PORTFOLIO.md). The foundation guide below

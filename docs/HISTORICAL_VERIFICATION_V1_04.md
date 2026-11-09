@@ -1,0 +1,376 @@
+# CoinCat v1.05 archive — historical verification
+
+These are earlier release results, not v1.05 acceptance. See [current verification](../VERIFICATION.txt).
+
+```text
+COINCAT v1.04 — AGGREGATE REJECTION DIAGNOSTICS
+Source base: ba68a0b8f9b44adf4cd82ccce3cae4279e2604fa; branch coincat-v1.04.
+
+SCOPE
+Observational rejection categories/reason counts in redacted diagnostics and the
+GET-only local monitor. Fixed allowlists; integer counts only. No private amounts,
+currencies, prices, quantities, IDs, paths, receipts or raw exception strings.
+Counts are repeated direction checks and first blockers, not exchange rejections.
+Reuse saved cumulative history. Preserve combined old advantage/uncertainty counts
+as unsplit; future existing projection components distinguish binding uncertainty
+from insufficient expected advantage. Both category/reason totals equal rejected
+checks. Explicit legacy coverage; no fabricated historical decomposition or reset.
+
+ACCEPTANCE
+Full checkout and freshly extracted source ZIP: 649 distinct offline tests, zero
+failures/errors/skips/expected failures; HTTP/WebSockets forbidden before discovery.
+Runtime Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 under Xvfb. 215 source
+hashes. Exact timings/checksum accompany the external source artifact. Native
+Windows/connected acceptance remains pending. Focused opportunity suite: 47 checks.
+Nine new regressions cover categorical attribution, boundary cases, old histogram
+projection, safe unknown/missing counts, legacy-to-future split persistence, strict
+nested schemas, diagnostic privacy, duplicate frames, partial data and SQLite
+restart. Real-Tk export/monitor checks now assert the actual redacted breakdown
+and compatibility with snapshots lacking it. Full financial/strategy/recovery,
+fees-once, no-fill/adverse, SQLite closure and STOP tests remain intact.
+
+PRESERVATION
+Opportunity policy/math/provider, Native arithmetic/interface, actual order/grant/
+settlement/fee modules, financial/key/import/FIFO/tax/lock libraries, dependencies,
+artwork and corrected trial store/clock are byte-identical to ba68a0b. Only optional
+reporting counters are added in the existing decision transaction. No threshold,
+price, forecast, selector, order lifecycle, wallet, original HOLD, fee or permission
+is changed. Old saved trials are readable; completed records stay frozen. Automatic
+real-money trading remains disabled; manual default-ON block/explicit clicks remain.
+
+SUPPLIED NOVEMBER 9 EVIDENCE
+The published base manifest matches the uploads. The fresh monitor reports ACTIVE,
+1,680 reviews / 23,520 rejected direction checks, zero qualified checks/orders/fills,
+about 14.4 valid hours and a fresh helper heartbeat. Manual connection state is
+RETRYING; this alone does not identify the shadow rejection causes. No histogram
+is present in those older redacted exports. The patch enables local historical
+counts to be exported without sharing detailed private journals. Raw uploads are
+outside the checkout/package.
+
+WINDOWS RERUN
+Preserve the existing trial/private records. Verify the fresh source separately:
+tools/VERIFY_OPPORTUNITY_SHADOW.bat (47), then 03_VERIFY_COINCAT.bat (649 / 215).
+Require zero failures/errors; the known host-symlink skip may remain. Close old app
+and helper, restart both from this build with live block ON, resume the same trial
+and export diagnostics/snapshot. Check matching totals, fixed reasons, baseline /
+since-upgrade coverage and absence of amounts. Do not delete journals or restart
+the 168-hour trial to obtain reporting. See START_HERE.md and the rejection section
+of docs/OPPORTUNITY_SHADOW_V1_04.md. No exchange request, account trade, installation
+or new real-money authority was performed during the cloud checks.
+
+The following reports are historical checkpoints, not this rejection patch.
+
+COINCAT v1.04 — SEPARATE OPPORTUNITY-DRIVEN PORTFOLIO SHADOW
+Source base: 3b6ba1212a0246d405db8dbbc6f1a5f97f61146f; branch coincat-v1.04.
+
+SCOPE
+New independent fictional $100 per watched coin policy, seven markets/fourteen
+native directions. Only positive modeled risk-adjusted USD portfolio advantage
+after entry costs, separately estimated future exits and uncertainty can qualify.
+No side alternation, fixed dollar gain floor, mandatory ETH return or forced trade
+cadence. Paid native commissions occur once per conditional filled leg only.
+The fast Native one-leg arithmetic modules/interface remain unchanged and apart.
+
+Finite LIMIT GTC Post Only states, 30s reviews / 120s reconsideration, default
+600s child / 1800s campaign / three replacements. Reconcile cancellations,
+remaining quantity, partial fills and native holds before replacement. Original
+campaign budget, quantity and expiry never reset. HOLD/no-fill is valid; no
+forced losing liquidation, quote-touch fill, taker fallback or blind UNKNOWN retry.
+Public trade-through/queue and forecasting assumptions remain UNVALIDATED.
+
+EXECUTED OFFLINE ACCEPTANCE
+Full checkout and fresh extracted source ZIP each run 640 distinct tests, zero
+failures/errors/skips/expected failures, with HTTP/WebSockets forbidden before
+discovery. Runtime: Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 under Xvfb.
+213 source hashes. Exact console runtimes/checksums accompany the external source
+artifact. Native Windows and connected endpoints/168-hour acceptance are PENDING.
+38 focused regressions cover selection/small gains, costs/uncertainty/depth,
+strict print evidence/gaps/touches, exact fees/idempotency/unknown commission,
+partial/cancel races and remaining replacement, retry/expiry invariants, STOP,
+restart/paused/suspended/zero-trade completion, frozen reports, retained SQLite
+handles, UI/worker integration, real-permission separation and export privacy.
+Supplementary Linux Tk 8.6 window checks and synthetic previews are separate
+from native Windows evidence; see the external verification report.
+
+COMPARATIVE ENGINEERING EVIDENCE
+verification/opportunity_scenarios.py fixes six chronological paths with the
+same original $500 portfolio and declared 5% sizing (application default minimum).
+Flat and high-fee cases: no orders, zero fees, equal HOLD. Trend/no-fill: nine
+orders, no fills/fees, exactly equal HOLD. Conditional trend: +0.523778 USD versus
+HOLD after 0.163429 USD modeled fees. Adverse reversal: -1.262920 USD versus HOLD,
+0.075120 USD fees and 2.0211% maximum marked drawdown. Gap/restart retains native
+wallet, fees and valid hours with no downtime fills. Favorable synthetic results
+are not calibrated fill evidence, historical backtests or predictive validation.
+Detailed CSV/JSON retains losses, misses, rejections and open inventory. Future
+exit estimates affect decisions but never appear as paid executions. End values
+use midpoint marks after filled-leg fees and before unexecuted exits.
+
+SUPPLIED QUICK CHECK OF 3b6ba12
+The uploaded diagnostics match its source manifest: roughly 6.5 valid minutes,
+35 arithmetic waves / 245 assumed maker orders, zero real attempts/fills and
+manual live block ON. This supports the connected arithmetic labels, not a full
+native source-suite pass or realistic maker fills. Raw private uploads are not
+included in the source package.
+
+PRESERVED BOUNDARIES
+Native arithmetic modules, canonical actual execution/grants/settlement/fees,
+financial/FIFO/tax/key/import/lock modules, dependencies, artwork and the corrected
+trial SQLite store/clock are unchanged from 3b6ba12. Existing records are not
+migrated or deleted. New engine owns only ShadowAuthorization and cannot dispatch
+exchange writes. Manual block defaults ON; deliberate OFF plus manual clicks
+retains existing bounded behavior. Automatic real-money trading stays disabled.
+Diagnostics/GET-only monitor expose the separate opportunity_shadow extension
+with controlled states, counts and uncertainty only. All financial detail remains
+private. No real Coinbase call, account trade, PC installation or live grant here.
+
+FRESH WINDOWS RERUN
+Extract separately, run locked setup, tools/VERIFY_OPPORTUNITY_SHADOW.bat (38
+focused), then 03_VERIFY_COINCAT.bat (640 / 213 hashes). Require zero failures/
+errors; only the known host-symlink capability skip may remain. Keep live block
+ON. Test model warmup/HOLD, conditional order/nonfill states, cancellation,
+partial/fee reconciliation, pause/tray/restart/disconnection and private exports.
+Confirm the unchanged Native arithmetic mode remains independent. See
+START_HERE.md and docs/OPPORTUNITY_SHADOW_V1_04.md. Forecast/fill calibration and
+an actual 168-hour connected observation remain local acceptance work.
+
+The following reports describe previous checkpoints, not this opportunity patch.
+
+COINCAT v1.04 — NATIVE ONE-LEG ASSUMED TRIAL
+Source base: 999d77c75c1129c8446751d6fc3dfdb9cf13a789; branch coincat-v1.04.
+
+CURRENT CONTRACT
+New fictional $100 per ETH/BTC/ADA/LINK/SOL baseline, seven native markets,
+minimum default sizes, BUY ASK/taker estimate or explicit BUY BID/maker option,
+SELL ASK/maker estimate. Each leg has one authenticated-rate modeled quote-coin
+commission, zero added slippage, no round-trip charge and no USD spending,
+turnover or attempt caps. Native exchange rules and actual simulated funding
+remain binding. Authenticated rate does not prove commission units/precision;
+quote-coin/exact-proportional fees are labeled assumptions. Product quote ticks
+are not used to invent a rounded minimum commission. Base size stays separate.
+
+Versioned per-market sliders apply to future assumed orders; old SIM fills/fees
+remain immutable. AI sizing control is not enabled. Trial uses 168 cumulative
+valid monotonic hours, durable original funding/HOLD, settings history, native
+wallet/fees, SIM IDs and frozen completion. No offline/paused/partial/suspended
+time, duplicate-frame lease renewal, downtime fills or automatic new trial.
+Previous trial records/limits/hours are preserved; new Start pauses that policy.
+Native financial/fee/receipt libraries, actual live/manual permissions/caps,
+tax/FIFO/key/import/lock records, dependencies and SQLite fix are unchanged.
+
+OFFLINE ACCEPTANCE
+Full checkout and freshly extracted source ZIP run 602 distinct tests with zero
+failures/errors/skips/expected failures. HTTP/WebSockets forbidden before discovery.
+Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl 9.0 under Xvfb.
+200 source hashes checked. Exact runtimes and archive checksum accompany ZIP.
+46 new focused checks cover native one-leg fees and no double charge/slippage,
+tiny ETH/BTC units, all directions/minimums, slider ranges/versions, shared funds,
+no USD capital/attempt limits, quote/rate gaps, GET-only worker/UI integration,
+manual-switch isolation, strict private exports, 168-hour pause/restart/lease/
+completion, corruption/stale writers, transactions and SQLite closure.
+Supplementary Linux Tk 8.6 GUI checks and synthetic previews are separate from
+native Windows/actual Coinbase acceptance, which remain PENDING.
+
+Diagnostics/local monitor use the strict optional assumed_fill extension:
+controlled states, maker/taker counts, assumed orders, valid seconds, restarts.
+No quantities, native prices/fees, currencies, slider values, IDs or wallet totals.
+Assumed counts never become previous-policy/actual fills or profitability evidence.
+
+FRESH WINDOWS ACCEPTANCE
+Fresh extraction, locked setup, tools/VERIFY_ASSUMED_FILLS.bat (46 focused checks),
+then 03_VERIFY_COINCAT.bat (602 distinct tests / 200 hashes). Zero failures/errors;
+known host-symlink capability skip may remain. Launch with live block ON, test
+Native one-leg trial, ASK/BID fee basis, minima, size sliders, native totals/SIM IDs,
+Pause/Exit/restart/disconnect/tray/valid hours and separate monitor counts.
+See docs/NATIVE_ONE_LEG_TRIAL.md. No real Coinbase request/order or PC installation
+is performed by these cloud tests; previews contain synthetic market/portfolio data.
+
+The following reports describe previous checkpoints, not the current native trial.
+
+COINCAT v1.04 — HEADER / PRIVATE PORTFOLIO UI FOLLOW-UP
+Published source base: 0624d146f55b2684afe646a1876038a076bd7b82.
+Branch: coincat-v1.04. Strategy, fees, risk limits and live permissions preserved.
+
+OWNER-REPORTED PRECEDING WINDOWS SQLITE CORRECTION RESULT — PASS
+543 tests in 1737.252s; zero failures, zero errors, one host-symlink capability
+skip. The two WinError 32 cleanup regressions passed in this rerun. This records
+the owner's supplied result for the preceding correction, not native acceptance
+of the new header/portfolio code. No new runtime/hash header accompanied that
+snippet; the earlier supplied Windows environment was Python 3.11.9 / SQLite
+3.45.1 / Tk-Tcl 8.6. The older failed result is retained historically below.
+
+CURRENT SCOPE
+Existing transparent artwork is unchanged and is placed beside the compact
+portfolio total with free space on the right. All seven tabs initialize to 1h;
+the redundant market dropdown/favorite star and unused code are removed. Existing
+private favorite files are preserved. The separate scoped GET-only portfolio
+reader refreshes about every 15 seconds, below execution/scan work on the existing
+worker, within existing pacing/call budgets. Values, holdings, unknown prices,
+partial coverage and stale states stay private to the GUI. Source/currency guards
+and native available/hold semantics remain; no display amount becomes funding.
+
+EXECUTED OFFLINE ACCEPTANCE
+Checkout and freshly extracted source ZIP each run 556 distinct tests with zero
+failures/errors/skips/expected failures, HTTP/WebSockets forbidden before test
+discovery and execution. Runtime: Linux Python 3.11.17 / SQLite 3.53.1 / Tk-Tcl
+9.0 under Xvfb. Source verification checks 191 files. Detailed runtimes and ZIP
+checksum are retained beside the source artifact. New native Windows and connected
+portfolio endpoint acceptance are PENDING. Synthetic previews are sample data.
+
+Nine display-service checks cover SDK-shaped responses, non-watch holdings,
+USD/scope validation, missing/nonfinite values, duplicates, held totals, separate
+accounts, unlisted value, read cadence, permission changes, stale/failing refresh,
+unknown versus zero and unchanged funding/approved markets/exact financial parsers.
+Four added real-Tk checks cover worker refresh, visible live-hover updates, bounded
+long lists, private exports, 1h charts, preserved favorite files and inset header
+placement at 1450x920 / 1040x780. Supplementary Linux Tk 8.6 GUI checks also pass;
+this is not native Windows evidence. Full retained financial, safety, SQLite
+lifecycle, restart/trial and privacy regressions remain passing.
+
+The native execution, fee/receipt, strategy, inventory/baseline, account parser,
+key/import/FIFO/tax/lock, trial store/clock and artwork files are unchanged from
+0624d14. Trading remains limited to the existing seven pairs/five assets. The new
+read method only fetches selected-portfolio display estimates. Portfolio response
+floats never relax the exact financial parser. No data migration, account request,
+real trade, PC installation or unattended live grant occurs in this session.
+
+FRESH WINDOWS UI CHECK
+Use a fresh extracted folder and locked setup. Run tools/VERIFY_MANUAL_WINDOW.bat
+for 14 focused window checks, then 03_VERIFY_COINCAT.bat for all 556. Expect 191
+source hashes, zero failures/errors, with only the known host-symlink skip allowed.
+Connect with live orders blocked ON; inspect total/hover versus the same selected
+Coinbase portfolio, wait for a refresh, test stale labeling, all seven 1h tabs and
+minimum/maximized window placement. See docs/V1_04_HEADER_PORTFOLIO.md. Source/API
+scope may exclude balances shown in another Coinbase portfolio or staking view.
+
+The following is historical verification evidence for earlier source checkpoints.
+The owner-reported corrected Windows pass above supersedes the earlier pending
+status; new header/portfolio native acceptance remains pending.
+
+COINCAT v1.04 — WINDOWS SQLITE CLEANUP CORRECTION
+Published source base: 71d175e23e2014715c0119ba35eebb130b6da07f.
+Branch: coincat-v1.04. Strategy, live permissions and fees are unchanged.
+
+OWNER-SUPPLIED NATIVE WINDOWS RESULT FOR 71d175e — FAILED
+Python 3.11.9 / SQLite 3.45.1 / Tk-Tcl 8.6; 184/184 source hashes passed.
+533 tests ran: zero assertion failures, two cleanup errors, one host-symlink
+capability skip. Both errors were WinError 32 deleting disposable trial.sqlite3:
+Recovery.test_atomic_actions_cannot_change_original_benchmark_and_detect_in_process_corruption
+Recovery.test_corrupt_missing_or_wrong_checkpoint_never_reset
+Hash integrity and the preceding Linux pass did not establish Windows acceptance.
+
+ROOT CAUSE AND NARROW REPAIR
+The first fixture left one sqlite3.connect connection open; the second left two.
+A sqlite connection transaction context commits/rolls back but does not close.
+Retaining real connection objects reproduced exactly these three open handles.
+Each mutation now owns/closes its connection and cursor explicitly. All Recovery
+and inherited evidence fixtures retain objects until AFTER temporary cleanup and
+assert closure BEFORE cleanup. The probe does not close leaked resources itself.
+
+The trial store previously closed its connections, including metadata failures.
+This correction consolidates ownership in a managed connection scope and closes
+query cursors explicitly, including execute/fetch failures and BaseException
+unwinding. Original SQL expressions, parameters, transaction order, schema/app IDs,
+checksums, baseline/limit guards, state/evidence atomicity and timeouts remain.
+Failed/corrupt existing databases are preserved; no automatic reset or deletion.
+
+EXECUTED OFFLINE ACCEPTANCE
+Full checkout and freshly extracted package each run 543 distinct tests with
+zero failures, errors, skips or expected failures on Linux Python 3.11.17 /
+SQLite 3.53.1 / Tk-Tcl 9.0. HTTP/WebSockets are forbidden before discovery and
+execution. 187 packaged source hashes pass. Exact runtimes/checksums accompany
+the external release artifact. Native corrected Windows acceptance is PENDING.
+
+Ten new focused lifecycle checks retain connections, cursors and exception
+tracebacks through success, duplicate/conflict returns, callbacks/evidence
+rollback, stale writers, corrupt bytes/missing tables/digests/identity, wrong
+application/schema version, partial initialization, SQL failures, integrity
+failure, fetch/commit failure and KeyboardInterrupt. They assert Python handles are closed, then
+immediately rename/remove databases while references remain alive. On Windows,
+CreateFileW with read/write and ZERO sharing also proves exclusive native access
+before deletion. No new platform skip, GC call, forced retry, cleanup-error
+suppression, automatic leaked-handle closure or weakened assertion is introduced.
+
+SCOPE AND RERUN
+The only production app module changed is coincat_trial_store.py. Every other
+app module, including strategy, execution/grants, fees, financial/FIFO/key/lock,
+clock, monitor and artwork, is byte-identical to 71d175e. No private record is
+opened or modified. No account request, installation or trade is performed.
+See docs/V1_04_WINDOWS_SQLITE_FIX.md: fresh folder, locked setup, focused trial
+checks, then 03_VERIFY_COINCAT.bat and final COUNTS/PASS. Expect 543 distinct tests;
+the host-symlink capability skip may remain. Any error/failure blocks acceptance.
+
+The following is historical acceptance evidence for the preceding Linux build.
+It is superseded by the supplied FAILED Windows result and corrected rerun above.
+
+COINCAT v1.04 — RESUMABLE PORTFOLIO SHADOW TRIAL
+Published evidence follow-up base: cc565d994b19d05514089247352caf51e225806d (v1.04).
+Original Manual Spot foundation: 902320907843dcbca67a0b26de29896ae8a675ad.
+Source branch: coincat-v1.04. Previous release branches are preserved.
+
+ACCEPTANCE
+The full source and freshly extracted source suite each run 533 distinct tests,
+with zero failures, errors, skips or expected failures. Requests HTTP and
+WebSockets are forbidden before discovery and throughout execution. Disposable
+synthetic state is used; no account key, account request or live trade is used.
+Runtime: Linux Python 3.11.17, SQLite 3.53.1, Tk/Tcl 9.0 under Xvfb.
+Exact console timings and the independent ZIP checksum accompany the external
+release artifacts. VERIFY_SOURCE.py checks every packaged source hash.
+
+The 45 focused trial checks cover monotonic time, actual SQLite recovery,
+partial/stale coverage, frozen identity/benchmark/caps, corruption, idempotency,
+native maker decisions and sized depth, partial/canceled/unknown replay orders,
+fees in native currencies, adverse fee overruns, external account changes,
+HOLD accounting, read-only historical audit, privacy, tray policy and no live
+authority. The exact 6-valid + 10-offline + 4-valid case produces 10 valid hours,
+including through SQLite checkpoint/reload. Interrupted sessions reach exactly
+168 valid hours and freeze. A host-off interval never receives a simulated fill. A complete deterministic
+168-valid-hour trial across 28 restarted sessions with zero qualifying trades
+completes with unchanged inventory, zero fees and equal HOLD performance. Its
+trading evidence remains UNPROVEN_NO_QUALIFYING_TRADES. Episode deduplication,
+conditional fee estimates, uncalibrated fill feasibility, unreconciled outcomes,
+legacy instrumentation coverage, atomic evidence writes, privacy and frozen
+completed valuations are covered by additional regressions.
+
+Fourteen manual/trial window checks also pass on supplementary Linux Python
+3.13.5 / SQLite 3.46.1 / Tk-Tcl 8.6. This is not native Windows evidence.
+The source verification checks the preserved manual default-ON block, explicit
+click, owned identity and ambiguous-create lock. Shadow authorization is rejected
+by the shared write adapter; no automatic-live grant exists.
+
+PROTECTED MATERIAL
+The six protected financial/FIFO/state/transfer/lot/fill/key modules and legacy
+LiveLedger source hash retain their historical byte assertions. Live broker,
+single-instance code, locked dependencies and transparent artwork are unchanged
+from the published base. Existing financial assertions remain; presentation
+version expectations advance to v1.04. The portable-verifier fixture includes
+the new AST-inspected source modules without relaxing its original assertions. No private financial/history DB,
+backups, uploaded statements, raw receipts, keys, monitor credentials, logs,
+virtual environments or bytecode are shipped. Legacy controllers are removed
+from the default import path and retained for historical compatibility.
+
+FEE EVIDENCE
+November 4 shared evidence: seven statement trades, one API/CSV native match,
+one reported maker classification, zero explicitly reported API fee currencies.
+The private arithmetic report is outside the checkout. Six additional native
+API receipts and all explicit currency evidence remain local collection work.
+tools/AUDIT_MANUAL_FILLS.bat reads only GET history using the locally saved key.
+Historical deductions never become future account fee settings.
+
+REMAINING ACCEPTANCE / REAL-MONEY BOUNDARY
+Run START_HERE.md on Windows: tray/minimize/Explorer recovery/shutdown, DPI/Tk,
+DPAPI/single instance, read-only connectivity, repeated and multi-day recovery,
+permissions, native rules, fees/currencies, identities, partial/cancel/holds and
+ambiguous request handling. An actual 168-hour live observation trial has not
+been run in this cloud session. No PC installation/deployment is performed.
+
+The provider assumes no inferred maker fills. Explicit replay is conditional
+simulation, not observed Coinbase matching. Trailing-return forecasts remain
+UNVALIDATED. Marked USD appreciation is not trading edge or realized profit.
+Full liquidation remains UNKNOWN without complete native USD exits/depth/fee
+units. Post-conversion open lot P/L remains UNKNOWN without complete basis.
+Shadow success cannot authorize real execution or establish future profitability.
+Manual real orders still require deliberate block OFF and an explicit click;
+unattended live execution remains unavailable and needs a separately authorized
+bounded pilot after connected accounting/recovery acceptance.
+
+```

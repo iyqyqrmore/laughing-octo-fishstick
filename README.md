@@ -1,72 +1,21 @@
-# CoinCat v1.04 — opportunity shadow and native arithmetic trial
+# CoinCat v1.05 — intelligent 24-hour one-leg portfolio shadow
 
-Redacted diagnostics and the local monitor now include aggregate rejection reasons,
-with fixed labels/counts and explicit legacy coverage. Saved history is preserved;
-future checks distinguish insufficient advantage from binding uncertainty without
-changing decisions. See [the reporting details](docs/OPPORTUNITY_SHADOW_V1_04.md#redacted-rejection-breakdown).
+CoinCat studies whether exchanging one of BTC, ETH, SOL, LINK and ADA can improve total portfolio USD value after its own entry costs, relative to keeping current inventory. It measures modeled results against the **unchanged original five-asset HOLD portfolio**. This is an unvalidated research policy with conditional maker fills.
 
-**Opportunity shadow…** adds a separate restart-safe portfolio-value policy.
-It reviews fourteen directions across seven markets, selects only positive
-modeled risk-adjusted advantage after costs, and may HOLD without trading.
-Resting Post Only orders have finite lives and retries, with partial-fill and
-cancel reconciliation before replacement. Quotes never guarantee fills.
-Native filled-leg fees are charged once; future exit estimates stay separate.
-Private projections, conditional fills, rejected opportunities, misses, drawdown
-and net USD versus original HOLD are shown in its own window and journal.
+Start with [Windows installation and acceptance](START_HERE.md). The supported application is Manual Spot plus **Intelligent shadow…**. Seven native market tabs remain; charts default to 1h. The inset transparent logo, refreshed account portfolio total and private holdings hover are retained. Closing exits safely; tray and custom minimize behavior are removed, including the Windows minimize button.
 
-The forecast and public-trade queue model remain unvalidated. Synthetic scenarios
-retain adverse losses and no-fill outcomes; favorable results are not proof of
-profitability. **Automatic real-money trading remains disabled.** The existing
-Native one-leg arithmetic trial/interface below is unchanged and separate.
-See [the policy, state machine, evidence and Windows steps](docs/OPPORTUNITY_SHADOW_V1_04.md).
+First Start copies freshly read **available account holdings**, excluding holds, into a separate simulated wallet. This owner-selected baseline moves no real funds. A fictional $100-per-asset baseline is an optional choice before first Start. Baseline, model and risk settings freeze for that trial. v1.04 records stay separate in **History archive**.
 
-CoinCat uses seven market tabs with 1-hour chart defaults and a private live
-portfolio total/holdings hover beside the title and inset transparent logo.
-The **Native one-leg trial** starts with a fictional **$100 each in ETH, BTC,
-ADA, LINK and SOL**, uses minimum native limit orders across seven markets,
-and records explicit assumed fills with local SIM IDs. Each BUY or SELL pays
-one applicable authenticated maker/taker-rate fee in the modeled quote coin.
-No round-trip charge, added slippage, USD spending/turnover/attempt cap or
-one-cent qualification gate applies to this mode. Per-market sizing sliders
-increase quantity above the exchange minimum using versioned future settings.
+The direct 24h model requires 2,400 aligned closed hourly observations from five read-only USD reference products. It uses historical 24h outcomes, chronological walk-forward validation, a final 14-day holdout and uncertainty estimates. It never scales ten-minute returns. Data/model insufficiency produces HOLD; a trial may complete 168 valid hours without a qualifying trade.
 
-The isolated SQLite journal stores the original trial identity, settings history,
-portfolio, assumed orders, native fees and monotonic checkpoints.
-Offline, paused, stale and incomplete-market intervals add no valid hours.
-Opted-in shadow trials recover only after state and input revalidation. Paused
-trials stay paused. At **168 cumulative valid hours**, completion freezes the
-trial and a private report. Windows tray monitoring can continue with
-the main window hidden; Windows shutdown is never vetoed.
+Only the seven native pairs can receive conditional orders: ADA-ETH, ETH-BTC, LINK-ETH, SOL-ETH, LINK-BTC, SOL-BTC and ADA-BTC. BUY ETH-BTC spends BTC for ETH; SELL spends ETH for BTC. The selector sizes and ranks all fourteen directions by positive expected risk-adjusted portfolio advantage. No fixed dollar gain, compulsory return to ETH, reverse-trade fee or forced cadence.
 
-The default BUY uses the native ASK and taker estimate; SELL uses ASK and maker
-estimate. BUY at BID is an explicit maker alternative. The live book determines
-the next price; fees affect cost/proceeds, not base quantity. Native increments,
-base/quote minimums, product maximums and shared fictional funding still apply.
-**Assumed fills are not realistic execution or profit evidence.** The private
-dashboard compares conditional portfolio USD value with holding the original
-quantities. Exchange commission precision remains unverified; a product quote
-increment is not used to invent a minimum fee. AI sizing control remains off.
+Each order is LIMIT GTC Post Only. Reviews are 30s, competitiveness reassessment 120s, child lifetime 600s, original campaign 1,800s and at most three replacements. One active order; reconciliation precedes replacement. An acquired asset has no mandatory holding deadline. Quotes, candles, time and downtime never create fills. The conditional queue provider requires continuous public-trade evidence; a no-inferred-fill provider is also available.
 
-The earlier portfolio-policy trial and its records remain under **Previous trial**.
-Its baseline, limits and valid hours are preserved separately. Starting the new
-trial pauses that old policy; it does not rewrite or merge the two trials.
+Own native commissions are modeled once per filled leg. Authenticated rates do not prove settled fee currency or precision. Unknown settlement locks the order for review. Portfolio advantage, forecast advantage, open losses, paid modeled fees and realized-account profit remain distinct. Public diagnostics/monitor export fixed labels and counts only; private detailed reports contain holdings and must remain local.
 
-**Live orders blocked defaults ON at every launch.** Switching OFF continues to
-enable real manual order clicks under the existing bounds. The assumed engine
-has no exchange submission/cancellation adapter. Shadow authorization
-is a different type and cannot reach authenticated creation or cancellation.
-Manual and shadow journals, ownership and limits remain separate.
+Actual live block defaults ON. Deliberately switching it OFF plus a manual Buy/Sell click retains the existing bounded real-order functionality. **The intelligent shadow has no automatic real-money authority**, even with the manual block OFF. This release changes no actual financial records, fee math, permissions, FIFO/tax, security or backup rules.
 
-Diagnostics and the GET-only local monitor expose controlled states, counts and
-trial progress. Detailed holdings/valuations and audit evidence remain private.
-Legacy controllers are retired from default execution paths; financial/FIFO/tax
-records, backups, historical compatibility and the transparent logo are retained.
+See [policy and state machine](docs/INTELLIGENT_TRADER_V1_05.md), [retirement/compatibility map](docs/V1_05_RETIREMENT.md), [verification](VERIFICATION.txt), and [discussion handoff](docs/V1_05_DISCUSSION_HANDOFF.md). Earlier documents carry archive banners; historical identifiers are preserved rather than relabeled.
 
-Follow [START_HERE.md](START_HERE.md) for Windows setup, verification and recovery
-acceptance. Native Windows tray/DPAPI behavior, connected Coinbase acceptance
-and an actual 168-hour observation trial must still be validated locally.
-Cloud deterministic tests and a completed shadow trial do not establish profit.
-Source branch: `coincat-v1.04`; opportunity follow-up base: `3b6ba12`.
-See [the native one-leg guide](docs/NATIVE_ONE_LEG_TRIAL.md).
-See [the portfolio/header guide](docs/V1_04_HEADER_PORTFOLIO.md).
-Original Manual Spot foundation: `9023209` on `coincat-v1.03beta`.
+Source branch: `coincat-v1.05`, based on `8cd633334f16257fc94fd47067f3e588e5fd2cf5`. Native Windows/DPAPI and connected acceptance, forecast accuracy, maker-fill calibration and actual 168-hour market performance remain unverified. Synthetic passing tests establish engineering behavior, not a profitable trading edge.

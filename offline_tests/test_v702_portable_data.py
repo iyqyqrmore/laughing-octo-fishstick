@@ -273,6 +273,8 @@ class PortablePaths(unittest.TestCase):
             shutil.copyfile(ROOT/'app/coincat_spot_execution.py',root/'app/coincat_spot_execution.py')
             shutil.copyfile(ROOT/'app/coincat_launcher.py',root/'app/coincat_launcher.py')
             shutil.copyfile(ROOT/'app/coincat_shadow_trader.py',root/'app/coincat_shadow_trader.py')
+            for name in ('coincat_maker_shadow.py','coincat_intelligent_trader.py','coincat_intelligent_source.py','coincat_forecast_history.py'):
+                shutil.copyfile(ROOT/'app'/name,root/'app'/name)
             shutil.copyfile(ROOT/'app/coincat_order_services.py',root/'app/coincat_order_services.py')
             (root/'SHA256_MANIFEST.json').write_text('{"files": {}}')
             run=subprocess.run([sys.executable,str(root/'verification/run_verification.py'),'pilot'],

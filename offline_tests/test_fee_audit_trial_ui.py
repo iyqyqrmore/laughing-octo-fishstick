@@ -7,7 +7,6 @@ import unittest
 from unittest.mock import patch,MagicMock
 from coincat_fee_audit import audit_day,day_bounds,statement_day,collect_day
 from coincat_beta_store import BetaBlocked
-from coincat_tray import TrayController,WindowsTray
 from offline_tests import test_spot_manual as fixtures
 from offline_tests.test_resumable_trial import Clock,account,frame
 
@@ -58,15 +57,3 @@ class HistoricalAudit(unittest.TestCase):
         self.assertEqual(audit_day(r['records'],statement,api_coverage=r['coverage'])['matched'],1)
         fake=Fake();fake.get_fills=lambda **kw:dict(fills=record['fills'],has_next=True,cursor='same')
         self.assertFalse(collect_day(fake,statement['day'],'UTC',clock=clock.wall,monotonic=clock.monotonic)['complete'])
-
-class TrayPolicy(unittest.TestCase):
-    def test_hide_keeps_monitoring_pause_separate_exit_explicit(self):
-        root=MagicMock();pause=MagicMock();close=MagicMock();backend=MagicMock()
-        tray=TrayController(root,status=lambda:('RUNNING','6 h / 168','USD UNKNOWN'),toggle=pause,open_trial=MagicMock(),exit_safely=close,shutdown=MagicMock(),backend=backend)
-        self.assertTrue(tray.hide());root.withdraw.assert_called_once();pause.assert_not_called();close.assert_not_called()
-        tray.menu()[4][1]();pause.assert_called_once();tray.menu()[-1][1]();close.assert_called_once()
-        tray.open();root.deiconify.assert_called_once();tray.close();backend.close.assert_called_once()
-    def test_native_shutdown_query_always_allows_and_does_not_wait_network(self):
-        native=WindowsTray.__new__(WindowsTray);native.root=MagicMock();native.shutdown=MagicMock()
-        self.assertEqual(native.dispatch(0,0x11,1,0),1);native.shutdown.assert_not_called()
-        self.assertEqual(native.dispatch(0,0x16,1,0),0);native.root.after.assert_called_once_with(0,native.shutdown)

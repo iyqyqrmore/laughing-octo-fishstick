@@ -1,42 +1,39 @@
-CoinCat v1.04 — Resumable Trial / Manual Spot
+CoinCat v1.05 — Manual Spot / Intelligent 24-hour one-leg shadow
 
-Opportunity shadow: separate portfolio-value policy, not alternating arithmetic.
-Open Opportunity shadow... after connecting with live orders blocked ON. It
-evaluates fourteen directions and may HOLD throughout. Native fees apply once
-per conditional filled leg; estimates of future exits are not booked as fees.
-No quote-touch fills, fixed dollar gain floor, forced ETH return or real auto
-authority. Orders have finite lives/retries and cancel/partial reconciliation.
-See docs/OPPORTUNITY_SHADOW_V1_04.md and tools\VERIFY_OPPORTUNITY_SHADOW.bat.
-The unchanged Native arithmetic trial and Previous trial remain separate.
+Read START_HERE.md. Extract into a separate folder, preserve old private records,
+run 02_SETUP_COINCAT.bat, then 03_VERIFY_COINCAT.bat before connected testing.
+The full Windows verifier prints named tests and a 30-second heartbeat; it can
+run for 20–30 minutes or longer. Preserve final counts and any error details.
 
-New Native one-leg trial: fictional $100 per watched coin, minimum native orders,
-one maker/taker fee per leg, no added slippage or USD spending/turnover/attempt caps.
-Per-market sizing sliders apply to future assumed SIM orders. 168 valid hours
-survive restart; prior trial records are preserved separately. Start with live
-orders blocked ON. See docs/NATIVE_ONE_LEG_TRIAL.md and START_HERE.md.
+Seven native tabs; 1h chart defaults; inset transparent logo; live portfolio
+USD total with private holdings hover. Tray and custom minimize are removed.
+Close exits safely; Windows minimize button is removed, maximize is preserved.
 
-Read START_HERE.md. Seven market tabs are the selector; every chart starts at 1h.
-The inset logo sits beside a refreshed portfolio total; hover to see holdings.
-USD reference values are private and never become trading funds.
+Open Intelligent shadow after connecting with Live orders blocked ON. First
+Start copies freshly read available five-asset holdings into its own simulated
+wallet. No account funds move. Baseline/settings freeze. Five read-only USD
+history references backfill about 100 days; missing history means HOLD.
 
-Extract separately; preserve all private records and backups.
-Run setup and the full isolated verification before connected testing.
+The forecast covers actual 24h outcomes; it is not scaled ten-minute momentum.
+The selector ranks fourteen native directions by positive risk-adjusted expected
+portfolio advantage. One leg, one own native commission per conditional fill.
+No forced ETH return, hypothetical reverse fee, fixed dollar gain or cadence.
+One active Post Only GTC; 30s reviews, 120s reassessment, 600s child, 1800s original
+campaign and three replacements. Cancel/reconcile before replacement. Touches,
+time and restarts never create fills. Maker-fill calibration remains UNKNOWN.
 
-Live orders blocked starts ON. Manual clicks remain the only real-order path.
-The new 168-valid-hour trial is SHADOW ONLY and has no automatic live authority.
-Offline time is downtime, not valid monitoring. Restart preserves the same trial,
-hypothetical holdings, original HOLD benchmark, limits and accumulated progress.
+Net modeled USD versus immutable original HOLD is the main private metric.
+Losses, paid native fees and open inventory remain visible. Forecast, conditional
+model results and realized-account profit are different. Public exports contain
+fixed labels/counts only. Private reports, CSVs and receipts stay on your PC.
 
-Open Resumable Trial — 168 Valid Hours. Start once after connecting while blocked.
-Default shadow caps: $5/order, $10 lifetime turnover, four lifetime proposals,
-50% source fraction, one open proposal and a fixed 30-day intent deadline.
-HOLD is allowed; there is no one-cent trigger or forced return to ETH.
-Quotes/candles cannot create fills. Explicit replay receipts model fills only.
+168 valid hours survive interruption; offline/sleep/partial time does not count.
+A zero-trade trial is valid monitoring evidence but does not prove profitability.
+Historical v1.04 records remain separate under History archive, read only.
 
-Closing/minimizing to the Windows tray keeps monitoring. Pause stops valid hours;
-Exit safely checkpoints. Windows shutdown is allowed. Never delete a damaged
-trial to reset its accounting. At 168 valid hours preserve the summary for review.
+Live block starts ON. Deliberate OFF plus a manual order click can still send a
+bounded REAL LIMIT order. Intelligent shadow never receives automatic real
+permissions. No unattended real pilot is enabled by this release.
 
-November 4 audit: tools\AUDIT_MANUAL_FILLS.bat uses the local saved key for GET-only
-history. Detailed financial reports stay private; missing fee units remain UNKNOWN.
-Windows tray/DPAPI and connected Coinbase acceptance are still local tests.
+See VERIFICATION.txt for tested source evidence and pending native Windows,
+connected account, forecast/fill calibration and market-trial acceptance.
