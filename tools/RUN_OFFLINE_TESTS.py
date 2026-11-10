@@ -46,9 +46,11 @@ class ProgressResult(unittest.TextTestResult):
         self.progress.update(f'between tests ({self.testsRun}/{self.total} finished)')
 
 
-def main(*,manual_window=False,trial=False,assumed=False,opportunity=False,intelligent=False):
+def main(*,manual_window=False,trial=False,assumed=False,opportunity=False,intelligent=False,v106=False):
     root=Path(__file__).resolve().parents[1]
     sys.path[:0]=[str(root/'app'),str(root)]
+    if v106 and not (root/'v106/tests').is_dir():
+        print('FAIL: v1.06 tests are missing; extract the complete source package.',flush=True);return 2
     import tkinter
     print('RUNTIME',sys.platform,'Python',sys.version.split()[0],
           'SQLite',sqlite3.sqlite_version,'Tk',tkinter.TkVersion,'Tcl',tkinter.TclVersion,flush=True)
@@ -56,6 +58,7 @@ def main(*,manual_window=False,trial=False,assumed=False,opportunity=False,intel
     if manual_window:print('FOCUSED MANUAL WINDOW CHECKS ONLY; full source verification is still required.',flush=True)
     if assumed:print('FOCUSED ASSUMED-FILL CHECKS ONLY; fictional orders, no connected or execution evidence.',flush=True)
     if intelligent:print('FOCUSED V1.05 INTELLIGENT SHADOW CHECKS; synthetic evidence, no connected/native Windows acceptance.',flush=True)
+    if v106:print('FOCUSED V1.06 CHECKS including Windows GUI recovery; synthetic state, no exchange calls.',flush=True)
     if opportunity:print('FOCUSED OPPORTUNITY SHADOW CHECKS ONLY; synthetic evidence, no connected or native Windows acceptance.',flush=True)
     with Progress(sys.stderr) as progress,TemporaryDirectory(prefix='CoinCat_Offline_Disposable_') as data:
         with patch.dict(os.environ,{'COINCAT_DATA_DIR':data,'PYTHONDONTWRITEBYTECODE':'1'}):
@@ -63,7 +66,11 @@ def main(*,manual_window=False,trial=False,assumed=False,opportunity=False,intel
                     patch('websockets.sync.client.connect',side_effect=AssertionError('OFFLINE_WS_FORBIDDEN')), \
                     patch('websockets.connect',side_effect=AssertionError('OFFLINE_WS_FORBIDDEN')):
                 patterns=('test_intelligent*.py','test_multi*.py','test_order_explanation.py') if intelligent else ('test_opportunity*.py' if opportunity else 'test_assumed*.py' if assumed else 'test_spot_workspace.py' if manual_window else 'test_*trial*.py' if trial else 'test*.py',)
-                suite=unittest.TestSuite(unittest.defaultTestLoader.discover(str(root/'offline_tests'),pattern=pattern) for pattern in patterns)
+                focused=manual_window or trial or assumed or opportunity or intelligent
+                suites=[] if v106 else [unittest.TestLoader().discover(str(root/'offline_tests'),pattern=pattern) for pattern in patterns]
+                if (v106 or not focused) and (root/'v106/tests').is_dir():
+                    suites.append(unittest.TestLoader().discover(str(root/'v106/tests'),pattern='test*.py'))
+                suite=unittest.TestSuite(suites)
                 def cases(node):
                     for item in node:
                         if isinstance(item,unittest.TestSuite):yield from cases(item)
@@ -91,4 +98,5 @@ if __name__=='__main__':
     parser.add_argument('--assumed',action='store_true',help='Focused assumed-fill simulator checks only; not full acceptance.')
     parser.add_argument('--opportunity',action='store_true',help='Focused opportunity shadow policy/lifecycle/forward scenarios only; not full acceptance.')
     parser.add_argument('--intelligent',action='store_true',help='Focused v1.05 forecast, policy, source, lifecycle, privacy and workspace checks.')
-    args=parser.parse_args();raise SystemExit(main(manual_window=args.manual_window,trial=args.trial,assumed=args.assumed,opportunity=args.opportunity,intelligent=args.intelligent))
+    parser.add_argument('--v106',action='store_true',help='Focused v1.06 tests and GUI recovery checks; not full acceptance.')
+    args=parser.parse_args();raise SystemExit(main(manual_window=args.manual_window,trial=args.trial,assumed=args.assumed,opportunity=args.opportunity,intelligent=args.intelligent,v106=args.v106))

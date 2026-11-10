@@ -35,7 +35,8 @@ class MultiWorkspace(unittest.TestCase):
         self.venue.available=deepcopy(f['account']['available']);self.app.intelligent_source.history=HistoryEstimate(self.clock,f)
         self.app.intelligent_source.forecast_bundle=Bundle(self.clock,self.forecasts)
         self.app.history_source.collect=MagicMock(return_value=dict(state='READY'));self.connect();self.app.open_intelligent()
-        w=self.app.intelligent_window;w.policy.set('Multi-horizon');w.switch_policy();w.start()
+        w=self.app.intelligent_window;w.policy.set('Multi-horizon');w.switch_policy()
+        self.pump(lambda:not self.app.busy);w.start()
         self.pump(lambda:self.app.multihorizon.store is not None and not self.app.busy);w.render();return w
     def test_start_is_separate_and_old_24h_trial_remains_unchanged(self):
         w=self.begin();self.assertIsNone(self.app.intelligent.state());s=self.app.multihorizon.state()

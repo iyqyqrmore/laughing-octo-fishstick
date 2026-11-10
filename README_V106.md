@@ -4,7 +4,7 @@ M0 locally verified: maker 0.5%, taker 0.9%, maker two-leg rate sum 1.0%.
 M2 uses 0.5% maker and a 1.0% maker stress case; no taker/market fallback.
 No paper or live runner is implemented or authorized to run in this patch.
 AGENTS.md, protected execution/accounting/security/store modules remain unchanged.
-The existing v1.05 GUI receives only candle-boundary/key-import history fixes;
+The v1.05 GUI has candle-boundary/key-import and Windows timer/image lifetime fixes;
 its old trials/benchmarks remain intact and do not run the v1.06 strategies.
 
 From the existing CoinCat folder with its pinned dependencies (SDK 1.8.4):
@@ -56,5 +56,5 @@ GO requires >=60% winning windows, positive net advantage and nonnegative 2x-fee
 advantage. Otherwise recommend HOLD. BAND passing is a hypothesis, not a target.
 
 Read v106_out/backtest_report.md and backtest_results.json. Stop after M2 for review.
-Run new-code tests: .\.venv\Scripts\python.exe -m unittest discover -s v106/tests -v
+Fast offline rerun: .\.venv\Scripts\python.exe tools\RUN_OFFLINE_TESTS.py --v106
 Native Windows/real market results remain unverified until those local runs finish.

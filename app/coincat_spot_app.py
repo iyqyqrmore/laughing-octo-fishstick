@@ -221,12 +221,12 @@ class SpotApp:
         self.status=tk.StringVar(value='Connect / refresh to read markets and balances. Automation is OFF.')
         self.market=tk.StringVar(value='ETH-BTC');self.blocked=tk.BooleanVar(value=True);self.monitor_on=tk.BooleanVar(value=False)
         self.publisher=MonitorPublisher();self.last_read_at=None;self.last_error=False;self.reads=0;self.history={}
-        self.manual_public=self.engine.public();self._after=None;self.refresh_due=0;self.poll_due=0;self.stop_requested=False
+        self.manual_public=self.engine.public();self._after=None;self._connect_after=None;self.refresh_due=0;self.poll_due=0;self.stop_requested=False
         self._ui();self.refresh_local()
         self.lifecycle=WindowsLifecycle(root,self.os_shutdown)
         root.protocol('WM_DELETE_WINDOW',self.close)
         self.multihorizon_public=self.multihorizon.public();self.history_backfill_public=self.history_source.progress(clock())
-        if any(e.running for e in self.shadow_engines()):root.after(500,self.connect)
+        if any(e.running for e in self.shadow_engines()):self._connect_after=root.after(500,self.resume_connect)
         self._after=root.after(100,self.tick)
 
     def _ui(self):
@@ -310,6 +310,9 @@ class SpotApp:
             if not credentials:self.status.set('Import your key JSON locally, then Connect / refresh.');return
             protect_sdk_logs();self.client=client_from_credentials(credentials);self.reader.client=self.client;self.engine.client=self.client
         self.refresh(candles=True,account=True,history=True)
+    def resume_connect(self):
+        self._connect_after=None
+        if not self.closing and not self.closed:self.connect()
     def refresh(self,*,candles=False,account=False,history=False):
         if self.client is None:return
         pair=self.market.get();interval=self.panels[pair].interval.get()
@@ -548,7 +551,15 @@ class SpotApp:
             except (ValueError,OSError,sqlite3.Error):pass
         self.closing=True;self.stop_requested=False
     def tick(self):
+        # A direct refresh must replace its pending timer, not fork another loop.
+        pending=self._after;self._after=None
+        if pending is not None:self.root.after_cancel(pending)
         if self.closed:return
+        try:self._tick()
+        finally:
+            # A reported UI callback error must not strand safe close/reconcile.
+            if not self.closed:self._after=self.root.after(100,self.tick)
+    def _tick(self):
         try:
             while True:
                 kind,result,error=self.jobs.get_nowait();self.busy=False
@@ -641,13 +652,14 @@ class SpotApp:
         self.refresh_controls();self.portfolio_badge.render(self.portfolio_snapshot,now,self.connected)
         if self.publisher.enabled and now-getattr(self,'monitor_at',0)>=3:self.monitor_at=now;self.publisher.publish(self.publisher.sample(self))
         if self.closing and not self.busy:
+            if self._connect_after is not None:
+                self.root.after_cancel(self._connect_after);self._connect_after=None
             self.closed=True;self.portfolio_badge.close()
             if self.publisher.enabled:self.publisher.stop(self.publisher.sample(self,lifecycle='CLOSED'))
             if self.client is not None and hasattr(self.client,'session'):
                 try:self.client.session.close()
                 except OSError:pass
             self.lifecycle.close();self.root.destroy();return
-        self._after=self.root.after(100,self.tick)
     def close(self):
         if self.closing:return
         self.closing=True;self.engine.set_blocked(True);self.blocked.set(True);self.stop_requested=True

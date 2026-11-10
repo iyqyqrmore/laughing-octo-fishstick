@@ -4,6 +4,7 @@ import csv
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
+import sys
 import threading
 import time
 import tkinter as tk
@@ -23,10 +24,14 @@ class ManualWorkspace(unittest.TestCase):
         self.root.tk.createcommand('bgerror',lambda e:self.errors.append(str(e)))
         self.app=SpotApp(self.root,data=self.tmp.name,client=self.venue,clock=self.clock.wall)
         self.root.update_idletasks();self.addCleanup(self.finish)
-    def pump(self,predicate,seconds=5):
+    def pump(self,predicate,seconds=None):
+        # Native Windows storage/painting can exceed the Linux fixture budget.
+        if seconds is None:seconds=30 if sys.platform=='win32' else 5
         deadline=time.monotonic()+seconds
         while not predicate() and time.monotonic()<deadline:self.root.update();time.sleep(.005)
-        self.assertTrue(predicate(),'bounded worker did not finish');self.root.update_idletasks()
+        self.assertTrue(predicate(),'bounded worker did not finish; busy='+str(self.app.busy)+
+            ', closing='+str(self.app.closing)+', worker_alive='+str(bool(self.app.worker and self.app.worker.is_alive()))+
+            ', callback_errors='+repr(self.errors));self.root.update_idletasks()
     def finish(self):
         if not self.app.closed:self.app.close();self.pump(lambda:self.app.closed)
         self.root.tk.call('update','idletasks');self.assertEqual(self.errors,[])

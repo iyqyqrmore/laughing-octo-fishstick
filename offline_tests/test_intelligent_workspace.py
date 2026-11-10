@@ -29,7 +29,7 @@ class IntelligentWorkspace(unittest.TestCase):
         self.venue.get_market_trades=venue.get_market_trades;self.venue.available=deepcopy(template['account']['available'])
         self.app.reader.budget=None;self.app.intelligent_source.history=HistoryEstimate(self.clock,template)
         self.app.history_source.collect=MagicMock(return_value=dict(state='READY'))
-        self.connect();self.app.open_intelligent();self.app.start_intelligent()
+        self.connect();self.app.open_intelligent();self.pump(lambda:not self.app.busy);self.app.start_intelligent()
         self.pump(lambda:self.app.intelligent.store is not None and not self.app.busy)
         self.app.intelligent_window.render();return self.app.intelligent_window
     def test_default_workspace_has_one_shadow_controller_and_keeps_manual_tabs_and_one_hour_charts(self):

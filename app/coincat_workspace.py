@@ -37,8 +37,8 @@ def build_workspace(app):
     Hover(observation,'Current recovery state and last-good observation age. STOP cancels queued research/retries. Historical evidence is not current pricing.')
     banner=ttk.Frame(top);banner.grid(row=0,column=1,sticky='nsew')
     # Trim only transparent display padding; the packaged RGBA artwork is intact.
-    source=tk.PhotoImage(file=str(Path(__file__).with_name('coincat_logo_transparent.png')),format='png')
-    app._logo_source=tk.PhotoImage(width=source.width(),height=445)
+    source=tk.PhotoImage(master=root,file=str(Path(__file__).with_name('coincat_logo_transparent.png')),format='png')
+    app._logo_source=tk.PhotoImage(master=root,width=source.width(),height=445)
     app._logo_source.tk.call(app._logo_source,'copy',source,'-from',0,145,source.width(),590)
     app.logo=app._logo_source.subsample(3)
     app.logo_label=ttk.Label(banner,image=app.logo,anchor='center')
