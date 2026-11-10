@@ -28,8 +28,9 @@ def candle_rows(raw,pair,received_at,start,end):
         if not isinstance(item,dict):raise BetaBlocked('FORECAST_CANDLE_INVALID')
         try:
             t=int(item['start'])
-            if t==end and t+HOUR>received_at:continue # venue may include the still-open endpoint candle.
-            if str(t)!=str(item['start']) or t%HOUR or not start<=t<end or t+HOUR>received_at:raise ValueError()
+            if str(t)!=str(item['start']) or t%HOUR:raise ValueError()
+            if t==end:continue # inclusive venue endpoint is outside this half-open page, closed or open.
+            if not start<=t<end or t+HOUR>received_at:raise ValueError()
             o,h,l,c,v=(exact(item[k]) for k in ('open','high','low','close','volume'))
             if not 0<l<=min(o,c)<=max(o,c)<=h or v<0 or t in seen:raise ValueError()
         except (ValueError,TypeError,KeyError,ArithmeticError):raise BetaBlocked('FORECAST_CANDLE_INVALID_OR_NOT_CLOSED') from None

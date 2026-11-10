@@ -18,6 +18,9 @@ def source_files():
             'offline_tests':{'.py'},'tools':{'.py','.bat','.ps1'},'verification':{'.py'}}.items():
         for p in sorted((ROOT/folder).iterdir()):
             if p.is_file() and p.suffix in suffixes:names.append(p.relative_to(ROOT).as_posix())
+    if (ROOT/'v106').is_dir():
+        names+=['CODEX_PATCH_BRIEF_v1.06.md','README_V106.md','v106_out/.gitignore']
+        names += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT/'v106').rglob('*.py')) if p.is_file()]
     for name in names:
         p=ROOT/name
         if p.is_symlink() or not p.is_file():raise ValueError('Source file missing or symlink: '+name)
@@ -29,8 +32,8 @@ def main():
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
     data=dict(build='1.05-intelligent-one-leg-shadow',
-        description='v1.05 separate multi-horizon and retained direct-24h one-leg shadow trials; closed minute/five-minute/hourly history with progress, native source-budget explanation, own fee once, finite conditional maker lifecycle and strict redacted horizon evidence. Existing trial and manual real boundaries preserved. Native Windows/connected calibration pending.',
-        base_commit='e5b83879422dbccdf5aec6fb4a759b1beb2f1b1c',
+        description='v1.05 compatibility app with inclusive historical-candle/key-import fixes; separate v1.06 M0 fee checker, M1 public CSV export and M2 preregistered HOLD50/BAND/RATIO/ROUNDTRIP backtests when present. No paper/live runner. Existing trials, financial data and actual manual boundaries preserved; real market/Windows acceptance pending.',
+        base_commit='c9f700301829fd6ebca4182c4283218492ae7879',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
     print('Manifest source files:',len(names))
@@ -39,7 +42,7 @@ def main():
         if path==ROOT or ROOT in path.parents:raise ValueError('Keep package outside source checkout')
         with zipfile.ZipFile(path,'w',compression=zipfile.ZIP_DEFLATED) as archive:
             for name in names+['SHA256_MANIFEST.json']:
-                archive.write(ROOT/name,'CoinCat_v1.05/'+name)
+                archive.write(ROOT/name,('CoinCat_v1.06/' if (ROOT/'v106').is_dir() else 'CoinCat_v1.05/')+name)
         digest=hashlib.sha256(path.read_bytes()).hexdigest()
         path.with_suffix(path.suffix+'.sha256').write_text(digest+'  '+path.name+'\n',encoding='utf-8')
         print('Source ZIP:',path.name,'SHA256',digest)

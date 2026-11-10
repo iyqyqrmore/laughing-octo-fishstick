@@ -336,9 +336,10 @@ class SpotApp:
             self.portfolio_reader=PortfolioDisplayReader(self.reader);self.portfolio_snapshot=None
             for e in self.shadow_engines():e.pause()
             self.latest_shadow_frame=None
+            self.history_source=HistoryBackfill(self.reader,self.forecast_history,self.minute_history)
+            self.forecast_bundle=ForecastBundle(self.forecast_history,self.minute_history,self.history_source)
             self.intelligent_source=IntelligentSource(self.reader,self.forecast_history)
             self.intelligent_source.forecast_bundle=self.forecast_bundle
-            self.history_source=ForecastHistorySource(self.reader,self.forecast_history)
             self.account=None
             for panel in self.panels.values():panel.snap=None;panel.draw_book()
             self.status.set('Key saved with Windows DPAPI. Connect to refresh. Live block is ON.')

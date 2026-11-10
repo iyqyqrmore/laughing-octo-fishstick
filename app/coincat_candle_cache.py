@@ -17,8 +17,9 @@ def closed_candles(raw,pair,granularity,received,start,end):
     for item in items:
         try:
             t=int(item['start'])
-            if t==end and t+seconds>received:continue
-            if str(t)!=str(item['start']) or t%seconds or not start<=t<end or t+seconds>received or t in seen:raise ValueError()
+            if str(t)!=str(item['start']) or t%seconds:raise ValueError()
+            if t==end:continue
+            if not start<=t<end or t+seconds>received or t in seen:raise ValueError()
             o,h,l,c,v=(exact(item[k]) for k in ('open','high','low','close','volume'))
             if not 0<l<=min(o,c)<=max(o,c)<=h or v<0:raise ValueError()
         except (KeyError,ValueError,TypeError,ArithmeticError):raise BetaBlocked('HISTORY_CANDLE_NOT_CLOSED_OR_INVALID') from None

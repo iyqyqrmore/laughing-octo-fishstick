@@ -1,39 +1,56 @@
-# CoinCat v1.06 — M0 fee check only
+# CoinCat v1.06 — M0, candle export and M2 backtests only
 
-ETH-BTC is the only order market in this patch. M1–M5 are not implemented.
-The existing v1.05 app, AGENTS.md and protected modules are unchanged.
+M0 locally verified: maker 0.5%, taker 0.9%, maker two-leg rate sum 1.0%.
+M2 uses 0.5% maker and a 1.0% maker stress case; no taker/market fallback.
+No paper or live runner is implemented or authorized to run in this patch.
+AGENTS.md, protected execution/accounting/security/store modules remain unchanged.
+The existing v1.05 GUI receives only candle-boundary/key-import history fixes;
+its old trials/benchmarks remain intact and do not run the v1.06 strategies.
 
-From your existing CoinCat Windows folder, using its installed dependencies:
+From the existing CoinCat folder with its pinned dependencies (SDK 1.8.4):
 
 ```bat
 .\.venv\Scripts\python.exe -m v106.fee_check
+.\.venv\Scripts\python.exe -m v106.export_candles
+.\.venv\Scripts\python.exe -m v106.backtest
 ```
 
-The checker reads the saved key under your current Windows user, or the standard
-`COINBASE_API_KEY` and `COINBASE_API_SECRET` environment variables if both are set.
-An existing `COINCAT_DATA_DIR` is respected. Never paste keys into chat.
-Uses the pinned 1.8.4 SDK and GETs only: SPOT transaction summary, ETH-BTC product
-rules and its current pricebook. It never reads balances or fills,
-submits orders, cancels orders, starts a strategy or changes the live block.
+M0 uses the saved Windows key or COINBASE_API_KEY + COINBASE_API_SECRET;
+COINCAT_DATA_DIR is respected. No key is needed by M1 or M2. Never share keys.
+M1 exports closed ETH-BTC, BTC-USD and ETH-USD public candles at 1h/5m, up to
+730 days. USD pairs are references only. Pages include at most 350 response bars;
+the inclusive endpoint is excluded whether closed or open. Requests are paced.
+Progress prints saved rows/date; a full export can take 30+ minutes.
+Optional --start / --end accept UTC dates or offset timestamps; --days defaults 730.
+Rerun the same command to resume; first observations win, corrections are logged.
 
-Output: `v106_out/fees.json` (ignored by Git), UTC capture time, authenticated
-maker/taker rates, two-leg rate sums, native increments/min/max and gross minimum
-BUY at BID / SELL at ASK in ETH and BTC. The quote minimum can require more ETH
-than the base increment alone suggests. Minimum notional excludes fees and is
-not a funded/accepted exchange order. Rate sums exclude spread and price changes;
-they are not an exact realized round-trip settlement. No future fee is debited.
-Coinbase One is not used to infer discounts or commission currencies/precision.
+v106_out/data contains six CSVs, gaps.csv, conflicts.csv, export_state.json and
+export_summary.json. NO_CANDLE_RETURNED means a requested missing bar;
+NOT_FETCHED means an unsuccessful/unattempted download, not a proven market gap.
+No missing candles are synthesized. Data/output is ignored by Git.
+M2 waits for a COMPLETE export and the verified fees.json. A failed/absent export
+produces NOT EVALUATED, never a fabricated GO/NO-GO verdict or simulated market data.
 
-`VERIFIED` / exit 0 means all M0 reads/calculations passed, not trading permission.
-`PARTIAL` or `UNVERIFIED` / exit 1 leaves unavailable fields null with fixed errors;
-no guessed fee is substituted. Exit 2 means the output could not be saved.
-If the cloud has no saved key/network access, run locally and provide the fee
-output or fees.json, never credentials. Native Windows/API truth is then checked.
+M2 design committed before evaluation: 78f70fa; see CODEX_PATCH_BRIEF_v1.06.md.
+HOLD50 is unchanged initial 50/50 inventory, zero trades/fees; its no-trade alias
+is not an independent baseline. BAND, RATIO and ROUNDTRIP compete against it.
+60 days train / next unseen 30 days; no selection on test/stress outcomes.
+Wallet/HOLD/open cycles carry across test windows, preserving open losses.
+ROUNDTRIP uses <=50% source, fixed 50/50 entry-side rule (tie BUY), entry chase,
+partial-size exits and exact fee-derived break-even. No losing liquidation.
+Only margin, entry ticks and max_hold_days are optimized for ROUNDTRIP.
+Exit target stays frozen; an explicit max_hold_days removes margin only.
 
-New-code tests only (synthetic responses; no HTTP):
+OHLCV cannot supply historic BID/ASK/queues: backtest touch is a declared
+close +/- one native tick proxy. Only next-bar trade-through >=1 tick can fill;
+volume bounds partial fills, and gaps never create fills. Not calibrated execution.
+Fees accrue once per filled leg in BTC under a stated simulation assumption.
+Reports include fees as % total starting portfolio, native fees, losses, cycles,
+misses, entry replaces/cancels, drawdown and USD/BTC advantage versus HOLD50.
+UTC daily cycle counts and the full simulated ledger are in backtest_results.json.
+GO requires >=60% winning windows, positive net advantage and nonnegative 2x-fee
+advantage. Otherwise recommend HOLD. BAND passing is a hypothesis, not a target.
 
-```bat
-.\.venv\Scripts\python.exe -m unittest discover -s v106/tests -v
-```
-
-Stop after M0. Review the authenticated numbers before M1.
+Read v106_out/backtest_report.md and backtest_results.json. Stop after M2 for review.
+Run new-code tests: .\.venv\Scripts\python.exe -m unittest discover -s v106/tests -v
+Native Windows/real market results remain unverified until those local runs finish.
