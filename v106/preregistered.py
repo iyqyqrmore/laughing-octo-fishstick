@@ -7,6 +7,8 @@ TAKER = D("0.009")
 FEE_STRESS = D(2)
 CAPITAL_USD = D(200)  # Simulated capital only; no live allocation.
 TRAIN_DAYS, TEST_DAYS = 60, 30
+MIN_TEST_WINDOWS = 10
+MIN_ADVANTAGE_FRACTION = D("0.01")
 SOURCE_FRACTION = D("0.5")
 ENTRY_MINUTES = 10
 MAX_SPREAD = D("0.001")
@@ -31,5 +33,6 @@ def grid(name):
     raise ValueError("Unknown registered strategy")
 
 
-def verdict(wins, windows, advantage, stressed_advantage):
-    return "GO" if windows and wins*5 >= windows*3 and advantage > 0 and stressed_advantage >= 0 else "NO-GO"
+def verdict(wins, windows, advantage, stressed_advantage, starting_portfolio=CAPITAL_USD):
+    return "GO" if (windows >= MIN_TEST_WINDOWS and wins*5 >= windows*3 and advantage > 0 and
+        advantage >= starting_portfolio*MIN_ADVANTAGE_FRACTION and stressed_advantage >= 0) else "NO-GO"

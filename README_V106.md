@@ -52,8 +52,8 @@ Reports include fees as % total starting portfolio, native fees, losses, cycles,
 misses, entry replaces/cancels, drawdown and USD/BTC advantage versus HOLD50.
 BUY-/SELL-first counts, exit durations, net profit, fees and stuck/open time are
 split for each variant and fee scenario. Daily counts/full ledger are in the JSON.
-GO requires >=60% winning windows, positive net advantage and nonnegative 2x-fee
-advantage. Otherwise recommend HOLD. BAND passing is a hypothesis, not a target.
+GO requires >=10 unseen windows, >=60% wins, >=1% initial-portfolio net advantage
+and nonnegative 2x-fee advantage. Otherwise NO-GO; BAND passing is a hypothesis.
 
 Read v106_out/backtest_report.md and backtest_results.json. Stop after M2 for review.
 Fast offline rerun: .\.venv\Scripts\python.exe tools\RUN_OFFLINE_TESTS.py --v106
