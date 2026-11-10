@@ -31,13 +31,16 @@ No missing candles are synthesized. Data/output is ignored by Git.
 M2 waits for a COMPLETE export and the verified fees.json. A failed/absent export
 produces NOT EVALUATED, never a fabricated GO/NO-GO verdict or simulated market data.
 
-M2 design committed before evaluation: 78f70fa; see CODEX_PATCH_BRIEF_v1.06.md.
+M2 preregistration 78f70fa; direction/comparison amendment 4dc4ca8 before evaluation.
 HOLD50 is unchanged initial 50/50 inventory, zero trades/fees; its no-trade alias
-is not an independent baseline. BAND, RATIO and ROUNDTRIP compete against it.
+is not an independent baseline. BAND, RATIO and both ROUNDTRIP variants compare to it.
 60 days train / next unseen 30 days; no selection on test/stress outcomes.
 Wallet/HOLD/open cycles carry across test windows, preserving open losses.
-ROUNDTRIP uses <=50% source, fixed 50/50 entry-side rule (tie BUY), entry chase,
-partial-size exits and exact fee-derived break-even. No losing liquidation.
+ROUNDTRIP uses total ETH/BTC (including reservations) at native BID/ASK mid:
+ETH weight <=50% means BUY; >50% SELL. Freeze side at cycle start; no tolerance.
+<=50% source, entry chase, partial-size exits and exact fee-derived break-even.
+ROUNDTRIP_ALTERNATING starts BUY, flips on completion, reuses ROUNDTRIP training
+parameters; all other rules match. No losing liquidation or extra direction knob.
 Only margin, entry ticks and max_hold_days are optimized for ROUNDTRIP.
 Exit target stays frozen; an explicit max_hold_days removes margin only.
 
@@ -47,7 +50,8 @@ volume bounds partial fills, and gaps never create fills. Not calibrated executi
 Fees accrue once per filled leg in BTC under a stated simulation assumption.
 Reports include fees as % total starting portfolio, native fees, losses, cycles,
 misses, entry replaces/cancels, drawdown and USD/BTC advantage versus HOLD50.
-UTC daily cycle counts and the full simulated ledger are in backtest_results.json.
+BUY-/SELL-first counts, exit durations, net profit, fees and stuck/open time are
+split for each variant and fee scenario. Daily counts/full ledger are in the JSON.
 GO requires >=60% winning windows, positive net advantage and nonnegative 2x-fee
 advantage. Otherwise recommend HOLD. BAND passing is a hypothesis, not a target.
 

@@ -9,7 +9,8 @@ from v106.fee_check import ROOT,exact,save_report
 from v106.export_candles import bar,iso
 from v106.simulator import Simulator
 from v106.strategies import snap
-from v106.preregistered import MAKER,TAKER,FEE_STRESS,TRAIN_DAYS,TEST_DAYS,STRATEGIES,SOURCE_FRACTION,ENTRY_SIDE,grid,verdict
+from v106.preregistered import (MAKER,TAKER,FEE_STRESS,TRAIN_DAYS,TEST_DAYS,STRATEGIES,SOURCE_FRACTION,
+    ENTRY_SIDE,ROUNDTRIPS,ALTERNATING_SIDE,ALTERNATING_PARAMETERS,grid,verdict)
 from coincat_execution_limits import native_math
 
 
@@ -34,6 +35,7 @@ def load_frames(directory,rules):
 
 @native_math
 def choose(name,frames,rules):
+    if name=='ROUNDTRIP_ALTERNATING':raise ValueError('Reuse ROUNDTRIP selection; no alternating parameter search')
     best=None
     for index,params in enumerate(grid(name)):
         sim=Simulator(name,frames[0],rules,params=params)
@@ -53,9 +55,12 @@ def study(frames,rules,*,train_days=TRAIN_DAYS,test_days=TEST_DAYS,progress=None
         test=frames[bisect_left(stamps,cut):bisect_left(stamps,cut+test_days*86400)]
         if not train or not test:cut+=test_days*86400;continue
         row=dict(start_utc=iso(test[0]['at']),end_utc=iso(test[-1]['at']),train_end_utc=iso(train[-1]['at']),observations=len(test),results={})
+        selected={}
         for name in STRATEGIES:
-            if progress:progress(f"M2 window {len(windows)+1} {row['start_utc']} | {name} | selecting on {len(train)} past bars, then {len(test)} unseen bars")
-            params=choose(name,train,rules)
+            selection='reusing ROUNDTRIP training choice' if name=='ROUNDTRIP_ALTERNATING' else f'selecting on {len(train)} past bars'
+            if progress:progress(f"M2 window {len(windows)+1} {row['start_utc']} | {name} | {selection}, then {len(test)} unseen bars")
+            params=selected['ROUNDTRIP'] if name=='ROUNDTRIP_ALTERNATING' else choose(name,train,rules)
+            selected[name]=params
             if name not in engines:
                 engines[name]=Simulator(name,test[0],rules,params=params,record=True)
                 stress[name]=Simulator(name,test[0],rules,params=params,fee=MAKER*FEE_STRESS)
@@ -77,13 +82,21 @@ def study(frames,rules,*,train_days=TRAIN_DAYS,test_days=TEST_DAYS,progress=None
             for key in ('orders','filled_orders','fills','misses','entry_cancels','entry_replaces','cycles','gaps'):
                 result[key]=after[key]-before[key]
             result['trades']=result['filled_orders']
+            if name in ROUNDTRIPS:
+                result['by_entry_side']={}
+                for side,g in after['by_entry_side'].items():
+                    b=before['by_entry_side'][side]
+                    delta={k:g[k]-b[k] for k in ('started','entered','completed','exit_seconds','net_btc','net_usd','fees_btc','fees_usd')}
+                    delta.update(average_days_to_exit=D(delta['exit_seconds'])/delta['completed']/86400 if delta['completed'] else None,
+                        max_stuck_days_to_date=g['max_stuck_days'],current_stuck_days=g['current_stuck_days'],open_entry=g['open_entry'],open_exit=g['open_exit'])
+                    result['by_entry_side'][side]=delta
             row['results'][name]=result
         windows.append(row);cut+=test_days*86400
     summaries={}
     for name,sim in engines.items():
         final=sim.snapshot();doubled=stress[name].snapshot();wins=sum(w['results'][name]['advantage_change_usd']>0 for w in windows)
         final.update(winning_windows=wins,test_windows=len(windows),stress_advantage_usd=doubled['advantage_usd'],stress_advantage_btc=doubled['advantage_btc'],
-            stress_fees_pct_initial_portfolio=doubled['fees_pct_initial_portfolio'],
+            stress_fees_pct_initial_portfolio=doubled['fees_pct_initial_portfolio'],stress_by_entry_side=doubled['by_entry_side'],
             verdict='REFERENCE' if name=='HOLD50' else verdict(wins,len(windows),final['advantage_usd'],doubled['advantage_usd']))
         summaries[name]=final
         ledger.extend(dict(strategy=name,**r) for r in sim.records)
@@ -101,6 +114,8 @@ def render(result):
         'Maker 0.5% per filled leg; stress 1.0%. Taker 0.9% is recorded but never used. Fees are native BTC under an explicit model, not exact exchange settlement proof.',
         'Portfolio: simulated $200 initially 50/50 BTC/ETH, unchanged original HOLD50. No-trade HOLD50 is this same baseline, not an independent fourth sample.',
         'Only unseen 30-day windows are headline results; preceding 60 days choose parameters. Continuous OOS inventory/HOLD/stuck cycles carry across windows.',
+        'ROUNDTRIP chooses direction once per cycle from total ETH/BTC at BID/ASK mid, including reservations; <=50% ETH means BUY, >50% SELL. No tolerance. Entry replacements keep that side.',
+        'ROUNDTRIP_ALTERNATING starts BUY and flips only after completion; it reuses the exact ROUNDTRIP training parameters, dates, funding, fee and fill model without a separate search.',
         'OHLCV has no historical BBO/queue: modeled close +/- one tick; next-bar strict trade-through only, volume-bounded partials, no same-bar exit. No calibrated execution/profit claim.',
         'Missing synchronized bars cancel without fills and preserve inventory; observed drawdown cannot reveal unobserved intragap extremes.',
         'Fee percentage denominator: total starting portfolio value (each window / initial aggregate), never merely trade notional. Long-only time in market is 100%.','',
@@ -109,11 +124,19 @@ def render(result):
     for name,r in summaries.items():
         values=[name,r['verdict'],f"{r['winning_windows']}/{r['test_windows']}",r['advantage_usd'],r['advantage_btc'],r['stress_advantage_usd'],r['fees_usd'],r['fees_pct_initial_portfolio'],r['cycles_per_day'],r['average_days_per_cycle'],r['max_stuck_days'],f"{r['misses']}/{r['orders']}",r['open_cycle'],r['max_drawdown']]
         lines.append('| '+' | '.join(map(fmt,values))+' |')
-    if 'ROUNDTRIP' in summaries:
-        r=summaries['ROUNDTRIP']
-        lines+=['',f"ROUNDTRIP: {r['cycles']} completed cycles; {r['trades']} filled orders; {r['partials']} partial-fill events; {r['entry_cancels']} entry cancels / {r['entry_replaces']} replacements; {r['pending_orders']} pending orders.",
+    for name in ROUNDTRIPS:
+        if name not in summaries:continue
+        r=summaries[name]
+        lines+=['',f"{name}: {r['cycles']} completed cycles; {r['trades']} filled orders; {r['partials']} partial-fill events; {r['entry_cancels']} entry cancels / {r['entry_replaces']} replacements; {r['pending_orders']} pending orders.",
             'Completed-cycle modeled profit, marked in USD at completion: '+fmt(r['cycle_profit_usd'])+' USD / '+fmt(r['cycle_profit_btc'])+' BTC. Open inventory is also included in the HOLD comparison.',
-            'UTC completed cycles per day: '+str(r['cycles_by_day'])]
+            'UTC completed cycles per day: '+str(r['cycles_by_day']),
+            'Counts separate started / entry-filled / completed cycles. Average days to exit starts at the entry fill. Net is completed-cycle profit after both own fees; fee totals also include open cycles. Stuck time runs from entry fill, including any still-open cycle.',
+            '| Fee scenario | Entry side | Started / entered / completed | Average days to exit | Net USD | Net BTC | Fees USD | Fees BTC | Max stuck days | Current stuck days | Open entry / exit |',
+            '|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|']
+        for scenario,groups in (('0.5% maker',r['by_entry_side']),('1.0% stress',r['stress_by_entry_side'])):
+            for side,g in groups.items():
+                values=[scenario,side+'-first',f"{g['started']} / {g['entered']} / {g['completed']}",g['average_days_to_exit'],g['net_usd'],g['net_btc'],g['fees_usd'],g['fees_btc'],g['max_stuck_days'],g['current_stuck_days'],f"{g['open_entry']} / {g['open_exit']}"]
+                lines.append('| '+' | '.join(map(fmt,values))+' |')
     lines+=['','| Unseen window | Strategy | USD change vs HOLD | BTC change vs HOLD | Fees % portfolio | Trades / fill events | Misses | Max DD | Selected parameters |','|---|---|---:|---:|---:|---|---:|---:|---|']
     for w in result['windows']:
         for name,r in w['results'].items():
@@ -140,8 +163,10 @@ def main(argv=None):
     result['m0_sha256']=hashlib.sha256(a.fees.read_bytes()).hexdigest()
     result['data_hashes']={f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in a.data.glob('*_5m.csv')}
     result['design']=dict(maker=str(MAKER),taker_recorded_not_used=str(TAKER),stress=str(FEE_STRESS),train_days=TRAIN_DAYS,test_days=TEST_DAYS,
-        preregistration_commit='78f70fa',preregistration_sha256=hashlib.sha256((Path(__file__).with_name('preregistered.py')).read_bytes()).hexdigest(),
+        preregistration_commit='4dc4ca83d491c2f3fcf54889055ce914d7ca6400',original_preregistration_commit='78f70fa',
+        preregistration_sha256=hashlib.sha256((Path(__file__).with_name('preregistered.py')).read_bytes()).hexdigest(),
         source_fraction=str(SOURCE_FRACTION),entry_side=ENTRY_SIDE,grids={n:grid(n) for n in STRATEGIES},
+        alternating_side=ALTERNATING_SIDE,alternating_parameters=ALTERNATING_PARAMETERS,
         quote_model='CLOSE_PLUS_MINUS_ONE_TICK_UNCALIBRATED',live_authority=False)
     # Decimal strings preserve exact native arithmetic in private model results.
     (a.output/'backtest_results.json').write_text(json.dumps(result,default=str,indent=2)+'\n',encoding='utf-8')

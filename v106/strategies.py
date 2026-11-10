@@ -15,15 +15,24 @@ def spread(frame):
 
 
 @native_math
+def eth_btc_weight(wallet, frame):
+    """Total owned quantities, including reservations; never available-only funds."""
+    eth_btc=wallet['ETH']*(frame['bid']+frame['ask'])/2
+    total=eth_btc+wallet['BTC']
+    return eth_btc/total if total else None
+
+
+@native_math
 def side_for(name, params, wallet, frame, trail):
+    if name=='ROUNDTRIP':
+        weight=eth_btc_weight(wallet,frame)
+        if weight is None or spread(frame)>MAX_SPREAD:return None
+        return 'BUY' if weight<=D('.5') else 'SELL'
     eth_value=wallet['ETH']*frame['eth_usd']; value=eth_value+wallet['BTC']*frame['btc_usd']
     weight=eth_value/value
     if name=='HOLD50': return None
     if name=='BAND':
         return ('SELL' if weight>D('.5') else 'BUY') if abs(weight-D('.5'))>params['band'] else None
-    if name=='ROUNDTRIP':
-        if spread(frame)>MAX_SPREAD: return None
-        return 'BUY' if weight<=D('.5') else 'SELL'
     if name!='RATIO': raise ValueError('Unknown strategy')
     if len(trail)<288: return None
     prices=list(trail)[-288:]; logs=[math.log(float(p)) for p in prices]

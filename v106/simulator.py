@@ -6,7 +6,7 @@ from datetime import datetime,timezone
 from v106.fee_check import exact
 from coincat_execution_limits import native_math
 from v106 import strategies as policy
-from v106.preregistered import MAKER,CAPITAL_USD,SOURCE_FRACTION,ENTRY_MINUTES,MAX_SPREAD
+from v106.preregistered import MAKER,CAPITAL_USD,SOURCE_FRACTION,ENTRY_MINUTES,MAX_SPREAD,ROUNDTRIPS
 
 
 class Simulator:
@@ -22,6 +22,8 @@ class Simulator:
         self.metrics=dict(orders=0,filled_orders=0,fills=0,partials=0,misses=0,cancels=0,entry_cancels=0,
             entry_replaces=0,gaps=0,cycles=0,fees_btc=D(0),fees_usd=D(0),cycle_profit_btc=D(0),
             cycle_profit_usd=D(0),cycle_seconds=D(0),max_stuck_seconds=0,max_drawdown=D(0),cycles_by_day={})
+        self.by_entry_side={side:dict(started=0,entered=0,completed=0,exit_seconds=0,max_stuck_seconds=0,
+            net_btc=D(0),net_usd=D(0),fees_btc=D(0),fees_usd=D(0)) for side in ('BUY','SELL')}
         self.peak=capital
 
     def emit(self,event,frame,**details):
@@ -69,31 +71,41 @@ class Simulator:
         o['filled']+=q;o['remaining']-=q
         self.metrics['fees_btc']+=commission;self.metrics['fees_usd']+=commission*frame['btc_usd']
         self.emit('CONDITIONAL_BAR_FILL',frame,order=o['id'],side=side,quantity=q,price=p,fee_btc=commission,
-            remaining=o['remaining'],quote_fee_assumption='BTC_NOT_EXCHANGE_SETTLEMENT_PROOF')
-        if self.name!='ROUNDTRIP':
+            remaining=o['remaining'],entry_side=self.cycle['side'] if self.cycle else None,
+            quote_fee_assumption='BTC_NOT_EXCHANGE_SETTLEMENT_PROOF')
+        if self.name not in ROUNDTRIPS:
             if not o['remaining']:self.order=None
             return
-        c=self.cycle;c['pnl_btc']+=change
+        c=self.cycle;c['pnl_btc']+=change;group=self.by_entry_side[c['side']]
+        group['fees_btc']+=commission;group['fees_usd']+=commission*frame['btc_usd']
         if o['phase']=='ENTRY':
+            group['entered']+=1
             c.update(side=side,entry_price=p,entry_fee=self.fee,quantity=q,remaining=q,entered_at=frame['at'],phase='EXIT')
             if o['remaining']:self.cancel(frame,'PARTIAL_ENTRY_CANCEL_REMAINDER_EXIT_FILLED_SIZE_ONLY')
             else:self.order=None
         else:
-            self.metrics['max_stuck_seconds']=max(self.metrics['max_stuck_seconds'],frame['at']-c['entered_at'])
+            self.stuck(frame)
             c['remaining']-=q
             if not c['remaining']:
                 self.metrics['cycles']+=1;self.metrics['cycle_profit_btc']+=c['pnl_btc']
                 day=datetime.fromtimestamp(frame['at'],timezone.utc).date().isoformat()
                 self.metrics['cycles_by_day'][day]=self.metrics['cycles_by_day'].get(day,0)+1
                 self.metrics['cycle_profit_usd']+=c['pnl_btc']*frame['btc_usd'];self.metrics['cycle_seconds']+=frame['at']-c['started_at']
-                self.emit('CYCLE_COMPLETE',frame,net_btc=c['pnl_btc'],net_usd=c['pnl_btc']*frame['btc_usd'])
+                group['completed']+=1;group['exit_seconds']+=frame['at']-c['entered_at']
+                group['net_btc']+=c['pnl_btc'];group['net_usd']+=c['pnl_btc']*frame['btc_usd']
+                self.emit('CYCLE_COMPLETE',frame,entry_side=c['side'],net_btc=c['pnl_btc'],net_usd=c['pnl_btc']*frame['btc_usd'])
                 self.cycle=None;self.order=None
             elif not o['remaining']:self.order=None
+
+    def stuck(self,frame):
+        c=self.cycle;age=frame['at']-c['entered_at'];group=self.by_entry_side[c['side']]
+        group['max_stuck_seconds']=max(group['max_stuck_seconds'],age)
+        self.metrics['max_stuck_seconds']=max(self.metrics['max_stuck_seconds'],age)
 
     def roundtrip(self,frame):
         c=self.cycle;tick=exact(self.rules['price_increment'])
         if c and c['phase']=='EXIT':
-            age=frame['at']-c['entered_at'];self.metrics['max_stuck_seconds']=max(self.metrics['max_stuck_seconds'],age)
+            age=frame['at']-c['entered_at'];self.stuck(frame)
             hold=c['params'].get('max_hold_days');expired=hold is not None and age>=hold*86400
             margin=D(0) if expired else c['params'].get('profit_margin',D('.003'))
             if self.order is not None and expired and not c.get('breakeven_only'):
@@ -111,14 +123,19 @@ class Simulator:
             if policy.spread(frame)>MAX_SPREAD:self.cancel(frame,'SPREAD_WIDE_WAIT')
             elif abs(touch-self.order['price'])>n*tick or frame['at']-self.order['created']>=ENTRY_MINUTES*60:
                 self.cancel(frame,'ENTRY_REPRICE_OR_AGE')
-        if self.order is None:
-            side=policy.side_for('ROUNDTRIP',self.params,self.wallet,frame,self.trail)
+        if self.order is None and policy.spread(frame)<=MAX_SPREAD:
+            if c:side=c['side']
+            elif self.name=='ROUNDTRIP_ALTERNATING':side='BUY' if self.metrics['cycles']%2==0 else 'SELL'
+            else:side=policy.side_for('ROUNDTRIP',self.params,self.wallet,frame,self.trail)
             if side:
                 p=frame['bid'] if side=='BUY' else frame['ask']
                 q=policy.quantity_for('ROUNDTRIP',side,self.wallet,frame,p,self.fee,self.rules,self.fraction)
                 old=c is not None
-                if c is None:self.cycle=dict(started_at=frame['at'],phase='ENTRY',pnl_btc=D(0),params=deepcopy(self.params))
                 self.place(frame,side,q,p,'ENTRY')
+                if c is None and self.order:
+                    self.cycle=dict(started_at=frame['at'],side=side,phase='ENTRY',pnl_btc=D(0),params=deepcopy(self.params))
+                    self.by_entry_side[side]['started']+=1
+                    self.emit('CYCLE_START',frame,entry_side=side,total_eth_btc_weight=policy.eth_btc_weight(self.wallet,frame))
                 if old and self.order:self.metrics['entry_replaces']+=1
 
     @native_math
@@ -129,7 +146,7 @@ class Simulator:
             self.metrics['gaps']+=1;self.cancel(frame,'MISSING_BAR_NO_DOWNTIME_FILL');self.trail.clear()
         else:self.fill(frame)
         self.trail.append(frame['close'])
-        if self.name=='ROUNDTRIP':self.roundtrip(frame)
+        if self.name in ROUNDTRIPS:self.roundtrip(frame)
         elif self.name!='HOLD50':
             if self.order and frame['at']-self.order['created']>=600:self.cancel(frame,'TWO_BAR_EXPIRY')
             if self.order is None:
@@ -145,7 +162,15 @@ class Simulator:
     @native_math
     def snapshot(self):
         v=self.value(self.last or self.seed);m=deepcopy(self.metrics);days=max(D(1)/288,D((self.last or self.seed)['at']-self.started)/86400)
+        groups=deepcopy(self.by_entry_side)
+        for side,g in groups.items():
+            active=self.cycle if self.cycle and self.cycle['side']==side else None
+            g.update(average_days_to_exit=D(g['exit_seconds'])/g['completed']/86400 if g['completed'] else None,
+                max_stuck_days=D(g['max_stuck_seconds'])/86400,open_entry=int(bool(active and active['phase']=='ENTRY')),
+                open_exit=int(bool(active and active['phase']=='EXIT')),
+                current_stuck_days=D((self.last or self.seed)['at']-active['entered_at'])/86400 if active and active['phase']=='EXIT' else D(0))
         return dict(**v,**m,trades=m['filled_orders'],wallet=deepcopy(self.wallet),original=deepcopy(self.original),
+            by_entry_side=groups,
             fees_pct_initial_portfolio=100*m['fees_usd']/self.capital,
             cycles_per_day=D(m['cycles'])/days,average_days_per_cycle=m['cycle_seconds']/m['cycles']/86400 if m['cycles'] else None,
             max_stuck_days=D(m['max_stuck_seconds'])/86400,open_cycle=bool(self.cycle and self.cycle['phase']=='EXIT'),
