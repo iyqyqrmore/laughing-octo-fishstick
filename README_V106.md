@@ -4,7 +4,7 @@ M0 locally verified: maker 0.5%, taker 0.9%, maker two-leg rate sum 1.0%.
 M2 uses 0.5% maker and a 1.0% maker stress case; no taker/market fallback.
 No paper or live runner is implemented or authorized to run in this patch.
 AGENTS.md, protected execution/accounting/security/store modules remain unchanged.
-The v1.05 GUI has candle-boundary/key-import and Windows timer/image lifetime fixes;
+The v1.05 GUI has history, Tk lifetime and consistent public-snapshot fixes;
 its old trials/benchmarks remain intact and do not run the v1.06 strategies.
 
 From the existing CoinCat folder with its pinned dependencies (SDK 1.8.4):

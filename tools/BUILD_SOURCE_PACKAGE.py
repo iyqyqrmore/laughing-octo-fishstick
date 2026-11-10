@@ -32,7 +32,7 @@ def main():
     parser.add_argument('--zip',type=Path);args=parser.parse_args()
     names=source_files()
     data=dict(build='1.05-intelligent-one-leg-shadow',
-        description='v1.05 compatibility app with inclusive candle/key-import fixes and explicit Tk image/single-timer lifetime recovery; separate v1.06 M0/M1/M2 backtests with frozen BTC-mid and paired alternating ROUNDTRIP directions. Full verification includes legacy and v1.06 suites. No paper/live runner; protected financial/execution modules preserved. Native Windows rerun and real market evaluation pending.',
+        description='v1.05 compatibility app with history/Tk lifetime fixes and single-snapshot public totals/horizon/order facts under strict unchanged validation; separate v1.06 M0/M1/M2 backtests with frozen BTC-mid and paired alternating ROUNDTRIP directions. Full verification includes legacy and v1.06 suites. No paper/live runner; protected financial/execution modules preserved. Native Windows rerun and real market evaluation pending.',
         base_commit='c9f700301829fd6ebca4182c4283218492ae7879',
         files={n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in names})
     (ROOT/'SHA256_MANIFEST.json').write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')

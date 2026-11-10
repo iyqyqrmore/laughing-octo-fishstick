@@ -39,7 +39,7 @@ class LegacyOpportunityPolicy:
     def record_rejections(self,metrics,rows):return record_rejections(metrics,rows)
     def validate_rejections(self,value,total):return validate_rejection_detail(value,total)
     def rejection_summary(self,metrics):return rejection_summary(metrics)
-    def public(self,value,engine):return project(value)
+    def public(self,value,engine,view):return project(value)
 
 def validate(state):return validate_state(state,LegacyOpportunityPolicy())
 

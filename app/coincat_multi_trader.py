@@ -117,9 +117,9 @@ class MultiPolicy(IntelligentPolicy):
             resolved=next((i for i,p in enumerate(s['predictions']) if p['state']!='WAITING'),None)
             if resolved is None:raise BetaBlocked('MULTI_PENDING_FORECAST_LIMIT')
             s['predictions'].pop(resolved)
-    def public(self,value,engine):
-        frame=engine.last_frame;now=engine.clock();state=engine.state();fresh=bool(frame and 0<=now-frame['at']<=30);native,refs=coverage(frame,now) if fresh else (0,0)
-        order=engine.view().get('active_order');metrics={} if state is None else state['metrics'];evidence={} if state is None else state['forecast_evidence'];per={} if state is None else state['horizon_prediction_counts']
+    def public(self,value,engine,view):
+        frame=engine.last_frame;now=engine.clock();state=view.get('state');fresh=bool(frame and 0<=now-frame['at']<=30);native,refs=coverage(frame,now) if fresh else (0,0)
+        order=view.get('active_order');metrics={} if state is None else state['metrics'];evidence={} if state is None else state['forecast_evidence'];per={} if state is None else state['horizon_prediction_counts']
         value.update(data_state='UNOBSERVED' if frame is None else 'STALE' if not fresh else 'FRESH' if engine.lease and engine.lease['valid'] else 'PARTIAL',
             market_coverage=native,valuation_coverage=refs,active_orders=int(order is not None),unresolved_orders=int(order is not None and order['state']=='UNKNOWN'),
             order_active_reviews=metrics.get('order_active_reviews',0),unknown_events_blocking=metrics.get('unknown_events',0))

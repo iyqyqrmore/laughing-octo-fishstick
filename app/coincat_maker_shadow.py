@@ -595,11 +595,13 @@ class MakerShadowTrader:
             performance=deepcopy(s['last_performance']))
     def view(self):return deepcopy(self._view)
     def public(self):
-        s=self._view.get('state');p=self.progress();m={} if s is None else s['metrics']
+        # A worker may commit/publish during this call. All model counters and
+        # order facts must come from this one immutable published observation.
+        view=self.view();s=view.get('state');p=self.progress();m={} if s is None else s['metrics']
         phase='REVIEW_REQUIRED' if self.load_error else 'OFF' if s is None and not self.running else 'WAITING' if s is None else s['mode']
         return self.policy.public(dict(state=phase,valid_seconds=0 if p is None else int(p['valid_seconds']),restart_count=0 if p is None else p['restart_count'],
-            order_state='NONE' if self._view.get('active_order') is None else self._view['active_order']['state'],
-            rejection_breakdown=self.policy.rejection_summary(m),**{k:m.get(k,0) for k in COUNTERS}),self)
+            order_state='NONE' if view.get('active_order') is None else view['active_order']['state'],
+            rejection_breakdown=self.policy.rejection_summary(m),**{k:m.get(k,0) for k in COUNTERS}),self,view)
     def write_report(self):
         if self.store is None:return None
         path=self.path.with_name(self.policy.report_prefix+self.state()['trial_id']+'-summary.json')

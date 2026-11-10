@@ -87,14 +87,14 @@ class IntelligentPolicy:
             while len(s['predictions'])>200:
                 if s['predictions'][0]['state']=='WAITING':raise BetaBlocked('INTELLIGENT_PENDING_FORECAST_LIMIT')
                 s['predictions'].pop(0)
-    def public(self,value,engine):
-        frame=engine.last_frame;now=engine.clock();state=engine.state();evidence={} if state is None else state['forecast_evidence']
+    def public(self,value,engine,view):
+        frame=engine.last_frame;now=engine.clock();state=view.get('state');evidence={} if state is None else state['forecast_evidence']
         history=evidence.get('history',{});provenance=evidence.get('provenance',{});pc={} if state is None else state['prediction_counts']
         fresh=bool(frame and 0<=now-frame['at']<=30)
         model_ready=evidence.get('state')=='READY';reason=evidence.get('reason','')
         history_state='READY' if model_ready else 'STALE' if reason=='FORECAST_HISTORY_STALE' else 'GAP' if reason=='FORECAST_HISTORY_GAP' else 'REVIEW_REQUIRED' if 'REVIEW_REQUIRED' in reason else 'NOT_READY'
         native,refs=coverage(frame,now) if fresh else (0,0)
-        o=engine.view().get('active_order');value.update(market_coverage=native,valuation_coverage=refs,data_state='UNOBSERVED' if frame is None else 'STALE' if not fresh else 'FRESH' if engine.lease and engine.lease['valid'] else 'PARTIAL',
+        o=view.get('active_order');value.update(market_coverage=native,valuation_coverage=refs,data_state='UNOBSERVED' if frame is None else 'STALE' if not fresh else 'FRESH' if engine.lease and engine.lease['valid'] else 'PARTIAL',
             history_state=history_state,history_observations=int(provenance.get('observations',history.get('aligned_observations',0))),
             history_required=2400,history_references=5 if model_ready else int(history.get('reference_count',0)),
             validation_predictions=int(provenance.get('validation',{}).get('count',0)),holdout_predictions=int(provenance.get('holdout',{}).get('count',0)),
