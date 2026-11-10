@@ -10,8 +10,10 @@ from v106.export_candles import bar,iso
 from v106.simulator import Simulator
 from v106.strategies import snap
 from v106.preregistered import (MAKER,TAKER,FEE_STRESS,TRAIN_DAYS,TEST_DAYS,STRATEGIES,SOURCE_FRACTION,
-    ENTRY_SIDE,ROUNDTRIPS,ALTERNATING_SIDE,ALTERNATING_PARAMETERS,grid,verdict)
+    ENTRY_SIDE,ROUNDTRIPS,ALTERNATING_SIDE,ALTERNATING_PARAMETERS,MIN_TEST_WINDOWS,MIN_ADVANTAGE_FRACTION,grid,verdict)
 from coincat_execution_limits import native_math
+
+PREREGISTRATION_COMMIT='eed34e25f5dd35499d5e3086a2d4f090a3ffd3b3'
 
 
 def load_frames(directory,rules):
@@ -97,20 +99,22 @@ def study(frames,rules,*,train_days=TRAIN_DAYS,test_days=TEST_DAYS,progress=None
         final=sim.snapshot();doubled=stress[name].snapshot();wins=sum(w['results'][name]['advantage_change_usd']>0 for w in windows)
         final.update(winning_windows=wins,test_windows=len(windows),stress_advantage_usd=doubled['advantage_usd'],stress_advantage_btc=doubled['advantage_btc'],
             stress_fees_pct_initial_portfolio=doubled['fees_pct_initial_portfolio'],stress_by_entry_side=doubled['by_entry_side'],
-            verdict='REFERENCE' if name=='HOLD50' else verdict(wins,len(windows),final['advantage_usd'],doubled['advantage_usd']))
+            verdict='REFERENCE' if name=='HOLD50' else verdict(wins,len(windows),final['advantage_usd'],doubled['advantage_usd'],sim.capital),
+            verdict_reason='INSUFFICIENT_WINDOWS' if name!='HOLD50' and len(windows)<MIN_TEST_WINDOWS else None)
         summaries[name]=final
         ledger.extend(dict(strategy=name,**r) for r in sim.records)
     return dict(status='EVALUATED' if windows else 'NOT_EVALUATED',reason=None if windows else 'NEED_60_DAY_TRAIN_AND_30_DAY_UNSEEN_TEST',
         windows=windows,strategies=summaries,ledger=ledger)
 
 
-def fmt(x):return 'UNKNOWN' if x is None else format(x,'.8g') if isinstance(x,D) else str(x)
+def fmt(x):return 'UNKNOWN' if x is None else ('0' if x==0 else format(x,'.8g')) if isinstance(x,D) else str(x)
 
 
 def render(result):
     summaries=result['strategies'];active=[v for k,v in summaries.items() if k!='HOLD50']
     headline='NOT EVALUATED: insufficient or inaccessible synchronized market data.' if not active else 'ALL STRATEGIES NO-GO; recommend HOLD50 under these assumptions.' if all(r['verdict']=='NO-GO' for r in active) else 'Conditional GO candidates require owner review; paper/live not started.'
-    lines=['# CoinCat v1.06 M2', '',headline,'',
+    lines=['# CoinCat v1.06 M2', '',headline,'','## Design','',
+        'Preregistration commit: `'+result.get('design',{}).get('preregistration_commit',PREREGISTRATION_COMMIT)+'`.',
         'Maker 0.5% per filled leg; stress 1.0%. Taker 0.9% is recorded but never used. Fees are native BTC under an explicit model, not exact exchange settlement proof.',
         'Portfolio: simulated $200 initially 50/50 BTC/ETH, unchanged original HOLD50. No-trade HOLD50 is this same baseline, not an independent fourth sample.',
         'Only unseen 30-day windows are headline results; preceding 60 days choose parameters. Continuous OOS inventory/HOLD/stuck cycles carry across windows.',
@@ -122,7 +126,8 @@ def render(result):
         '| Strategy | Verdict | Wins/windows | USD advantage | BTC advantage | 2x fees USD advantage | Fees USD | Fees % portfolio | Cycles/day | Avg cycle days | Max stuck days | Misses / submitted | Open cycle | Max DD |',
         '|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---:|']
     for name,r in summaries.items():
-        values=[name,r['verdict'],f"{r['winning_windows']}/{r['test_windows']}",r['advantage_usd'],r['advantage_btc'],r['stress_advantage_usd'],r['fees_usd'],r['fees_pct_initial_portfolio'],r['cycles_per_day'],r['average_days_per_cycle'],r['max_stuck_days'],f"{r['misses']}/{r['orders']}",r['open_cycle'],r['max_drawdown']]
+        decision=r['verdict']+(' ('+r['verdict_reason']+')' if r.get('verdict_reason') else '')
+        values=[name,decision,f"{r['winning_windows']}/{r['test_windows']}",r['advantage_usd'],r['advantage_btc'],r['stress_advantage_usd'],r['fees_usd'],r['fees_pct_initial_portfolio'],r['cycles_per_day'],r['average_days_per_cycle'],r['max_stuck_days'],f"{r['misses']}/{r['orders']}",r['open_cycle'],r['max_drawdown']]
         lines.append('| '+' | '.join(map(fmt,values))+' |')
     for name in ROUNDTRIPS:
         if name not in summaries:continue
@@ -143,7 +148,7 @@ def render(result):
             values=[w['start_utc']+' to '+w['end_utc'],name,r['advantage_change_usd'],r['advantage_change_btc'],r['fees_pct_starting_portfolio'],str(r['trades'])+' / '+str(r['fills']),r['misses'],r['max_drawdown'],str(r['selected_params'])]
             lines.append('| '+' | '.join(map(fmt,values))+' |')
     lines+=['','Entry cancels/replaces, native fees, partials, pending orders, gaps, wallet and full simulated ledger: backtest_results.json.',
-        'GO: >=60% winning windows, positive final advantage and nonnegative doubled-fee advantage. Stress uses the same base-training choices. Open losses are included. Stop for owner review.']
+        'GO: >=10 unseen test windows, >=60% winning windows, final advantage over HOLD50 >=1% of the starting portfolio, and nonnegative doubled-fee advantage. Fewer windows or a smaller gain => NO-GO. Stress uses the same base-training choices. Open losses are included. Stop for owner review.']
     return '\n'.join(lines)+'\n'
 
 
@@ -163,7 +168,9 @@ def main(argv=None):
     result['m0_sha256']=hashlib.sha256(a.fees.read_bytes()).hexdigest()
     result['data_hashes']={f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in a.data.glob('*_5m.csv')}
     result['design']=dict(maker=str(MAKER),taker_recorded_not_used=str(TAKER),stress=str(FEE_STRESS),train_days=TRAIN_DAYS,test_days=TEST_DAYS,
-        preregistration_commit='4dc4ca83d491c2f3fcf54889055ce914d7ca6400',original_preregistration_commit='78f70fa',
+        preregistration_commit=PREREGISTRATION_COMMIT,original_preregistration_commit='78f70fa',
+        direction_preregistration_commit='4dc4ca83d491c2f3fcf54889055ce914d7ca6400',
+        minimum_test_windows=MIN_TEST_WINDOWS,minimum_advantage_fraction=str(MIN_ADVANTAGE_FRACTION),
         preregistration_sha256=hashlib.sha256((Path(__file__).with_name('preregistered.py')).read_bytes()).hexdigest(),
         source_fraction=str(SOURCE_FRACTION),entry_side=ENTRY_SIDE,grids={n:grid(n) for n in STRATEGIES},
         alternating_side=ALTERNATING_SIDE,alternating_parameters=ALTERNATING_PARAMETERS,

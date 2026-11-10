@@ -31,7 +31,7 @@ No missing candles are synthesized. Data/output is ignored by Git.
 M2 waits for a COMPLETE export and the verified fees.json. A failed/absent export
 produces NOT EVALUATED, never a fabricated GO/NO-GO verdict or simulated market data.
 
-M2 preregistration 78f70fa; direction/comparison amendment 4dc4ca8 before evaluation.
+M2 preregistration 78f70fa; direction amendment 4dc4ca8; GO amendment eed34e2.
 HOLD50 is unchanged initial 50/50 inventory, zero trades/fees; its no-trade alias
 is not an independent baseline. BAND, RATIO and both ROUNDTRIP variants compare to it.
 60 days train / next unseen 30 days; no selection on test/stress outcomes.

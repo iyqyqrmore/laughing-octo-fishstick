@@ -6,7 +6,7 @@ from pathlib import Path
 import json,unittest
 from v106.simulator import Simulator
 from v106.strategies import exit_price
-from v106.backtest import study,render,main
+from v106.backtest import study,render,main,fmt
 from v106.preregistered import MAKER,verdict,grid
 
 RULES=dict(base_increment='0.00000001',price_increment='0.000001',base_min_size='0.00000001',
@@ -103,9 +103,27 @@ class Roundtrip(unittest.TestCase):
         sim=self.begin();o=deepcopy(sim.order);sim.step(frame(5,low=str(o['price']-D('.000001'))))
         self.assertEqual(sim.metrics['fills'],0);self.assertEqual(sim.metrics['fees_btc'],0);self.assertEqual(sim.metrics['gaps'],1)
     def test_go_rule_boundaries_and_registered_roundtrip_grid(self):
-        self.assertEqual(verdict(6,10,D(1),D(0)),'GO')
-        for args in ((5,10,D(1),D(1)),(6,10,D(0),D(1)),(6,10,D(1),D('-.01'))):self.assertEqual(verdict(*args),'NO-GO')
+        self.assertEqual(verdict(6,10,D(2),D(0)),'GO')
+        for args in ((9,9,D(200),D(200)),(5,10,D(2),D(1)),(6,10,D('1.9999999999999999999999999999'),D(1)),
+                (6,10,D(0),D(1)),(6,10,D(2),D('-.01')),(0,0,D(200),D(200))):
+            with self.subTest(args=args):self.assertEqual(verdict(*args),'NO-GO')
+        self.assertEqual(verdict(6,10,D(10),D(0),D(1000)),'GO')
+        self.assertEqual(verdict(6,10,D('9.99'),D(1),D(1000)),'NO-GO')
         self.assertEqual(len(grid('ROUNDTRIP')),27);self.assertTrue(all(len(p)==3 for p in grid('ROUNDTRIP')))
+    def test_zero_decimal_formatting_keeps_nonzero_precision_and_unknowns(self):
+        for value in ('0','-0','0.00000000','0E-80','-0E+12'):
+            with self.subTest(value=value):self.assertEqual(fmt(D(value)),'0')
+        self.assertEqual(fmt(D('0.00000000000000000001')),'1e-20')
+        self.assertEqual(fmt(D('-1.234567891')),'-1.2345679');self.assertEqual(fmt(None),'UNKNOWN')
+    def test_report_zero_cells_and_amended_go_rule_are_rendered_together(self):
+        value=Simulator('HOLD50',frame(0),RULES).snapshot()
+        for key,number in value.items():
+            if isinstance(number,D) and not number:value[key]=D('-0E-80')
+        value.update(verdict='REFERENCE',winning_windows=0,test_windows=10,stress_advantage_usd=D('0E-80'))
+        report=render(dict(status='EVALUATED',strategies={'HOLD50':value},windows=[]))
+        self.assertIn('| HOLD50 | REFERENCE | 0/10 | 0 | 0 | 0 | 0 | 0 | 0 | UNKNOWN | 0 | 0/0 | False | 0 |',report)
+        self.assertIn('>=10 unseen test windows',report);self.assertIn('>=1% of the starting portfolio',report)
+        self.assertIn('Preregistration commit: `eed34e25f5dd35499d5e3086a2d4f090a3ffd3b3`.',report)
     def test_walk_forward_keeps_unseen_training_separate_and_adverse_stuck_losses(self):
         frames=[frame(i,'.05' if i<288 else '.04',low='.039') for i in range(864)]
         seen=[]
@@ -130,6 +148,10 @@ class Roundtrip(unittest.TestCase):
         self.assertEqual(first,second);self.assertEqual(len(first['windows']),1)
         self.assertEqual(first['strategies']['HOLD50']['fees_usd'],0)
         self.assertLess(first['strategies']['ROUNDTRIP']['advantage_usd'],0)
+        for name,result in first['strategies'].items():
+            if name!='HOLD50':
+                self.assertEqual(result['verdict'],'NO-GO');self.assertEqual(result['verdict_reason'],'INSUFFICIENT_WINDOWS')
+        self.assertIn('NO-GO (INSUFFICIENT_WINDOWS)',render(first))
 
     def test_incomplete_export_has_no_market_go_no_go_claim(self):
         with TemporaryDirectory() as folder:

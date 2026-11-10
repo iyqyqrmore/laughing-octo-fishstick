@@ -7,7 +7,7 @@ This brief supersedes the v1.05 research goals in `AGENTS.md` for this patch onl
 
 ## 1. What the owner actually wants (plain words)
 
-- A small, simple, automatic spot trader on **Coinbase (Coinbase One account)** using the **Advanced Trade API**, trading **watched markets only**
+- A small, simple, automatic spot trader on **Coinbase (Coinbase One account)** using the **Advanced Trade API**, trading **ETH-BTC only**.
 - Small account (hundreds of dollars, not thousands). Fees matter more than anything else.
 - The only success measure is: **after all fees, is the portfolio worth more than if the owner had just held 50/50 BTC and ETH with no trading, over 30 days?**
 - "A few dollars a day" is a hope, **not a target**. A result of "no strategy beats HOLD after fees" is an acceptable and useful answer. In that case say so plainly and recommend HOLD.
@@ -29,10 +29,10 @@ This brief supersedes the v1.05 research goals in `AGENTS.md` for this patch onl
 3. A small backtest harness with three strategies and a pre-registered go/no-go rule.
 4. A paper runner using the same strategy code as live.
 5. A live runner behind explicit flags, with hard caps, for tiny size only.
-6. One daily summary
+6. One daily summary file.
 
-###(BTC-USD and ETH-USD may be used as **price references only**).
-
+### Out of scope (do not do)
+- SOL, LINK, ADA, USD cross pairs as trade markets (BTC-USD and ETH-USD may be used as **price references only**).
 - Multi-horizon forecasting, analog models, 168-hour trial clocks, new GUI windows, tray/minimize work, new monitor extensions.
 - New markdown files beyond this brief and one short `README_V106.md` (max 60 lines).
 - Editing protected modules (ManualExecution, LimitOrderServices, native receipt/fee-unit code, FIFO/tax/state/key/backup modules, TrialStore/TrialClock). Import them; do not modify them.
@@ -44,13 +44,13 @@ New code target: **under ~1,500 lines** in a new folder (`v106/`), plus tests. I
 ## 4. Milestones (do them in order; stop and report after each)
 
 ### M0: Fee truth (GET-only)
-- `v106/fee_check.py`: read the account's current fee tier (Advanced Trade transaction summary) and watched market product details (base/quote increments, min and max sizes).
-- Print: maker rate, taker rate, **round-trip cost** (maker+maker and taker+taker), and the minimum watched market order in both ETH and BTC.
+- `v106/fee_check.py`: read the account's current fee tier (Advanced Trade transaction summary) and ETH-BTC product details (base/quote increments, min and max sizes).
+- Print: maker rate, taker rate, **round-trip cost** (maker+maker and taker+taker), and the minimum ETH-BTC order in both ETH and BTC.
 - Do not assume Coinbase One changes the Advanced rate. Report what the API says.
 - **Acceptance:** output is saved to `v106_out/fees.json`. Nothing is traded.
 
 ### M1: Data export
-- `v106/export_candles.py`: pull **closed** public candles for watched markets, plus BTC-USD and ETH-USD (for USD valuation), at 1h and 5m, for as long as the API allows up to 2 years. Page at most 350 bars per request with polite pacing.
+- `v106/export_candles.py`: pull **closed** public candles for ETH-BTC, plus BTC-USD and ETH-USD (for USD valuation), at 1h and 5m, for as long as the API allows up to 2 years. Page at most 350 bars per request with polite pacing.
 - Write CSVs to `v106_out/data/`. Never fill missing bars. Write a `gaps.csv` listing gaps. Conflicting duplicate bars: keep the first, log the conflict.
 - **Acceptance:** row counts and date range printed; gaps reported; re-run is idempotent.
 
@@ -63,7 +63,7 @@ New code target: **under ~1,500 lines** in a new folder (`v106/`), plus tests. I
 - **Fill model (conservative):** a maker limit fills only if the next bar trades **through** the limit price by at least 1 tick. Otherwise it is a **miss**. Orders cancel after N bars (default 2 on 5m). Misses count and are reported; they stay in the denominator. No taker fallback in the backtest. Use the **actual fee rates from M0**. Also run a stress case with fees **doubled**.
 - **Walk-forward only:** choose parameters on a training window, evaluate on the next unseen window (for example 60 days train, 30 days test, rolling). Never report in-sample results as the headline.
 - **Report, per test window and in aggregate:** net value change versus HOLD50 in USD **and** in BTC terms, fees paid, trades, misses, max drawdown, time in market.
-- **Pre-registered go/no-go (commit this rule before running):** GO only with **at least 10 unseen test windows**, a win over HOLD50 after fees in **at least 60% of test windows**, a final advantage over HOLD50 of **at least 1% of the starting portfolio**, **and** a non-negative aggregate advantage under doubled fees. Fewer windows or a smaller gain => NO-GO.
+- **Pre-registered go/no-go (commit this rule before running):** GO only if the strategy beats HOLD50 after fees in **at least 60% of test windows**, the aggregate advantage is positive, **and** the aggregate is still non-negative under doubled fees. Otherwise NO-GO.
 - **Acceptance:** `v106_out/backtest_report.md` with the table and the GO/NO-GO verdict per strategy. If every strategy is NO-GO, say so at the top of the report and stop. Do not proceed to M3 without owner review.
 
 ### M3: Paper runner
@@ -133,7 +133,7 @@ After **30 days of paper** and then **30 days of tiny live**:
 
 ## 9. One-line prompt to start Codex
 
-> Read `CODEX_PATCH_BRIEF_v1.06.md` and do M0 only. Report the fee tier, round-trip cost, and minimum watched market order, then stop and wait.
+> Read `CODEX_PATCH_BRIEF_v1.06.md` and do M0 only. Report the fee tier, round-trip cost, and minimum ETH-BTC order, then stop and wait.
 
 ## Owner follow-ups — active scope after M0
 
@@ -150,8 +150,15 @@ After **30 days of paper** and then **30 days of tiny live**:
 - BAND grid means 3/5/8 percentage points from 50%. RATIO uses a fixed 24h log-ratio history and the original k grid/2x round-trip fee gate.
 - OHLCV lacks historical BID/ASK and queues. Backtest touch is explicitly modeled as close minus/plus one native tick, not presented as observed quotes. The following bar must trade through by >=1 tick. Filled quantity cannot exceed that bar's base volume; same-bar entry-to-exit fills are forbidden. All fills remain conditional assumptions.
 - Missing synchronized bars cancel modeled resting orders without fills; preserve inventory and disclose gaps. Training chooses parameters using only the preceding 60 days (net advantage, then lower fees/trades, then fixed grid order); evaluate the next unseen 30 days. Carry OOS wallet, original HOLD and stuck cycles continuously; apply new parameters only to future ROUNDTRIP cycles. No forced test-boundary sale/reset.
-- Per-window wins use the change in advantage during that window, not a previous window's accumulated gain. GO requires >=10 unseen test windows, >=60% winning windows, final aggregate advantage over HOLD50 >=1% of the starting portfolio, and nonnegative doubled-fee aggregate. Fewer windows or a smaller gain => NO-GO. Stress uses the base-training choices, not a second search after stress outcomes.
+- Per-window wins use the change in advantage during that window, not a previous window's accumulated gain. GO rule remains >=60% winning test windows, positive final aggregate advantage, nonnegative doubled-fee aggregate. Stress uses the base-training choices, not a second search after stress outcomes.
 - Report cycle counts/day, average days/cycle, net USD/BTC, fees (% total initial portfolio), entry cancels/replaces, misses, pending/partial orders, maximum stuck time, drawdown, exposure time and unchanged HOLD50 comparison. Preserve unfavorable/no-fill/open outcomes.
 - BAND passing is an owner's hypothesis, not a target for tuning or a preselected result. Stop after M2; no paper or live runner/actual orders until owner review. If real data is inaccessible, report INCOMPLETE/NOT EVALUATED, never synthetic performance as market results.
 - Windows verification follow-up at 8ef54b3: owner supplied 273 matching hashes, 726 tests, 9 failures, 46 errors, one host-symlink skip in 2143.064s. Correct explicit Tk image ownership, single refresh/reconnect timer lifetime and GUI fixture startup/cleanup timing; keep all financial assertions, strategies, native fees, permissions and protected modules unchanged. Add focused regression coverage under v106/tests and include those tests in full source verification; a Linux result does not establish native Windows acceptance.
 - Next native Windows result: focused 63 tests pass in 28.891s; full 789 tests report four failures, zero errors and one host-symlink skip in 2217.350s. All four failures are MULTI_PUBLIC_HORIZON_TOTALS during GUI cleanup. Build public totals, horizon/rejection counts and order facts from one captured published observation; preserve strict validators, financial records, lifecycle/fee/strategy rules and protected modules. Force checkpoint/publication interleavings in regressions; do not suppress errors, reset counters or relax validation.
+
+### 2026-11-10 — Owner amendment before real M2
+
+- This GO amendment supersedes the original M2 rule above: require at least 10 unseen 30-day test windows, at least 60% winning windows, final net USD advantage over HOLD50 of at least 1% of the starting portfolio, and nonnegative final advantage under doubled fees. Fewer windows => NO-GO with label `INSUFFICIENT_WINDOWS`; a smaller gain => NO-GO. Committed as `eed34e25f5dd35499d5e3086a2d4f090a3ffd3b3` before any real-data evaluation. No separate BTC-positivity rule or stuck-cycle-time metric is added.
+- Restore the original Out of scope section and ETH-BTC-only wording supplied by the owner. Print zero Decimal values as `0` in `backtest_report.md`.
+- No further GUI work. Report any new GUI/test failure to the owner instead of fixing it unprompted. Do not touch protected modules.
+- Return both `backtest_results.json` and `backtest_report.md` after the real run. Stop after this patch; no real M2 run or later milestone is authorized by this amendment.
