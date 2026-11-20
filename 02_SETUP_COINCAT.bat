@@ -1,22 +1,20 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-echo CoinCat v1.05 source preview - Manual Spot and intelligent 24-hour shadow
-if exist ".venv\Scripts\python.exe" goto packages
-py -3.11 -m venv ".venv"
-if errorlevel 1 (
- echo Install Windows Python 3.11 with its py launcher, then retry.
- pause
- exit /b 3
+py -3.11 -c "import tkinter; assert tkinter.TkVersion >= 8.6"
+if errorlevel 1 goto :failed
+if not exist ".venv\Scripts\python.exe" (
+    py -3.11 -m venv ".venv"
+    if errorlevel 1 goto :failed
 )
-:packages
-"%~dp0.venv\Scripts\python.exe" -m pip install --disable-pip-version-check --require-hashes -r "%~dp0app_requirements.lock"
-if errorlevel 1 goto fail
-call "%~dp0tools\CREATE_SHORTCUTS.bat"
-echo Setup complete. Run 03_VERIFY_COINCAT.bat before starting.
+".venv\Scripts\python.exe" -m pip install --require-hashes --only-binary=:all: -r requirements.lock
+if errorlevel 1 goto :failed
+".venv\Scripts\python.exe" verify_source.py
+if errorlevel 1 goto :failed
+echo Setup complete. Open 01_START_COINCAT.bat.
 pause
 exit /b 0
-:fail
-echo Dependency installation failed. Existing private data was not changed.
+:failed
+echo Setup did not complete. Check Python 3.11, Tkinter and the dependency download.
 pause
-exit /b 5
+exit /b 1

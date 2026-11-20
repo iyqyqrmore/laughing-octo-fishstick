@@ -1,55 +1,74 @@
-# CoinCat v1.05 — Windows update and acceptance
+# CoinCat v1.07
 
-This update adds a separate multi-horizon shadow trial while preserving the existing v1.05 24-hour trial and all private financial records. Never delete a cache/trial to obtain a passing test or reset a benchmark.
+CoinCat compares a modeled ETH/BTC portfolio with holding the same opening
+quantities. It proposes independent ETH-BTC maker orders and simulates eligible
+fills when sufficient public trade evidence is present. **Live trading is disabled.**
 
-## Update an existing v1.05 installation
+## Start on Windows
 
-1. Close CoinCat and its local monitor helper; wait for both to exit. Back up the entire stopped folder, including data. Never copy an open SQLite database or run two instances against one data directory.
-2. Download the latest `coincat-v1.05` ZIP into a staging folder. Verify its source hashes with `VERIFY_SOURCE.py`, or setup then `03_VERIFY_COINCAT.bat`. Confirm zero mismatches.
-3. This update retires no additional source files. Copy only source-package contents into the stopped **existing v1.05** folder, replacing listed source files and `SHA256_MANIFEST.json`. Preserve `.venv`, `private_data`, `private_backups`, `research_data`, `support_monitor`, saved keys and other private files. The source ZIP contains none of those data folders. Do not overlay pre-v1.05 installations with retired dashboards.
-4. Alternatively, use a fresh source folder and the established verified backup/import procedure to retain private data; preserve the entire `research_data` tree while both apps are stopped. A blank data directory starts another installation rather than recovering the old trial. Keep the original backup intact.
-5. Run **03_VERIFY_COINCAT.bat** from the updated folder. Expect v1.05, matching hashes, syntax success and zero failures/errors. Save final runtime, discovered, counts, skipped tests and any traceback. Launch only after it passes.
+1. Install 64-bit CPython 3.11 with Tcl/Tk and the Python launcher.
+2. Extract the GitHub source ZIP to a fresh folder. Retain your older folders
+   and any private data or backups separately.
+3. Run `02_SETUP_COINCAT.bat` to install the hash-locked optional authentication
+   dependency and verify the source. `03_VERIFY_COINCAT.bat` verifies the source
+   offline using only Python's standard library.
+4. Open `01_START_COINCAT.bat`. Copy the actual starting ETH and BTC quantities
+   from your portfolio, confirm **Freeze opening HOLD**, then **Start shadow**.
+   Closing the window exits. Restart opens paused and preserves the ledger.
 
-## Fresh installation and offline verification
+The fresh SQLite database is `private_data/v107/one_leg.sqlite3` relative to the
+extracted folder. CoinCat reads no database, settings or credential files from
+other builds. Keep that folder private. The opening quantities are permanent
+for that database. A separate installation starts a separate benchmark.
 
-Install 64-bit Windows Python 3.11 with `py` if needed. Extract the complete ZIP to a short path such as `C:\CoinCat_v1.05`; do not run inside it. Run **02_SETUP_COINCAT.bat**, then **03_VERIFY_COINCAT.bat**. Setup uses hash-locked dependencies in this folder's `.venv`.
+## Read-only Coinbase configuration
 
-The verifier prints named tests, timing and a 30-second heartbeat. Windows may take 20–30 minutes or longer. Wait for final `COUNTS`. A stated host-symlink capability skip is acceptable; SQLite cleanup errors are failures. Tests use disposable synthetic state and forbid HTTP/WebSockets before discovery; they never open your key/account. Linux success does not replace native Windows acceptance.
+For proposals, make available a Coinbase Advanced Trade view-only API key in
+the environment that starts CoinCat. The variables are `COINBASE_API_KEY` and
+`COINBASE_API_SECRET`. Use the Coinbase key format accepted by the SDK (verify
+the key type with Coinbase for Advanced Trade). The app never saves the key.
+Without an authenticated maker rate, the dashboard can mark the portfolio and
+will HOLD. It takes no account fee rate from Coinbase One membership.
 
-Optional **tools\VERIFY_INTELLIGENT_TRADER.bat** includes both policies, history, construction, chronology, fees, lifecycle, recovery, privacy and Tk. It does not replace full verification.
+From the installation folder in Windows Command Prompt with those variables set:
 
-## Connect and identify the policy
+```bat
+.venv\Scripts\python.exe -m coincat.fees --rules > private_data\v107\fees.json
+.venv\Scripts\python.exe -m coincat.history --output private_data\v107\market --days 120
+.venv\Scripts\python.exe -m research.backtest --data private_data\v107\market --fees private_data\v107\fees.json --output private_data\v107\comparison
+```
 
-1. Start **01_START_COINCAT.bat**. Confirm v1.05, seven tabs, initially 1h charts, inset logo, private live portfolio total/holdings hover and **Live orders blocked ON**. Close exits; tray/minimize remains removed, maximize remains. Windows shutdown must not be vetoed.
-2. Connect with your saved local key/data; never send keys or databases to chat. Check books, candles, available balances, manual history and fee estimates. Stale/partial inputs must be labeled. Non-watch holdings in account totals do not become shadow funds.
-3. Open **Intelligent shadow…**. Select **24-hour baseline** or **Multi-horizon**. An existing opted-in 24h trial recovers with original settings; user pause persists. Selecting another view does not pause/start/reset/migrate either trial.
-4. Select **Multi-horizon**, inspect **Frozen settings**, then press **Start / resume intelligent shadow** once to opt in to its own trial. Default first Start freezes fresh available BTC/ETH/SOL/LINK/ADA balances, excluding holds. Fictional funding is only a pre-start choice. No funds move. To observe only one policy, explicitly Pause the other.
+First launch creates `private_data/v107`. The export can take several minutes;
+use a fixed `--end YYYY-MM-DD` to resume the same range. The optional
+`--interval 60` or `--interval 3600` exports one-minute or hourly candles. The
+v1.07 forecast and matched comparison use the five-minute stream. Recent closed
+bars are fetched during connected shadow operation. History gates each forecast
+independently. The immediate path works with synchronized books and a verified
+fee while historical evidence is still accumulating.
 
-## Read progress and explanations
+To reconcile actual fills independently, run
+`.venv\Scripts\python.exe -m coincat.receipts`. To reconcile a specific historical
+ETH-BTC order including order status and recorded filled size, append
+`--order <Coinbase UUID>`. Aggregate output omits Coinbase IDs and amounts.
+Actual receipt records stay in the local database.
 
-1. The top shows state/freshness, last observation age, review/direction/order/fill counts, valid hours and completion percentage. Advancing counts with HOLD mean it is running; zero orders is not a hang.
-2. **Forecast / rejections → History / progress** shows five fixed USD references across minute/five-minute/hourly grids: bars, pages, aligned totals, jobs, failures, last success age and review/backoff. Full windows are 4,320 minutes, 2,880 five-minute bars and 2,400 hours. Immediate needs 61 minutes. Valid hours measure current monitoring, not training readiness.
-3. After the current worker/manual reconciliation ends, overdue history gets a bounded opportunity every 30s. Jobs rotate references/grids and alternate current/older backfill, one page of at most 350 bars. Failed references retry independently. Network latency and sparse products can delay readiness; no guaranteed completion time is claimed.
-4. **By horizon** shows fourteen directions and six outcomes. Missing 24h history must not suppress a supported short horizon. Review exact reasons and history/data/fees/rules/funds/liquidity/uncertainty/risk/advantage counts. These are evaluations, not exchange order rejections. Conflicting closed prices require review, never silent overwrite. Save diagnostics if stuck; do not reduce fees or delete data.
-5. **Construct / explain…**: choose ETH-BTC BUY, enter an all-in **BTC source budget** or use native minimum, then explain. Confirm ETH base quantity, BTC/ETH limit, own BTC fee assumption and native increments/minima. SELL uses ETH quantity and deducts its own BTC fee from proceeds. Preview cannot submit/cancel/authorize.
-6. Read A native rules/funds, B six economic scores, C conditional public evidence versus unknown fill calibration, D shadow-only authority. The November 9 example computes a conditional 0.50% estimate; exact actual commission and original economics remain UNKNOWN. Today's quotes never reconstruct that historical recommendation.
+## Verify on native Windows
 
-## Supervised shadow and recovery checks
+1. Run the offline verification from an extracted source package and launch it.
+   Check the window icon, tabs, Windows minimize behavior, close, and restart.
+2. With a view-only key, check that ETH-BTC, ETH-USD and BTC-USD are fresh and
+   the fee verification reports the current spot rates. Disconnect and confirm
+   that further proposals stop. Reconnect and explicitly resume as needed.
+3. Observe HOLD and, if an opportunity appears, check LIMIT GTC Post Only
+   proposal amounts, source reservations and native increments. A simulated
+   fill should follow eligible evidence only. Compare a partial fill commission
+   to its filled quantity. The actual Coinbase account should receive no order.
+4. Pause or restart and verify the same opening portfolio, filled amounts and
+   fees. Review any unresolved shadow remainder before resuming. Acknowledgment
+   releases its shadow reservation without recording a fill.
+5. Check that the 1h, 6h and 24h changes populate only after the corresponding
+   observations exist. Compare net modeled value against the frozen HOLD using
+   synchronized marks on both holdings.
 
-Observe 15–30 minutes, then 60–120 minutes before overnight use. HOLD is valid. Check maker BID BUY/ASK SELL, 30s review, 120s assessment, 600s child, 1,800s original campaign and three replacements. No forced trade/exit or taker fallback. Touch/time never fills. Public-tape fills are conditional, not Coinbase receipts; no-fill provider deliberately infers none.
-
-Fees occur once on filled quantity only. Partial inventory remains owned; canceled unfilled size pays zero. UNKNOWN blocks replacement. Remaining holds, racing fills and original funding/quantity/expiry/attempts reconcile before replacement. Fake replay receipts are not realistic exchange fill evidence.
-
-**Portfolio / evidence** shows modeled and original HOLD USD on identical references, net USD/%, losses/open inventory, drawdown, native fees and rolling 1/6/24h changes. A justified forecast trade can initially lose marked value through its fee. No future reverse commission is paid and no horizon mandates a sale. The chart retains full span with reduced older resolution and recent rolling detail; the private journal retains all recorded marks/intents/receipts.
-
-Pause/resume, then restart and disconnect/sleep/reconnect. Identity/settings/benchmark/wallet/fees/hours must persist. Offline/stale/partial/suspended time does not count or fill. Recovery waits for fresh inputs; user pause remains. UNKNOWN/corruption stays for review. At 168 valid hours the report freezes and no new trial starts. Zero trades validates monitoring/recovery, not profit.
-
-**Comparison** labels independently started live trials NOT PAIRED. Do not rank different starting portfolios/periods. For identical synthetic studies run `verification/multi_horizon_scenarios.py --output <folder-outside-source>`. The two-hour favorable/reversal/no-fill studies do not mature a 24h forecast or prove live returns.
-
-## Diagnostics and monitor
-
-Stop the old helper, enable **Local monitor**, then run **tools\START_LOCAL_MONITOR.bat** from the updated folder. Check current v1.05 freshness, separate policy identities, per-horizon counts and history progress; automatic real authority stays false. Helper routes are read-only.
-
-Export Diagnostics/monitor snapshot: fixed codes/counts/enums only, without quantities, USD advantage, native fees, keys, paths, IDs, receipts or forecasts. Private reports/CSV/audits stay local. Report source commit, Windows runtime/counts, history/rejection progress and controlled recovery errors. Exact account settlement auditing remains separate.
-
-Keep actual live block ON throughout acceptance. Deliberate OFF + manual click remains REAL bounded trading; neither shadow policy can automatically place real orders. Connected Windows/product/history/fee/account checks, forecast/fill calibration and any future live pilot remain pending.
+See [strategy](STRATEGY.md), [fees](FEE_ACCOUNTING.md), [research](RESEARCH_REPORT.md),
+[release notes](RELEASE_NOTES.md), and [verification](VERIFICATION.md).
